@@ -4,13 +4,19 @@
   "description": "API for EmitDocs - Document Automation · Bulk Issuance",
   "main": "api/index.ts",
   "scripts": {
-    "dev": "tsx watch api/index.ts",
-    "build": "tsc"
+    "dev": "tsx watch api/api/index.ts",
+    "build:tsc": "tsc"
   },
   "dependencies": {
+    "@better-auth/mongo-adapter": "^1.7.7",
+    "@hono/node-server": "^2.1.4",
+    "@hono/vercel": "^1.0.1",
     "@hono/zod-validator": "^0.2.2",
+    "better-auth": "^1.7.7",
+    "cloudinary": "^2.11.0",
     "dotenv": "^18.0.7",
     "hono": "^4.4.0",
+    "mongodb": "^7.7.0",
     "mongoose": "^8.4.0",
     "zod": "^3.23.0"
   },

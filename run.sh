@@ -139,7 +139,7 @@ set +e
 echo -e "${COLOR_GREEN}Starting servers...${COLOR_RESET}"
 
 run_with_prefix "web" "$PKG_MANAGER run dev" "frontend" "$COLOR_BLUE"
-run_with_prefix "api" "$PKG_MANAGER run dev" "backend" "$COLOR_GREEN"
+run_with_prefix "api" "vercel dev --yes" "backend" "$COLOR_GREEN"
 
 # Wait for the first server to exit (e.g. crash)
 wait -n

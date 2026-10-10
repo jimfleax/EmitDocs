@@ -1,10 +1,27 @@
 import { Hono } from 'hono'
-import { handle } from 'hono/vercel'
+import { cors } from 'hono/cors'
 import mongoose from 'mongoose'
 import 'dotenv/config'
 import { checkHealth } from './controllers/health.controller'
+import { auth } from './auth'
 
 const app = new Hono().basePath('/api')
+
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
+  .split(',')
+  .map(o => o.trim());
+
+
+app.use('*', cors({
+  origin: (origin) => {
+    if (!origin) return allowedOrigins[0];
+    if (allowedOrigins.includes(origin)) return origin;
+    return null;
+  },
+  credentials: true,
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization', 'x-client-version', 'x-client-name', 'Accept'],
+}))
 
 // Database connection
 const MONGODB_URI = process.env.MONGODB_URI
@@ -74,6 +91,19 @@ app.use('*', async (c, next) => {
 
 app.get('/health', checkHealth)
 
+app.all("/auth/*", (c) => {
+  let req = c.req.raw;
+  const incoming = (c.env as any)?.incoming;
+  if (incoming?.body && req.method !== 'GET' && req.method !== 'HEAD') {
+    req = new Request(req.url, {
+      method: req.method,
+      headers: req.headers,
+      body: JSON.stringify(incoming.body)
+    });
+  }
+  return auth.handler(req);
+})
+
 app.get('/', (c) => {
   return c.json({ 
     message: 'Welcome to EmitDocs API',
@@ -83,5 +113,17 @@ app.get('/', (c) => {
   })
 })
 
+import templatesApp from './routes/templates.route';
+
+app.route('/templates', templatesApp);
+
+import { getRequestListener } from '@hono/node-server'
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export const honoApp = app
-export default handle(app)
+export default getRequestListener(app.fetch)
