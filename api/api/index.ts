@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { handle } from 'hono/vercel'
 import mongoose from 'mongoose'
 import 'dotenv/config'
+import { checkHealth } from './controllers/health.controller'
 
 const app = new Hono().basePath('/api')
 
@@ -9,10 +10,17 @@ const app = new Hono().basePath('/api')
 const MONGODB_URI = process.env.MONGODB_URI
 const DB_NAME = process.env.DB_NAME || 'emitdocs'
 
+let cachedDb: typeof mongoose | null = null
+
 const connectDB = async (retries = 3, delay = 5000) => {
+  // If a connection already exists in this process, return it immediately
+  if (cachedDb) {
+    return cachedDb
+  }
+
   if (!MONGODB_URI) {
     console.warn('MONGODB_URI is not defined in environment variables.')
-    return
+    return null
   }
 
   let uri: string
@@ -22,16 +30,18 @@ const connectDB = async (retries = 3, delay = 5000) => {
     uri = url.toString()
   } catch (err) {
     console.error('Invalid MONGODB_URI format:', err)
-    return
+    return null
   }
 
   while (retries > 0) {
     try {
-      await mongoose.connect(uri, {
+      // Establish a new connection and cache it
+      const client = await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
       })
       console.log(`Successfully connected to MongoDB database: ${DB_NAME}`)
-      return
+      cachedDb = client
+      return client
     } catch (err) {
       retries -= 1
       console.error(`MongoDB connection failed. Retries left: ${retries}`)
@@ -43,19 +53,26 @@ const connectDB = async (retries = 3, delay = 5000) => {
       await new Promise((resolve) => setTimeout(resolve, delay))
     }
   }
+  return null
 }
 
 // Global Mongoose Event Handlers
 mongoose.connection.on('disconnected', () => {
   console.warn('MongoDB connection lost. Mongoose will attempt to auto-reconnect.')
+  cachedDb = null // Clear the cache on disconnect so it reconnects
 })
 
 mongoose.connection.on('error', (err) => {
   console.error('MongoDB encountered a runtime error:', err)
 })
 
-// Initialize connection
-connectDB()
+// Database middleware ensures every API request has a DB connection safely
+app.use('*', async (c, next) => {
+  await connectDB()
+  await next()
+})
+
+app.get('/health', checkHealth)
 
 app.get('/', (c) => {
   return c.json({ 
@@ -66,4 +83,5 @@ app.get('/', (c) => {
   })
 })
 
+export const honoApp = app
 export default handle(app)
