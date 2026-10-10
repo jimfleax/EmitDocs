@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Replace YOUR_DOMAIN.example and remove routes that do not exist or are not public. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://emitdocs.vercel.app/</loc></url>
+  <url><loc>https://emitdocs.vercel.app/features/</loc></url>
+  <url><loc>https://emitdocs.vercel.app/how-it-works/</loc></url>
+  <url><loc>https://emitdocs.vercel.app/use-cases/</loc></url>
+  <url><loc>https://emitdocs.vercel.app/privacy/</loc></url>
+  <url><loc>https://emitdocs.vercel.app/terms/</loc></url>
+</urlset>

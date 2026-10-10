@@ -1,0 +1,5 @@
+# Replace the sitemap host with the verified production domain.
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://emitdocs.vercel.app/sitemap.xml
