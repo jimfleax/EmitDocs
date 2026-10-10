@@ -48,3 +48,6 @@ coverage/
 
 # Antigravity / Gemini internal logs
 .gemini/
+
+# Scratch directory for temporary scripts/docs
+scratch/
