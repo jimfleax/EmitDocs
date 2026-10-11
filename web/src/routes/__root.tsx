@@ -1,5 +1,6 @@
-import { createRootRouteWithContext, Outlet } from '@tanstack/react-router'
+import { createRootRouteWithContext, Outlet, useRouterState } from '@tanstack/react-router'
 import { TanStackRouterDevtools } from '@tanstack/router-devtools'
+import { SpeedInsights } from '@vercel/speed-insights/react'
 
 export interface RouterContext {
   auth: {
@@ -9,11 +10,18 @@ export interface RouterContext {
   }
 }
 
-export const Route = createRootRouteWithContext<RouterContext>()({
-  component: () => (
+function RootComponent() {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+
+  return (
     <>
       <Outlet />
+      <SpeedInsights route={pathname} />
       <TanStackRouterDevtools />
     </>
-  ),
+  )
+}
+
+export const Route = createRootRouteWithContext<RouterContext>()({
+  component: RootComponent,
 })
