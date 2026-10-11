@@ -2,6 +2,7 @@ import { Context } from 'hono';
 import cloudinary from '../lib/cloudinary';
 import { Template } from '../models/Template';
 import { TemplateVersion } from '../models/TemplateVersion';
+import { getJsonBody } from '../lib/request';
 
 export const signUpload = async (c: Context) => {
   const user = c.get('user');
@@ -15,7 +16,6 @@ export const signUpload = async (c: Context) => {
       timestamp,
       folder,
       type: 'authenticated',
-      resource_type: 'raw',
     },
     process.env.CLOUDINARY_API_SECRET!
   );
@@ -31,14 +31,15 @@ export const signUpload = async (c: Context) => {
 
 export const createTemplate = async (c: Context) => {
   const user = c.get('user');
-  const body = await c.req.json();
-  const { name, cloudinaryPublicId } = body;
-
-  if (!name || !cloudinaryPublicId) {
-    return c.json({ error: 'Missing required fields' }, 400);
-  }
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   try {
+    const body = await getJsonBody(c);
+    const { name, cloudinaryPublicId, thumbnailUrl } = body || {};
+
+    if (!name || !cloudinaryPublicId) {
+      return c.json({ error: 'Missing required fields (name and cloudinaryPublicId)' }, 400);
+    }
     // Verify asset using Cloudinary Admin API
     const asset = await cloudinary.api.resource(cloudinaryPublicId, {
       type: 'authenticated',
@@ -52,6 +53,7 @@ export const createTemplate = async (c: Context) => {
     const template = new Template({
       ownerId: user.id,
       name,
+      thumbnailUrl: thumbnailUrl || null,
     });
     await template.save();
 

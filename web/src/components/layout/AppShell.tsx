@@ -1,33 +1,271 @@
+import React, { useState } from 'react'
+import { useLocation, Link } from '@tanstack/react-router'
+import { SignOut, House, FileText, PlusCircle } from '@phosphor-icons/react'
 import { authClient } from '../../lib/auth-client'
 
 export function AppShell({ children }: { children?: React.ReactNode }) {
   const { data: session } = authClient.useSession()
+  const [isSigningOut, setIsSigningOut] = useState(false)
+  const location = useLocation()
+  const pathname = location.pathname
+
+  const isHomeActive = pathname === '/app'
+  const isTemplatesActive = pathname.startsWith('/app/templates')
 
   const handleSignOut = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          window.location.href = '/sign-in';
-        }
-      }
-    })
+    try {
+      setIsSigningOut(true)
+      await authClient.signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            window.location.href = '/sign-in'
+          },
+        },
+      })
+    } catch (error) {
+      console.error('Sign-out error:', error)
+      window.location.href = '/sign-in'
+    } finally {
+      setIsSigningOut(false)
+    }
   }
 
+  const userName = session?.user?.name || 'User'
+  const userEmail = session?.user?.email || ''
+  const userInitial = userName.trim().charAt(0).toUpperCase() || 'U'
+
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <header className="flex justify-between items-center bg-white p-4 shadow rounded mb-4">
-        <h1 className="text-xl font-bold">EmitDocs App</h1>
-        <div className="flex items-center gap-4">
-          <span>{session?.user?.name || session?.user?.email}</span>
-          <button
-            onClick={handleSignOut}
-            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition"
+    <div className="relative min-h-screen h-screen flex flex-col lg:flex-row p-3 lg:p-4 gap-4 overflow-hidden bg-[rgb(16_60_133)] text-white">
+      {/* Ambient background glows for depth */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-400/20 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-32 -left-20 w-80 h-80 rounded-full bg-indigo-400/15 blur-3xl"
+      />
+
+      {/* Mobile & Tablet Top Bar (< lg) */}
+      <header className="lg:hidden flex flex-col gap-3 p-3 bg-white/[0.08] backdrop-blur-xl rounded-2xl shrink-0 border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.12),inset_0_1px_0_0_rgba(255,255,255,0.2)]">
+        <div className="flex items-center justify-between gap-3">
+          {/* Brand */}
+          <div className="flex items-center gap-2.5">
+            <div className="p-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3)] flex-none">
+              <img
+                src="/favicon.svg"
+                alt="EmitDocs"
+                className="w-6 h-6 rounded-lg"
+              />
+            </div>
+            <span className="font-extrabold text-lg tracking-tight text-white drop-shadow-xs">
+              Emit<span className="text-blue-300">Docs</span>
+            </span>
+            <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white/90 border border-white/25">
+              Beta
+            </span>
+          </div>
+
+          {/* Compact Account Info & Sign Out */}
+          <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2">
+              {session?.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt={userName}
+                  className="w-8 h-8 rounded-lg object-cover ring-1 ring-white/30 flex-none shadow-xs"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-white/30 to-white/10 backdrop-blur-md text-white flex items-center justify-center font-bold text-xs ring-1 ring-white/30 flex-none shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3)]">
+                  {userInitial}
+                </div>
+              )}
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-semibold text-white truncate max-w-[120px]">{userName}</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="p-1.5 rounded-lg text-blue-200/80 hover:text-white hover:bg-white/15 border border-transparent hover:border-white/20 backdrop-blur-md transition-all duration-200 disabled:opacity-50 cursor-pointer"
+            >
+              <SignOut size={18} weight="bold" />
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Text List */}
+        <div className="flex items-center gap-5 overflow-x-auto pb-0.5 px-1 scrollbar-none">
+          <Link
+            to="/app"
+            className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
+              isHomeActive
+                ? 'font-black text-white'
+                : 'font-bold text-white/55 hover:text-white'
+            }`}
           >
-            Sign Out
+            <House
+              size={16}
+              weight="bold"
+              className={`shrink-0 ${isHomeActive ? 'text-white' : 'text-white/55'}`}
+            />
+            <span className="translate-y-[1px]">Home</span>
+          </Link>
+
+          <Link
+            to="/app/templates"
+            className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
+              isTemplatesActive
+                ? 'font-black text-white'
+                : 'font-bold text-white/55 hover:text-white'
+            }`}
+          >
+            <FileText
+              size={16}
+              weight="bold"
+              className={`shrink-0 ${isTemplatesActive ? 'text-white' : 'text-white/55'}`}
+            />
+            <span className="translate-y-[1px]">Templates</span>
+          </Link>
+
+          <button
+            type="button"
+            className="flex items-center gap-2 text-sm font-bold text-white/55 hover:text-white transition-colors duration-200 cursor-pointer select-none shrink-0 group"
+          >
+            <PlusCircle size={16} weight="bold" className="shrink-0 text-white/55 group-hover:text-white transition-colors" />
+            <span className="translate-y-[1px]">New Batch</span>
           </button>
         </div>
       </header>
-      <main className="bg-white p-4 shadow rounded min-h-[500px]">
+
+      {/* Desktop Left Navigation Plane (~20% width on lg+) */}
+      <aside className="hidden lg:flex w-full lg:w-[20%] xl:w-[20%] flex-col justify-between p-4 lg:p-6 shrink-0 h-full relative z-10">
+        {/* Top Section */}
+        <div className="space-y-10">
+          {/* Brand Header */}
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/25 shadow-[0_8px_20px_rgba(0,0,0,0.15),inset_0_1px_0_0_rgba(255,255,255,0.35)] flex-none">
+              <img
+                src="/favicon.svg"
+                alt="EmitDocs"
+                className="w-7 h-7 rounded-xl"
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-lg tracking-tight text-white drop-shadow-xs">
+                  Emit<span className="text-blue-300">Docs</span>
+                </span>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white/90 border border-white/25 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]">
+                  Beta
+                </span>
+              </div>
+              <p className="text-[11px] text-blue-100/75 mt-0.5 font-medium">Credential Platform</p>
+            </div>
+          </div>
+
+          {/* Navigation Text List matching Figma style */}
+          <nav className="flex flex-col space-y-6 pl-1">
+            {/* Home */}
+            <Link
+              to="/app"
+              className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
+                isHomeActive
+                  ? 'text-xl font-black text-white'
+                  : 'text-base font-bold text-white/50 hover:text-white'
+              }`}
+            >
+              <House
+                size={isHomeActive ? 22 : 20}
+                weight="bold"
+                className={`shrink-0 ${
+                  isHomeActive
+                    ? 'text-white'
+                    : 'text-white/50 group-hover:text-white transition-colors'
+                }`}
+              />
+              <span className={isHomeActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
+                Home
+              </span>
+            </Link>
+
+            {/* Templates */}
+            <Link
+              to="/app/templates"
+              className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
+                isTemplatesActive
+                  ? 'text-xl font-black text-white'
+                  : 'text-base font-bold text-white/50 hover:text-white'
+              }`}
+            >
+              <FileText
+                size={isTemplatesActive ? 22 : 20}
+                weight="bold"
+                className={`shrink-0 ${
+                  isTemplatesActive
+                    ? 'text-white'
+                    : 'text-white/50 group-hover:text-white transition-colors'
+                }`}
+              />
+              <span className={isTemplatesActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
+                Templates
+              </span>
+            </Link>
+
+            {/* New Batch */}
+            <button
+              type="button"
+              className="flex items-center gap-3 w-full text-left text-base font-bold text-white/50 hover:text-white transition-colors duration-200 cursor-pointer select-none group"
+            >
+              <PlusCircle size={20} weight="bold" className="shrink-0 text-white/50 group-hover:text-white transition-colors" />
+              <span className="translate-y-[1.5px]">New Batch</span>
+            </button>
+          </nav>
+        </div>
+
+        {/* Bottom Section: Account Banner */}
+        <div className="pt-4 border-t border-white/10">
+          <div className="flex items-center justify-between gap-2.5 min-w-0 w-full px-1">
+            <div className="flex items-center gap-3 min-w-0 flex-1 overflow-hidden">
+              {session?.user?.image ? (
+                <img
+                  src={session.user.image}
+                  alt={userName}
+                  className="w-10 h-10 rounded-xl object-cover ring-1 ring-white/20 flex-none shadow-sm"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md text-white flex items-center justify-center font-bold text-sm ring-1 ring-white/25 flex-none shadow-inner">
+                  {userInitial}
+                </div>
+              )}
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="text-sm font-bold text-white truncate block leading-tight">
+                  {userName}
+                </p>
+                <p className="text-xs font-light text-white/60 truncate block leading-tight mt-0.5">
+                  {userEmail || 'Signed in'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              disabled={isSigningOut}
+              title="Sign Out"
+              aria-label="Sign Out"
+              className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50 cursor-pointer flex-none"
+            >
+              <SignOut size={18} weight="bold" />
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      {/* Right Main Container (80% width on lg+) */}
+      <main className="w-full lg:w-[80%] xl:w-[80%] flex-1 min-h-0 h-full bg-white/95 backdrop-blur-2xl rounded-3xl lg:rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.25)] overflow-y-auto p-6 lg:p-10 text-gray-900 border border-white/40 ring-1 ring-black/5 relative z-10">
         {children}
       </main>
     </div>

@@ -1,33 +1,75 @@
-import { useEffect, useState } from 'react'
-import { Link } from '@tanstack/react-router'
-import { Trash, FilePdf } from '@phosphor-icons/react'
+import { useEffect, useState, useMemo } from 'react'
+import { Link, useNavigate } from '@tanstack/react-router'
+import {
+  ArrowLeft,
+  MagnifyingGlass,
+  Plus,
+  Trash,
+  FilePdf,
+  Certificate,
+  CheckCircle,
+} from '@phosphor-icons/react'
+import { InfinityTrack } from '@/components/ui/InfinityTrack'
 
-type Template = {
+interface TemplateVersion {
+  _id?: string
+  version?: number
+  pageCount?: number
+  bytes?: number
+  sourceObjectKey?: string
+  status?: string
+}
+
+interface Template {
   _id: string
   name: string
-  ownerId: string
-  currentVersionId?: string
+  ownerId?: string
+  currentVersionId?: string | TemplateVersion
+  thumbnailUrl?: string
   createdAt: string
-  updatedAt: string
+  updatedAt?: string
+}
+
+function formatDate(isoString: string): string {
+  try {
+    const d = new Date(isoString)
+    return d.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    })
+  } catch {
+    return isoString
+  }
 }
 
 export function TemplateLibrary() {
+  const navigate = useNavigate()
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState<Template | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const fetchTemplates = async () => {
     try {
-      const res = await fetch('http://localhost:3000/api/templates', {
+      const res = await fetch('/api/templates', {
         credentials: 'include',
       })
       if (!res.ok) {
-        throw new Error('Failed to fetch templates')
+        throw new Error(`Failed to fetch templates (${res.status})`)
       }
       const data = await res.json()
-      setTemplates(data)
-    } catch (err: any) {
-      setError(err.message)
+      const list: Template[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.templates)
+          ? data.templates
+          : []
+      setTemplates(list)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to fetch templates'
+      setError(message)
     } finally {
       setLoading(false)
     }
@@ -37,71 +79,297 @@ export function TemplateLibrary() {
     fetchTemplates()
   }, [])
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this template?')) return
+  const filteredTemplates = useMemo(() => {
+    if (!searchQuery.trim()) return templates
+    const q = searchQuery.toLowerCase().trim()
+    return templates.filter((t) => t.name.toLowerCase().includes(q))
+  }, [templates, searchQuery])
+
+  const confirmDelete = async (id: string) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/templates/${id}`, {
+      setIsDeleting(true)
+      const res = await fetch(`/api/templates/${id}`, {
         method: 'DELETE',
         credentials: 'include',
       })
-      if (!res.ok) throw new Error('Delete failed')
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || errData.message || 'Failed to delete template')
+      }
       setTemplates((prev) => prev.filter((t) => t._id !== id))
-    } catch (err: any) {
-      alert(err.message)
+      setDeleteTarget(null)
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Delete failed'
+      alert(message)
+    } finally {
+      setIsDeleting(false)
     }
   }
 
-  if (loading) return <div>Loading templates...</div>
-  if (error) return <div className="text-red-500">{error}</div>
-
-  if (templates.length === 0) {
-    return (
-      <div className="text-center py-10 text-gray-500 bg-gray-50 rounded-lg border border-dashed">
-        <FilePdf size={48} className="mx-auto mb-4 text-gray-400" />
-        <p className="mb-4">No templates found.</p>
-        <Link
-          to="/app/templates/new"
-          className="text-blue-600 hover:underline"
-        >
-          Upload your first template
-        </Link>
-      </div>
-    )
-  }
-
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {templates.map((template) => (
-        <div
-          key={template._id}
-          className="bg-white border rounded-lg p-4 shadow-sm hover:shadow transition flex flex-col"
-        >
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-semibold text-lg truncate" title={template.name}>
-              {template.name}
-            </h3>
-            <button
-              onClick={() => handleDelete(template._id)}
-              className="text-gray-400 hover:text-red-500 transition"
-              title="Delete"
-            >
-              <Trash size={20} />
-            </button>
-          </div>
-          <p className="text-sm text-gray-500 mb-4">
-            Created: {new Date(template.createdAt).toLocaleDateString()}
-          </p>
-          <div className="mt-auto">
-            <Link
-              to="/app/templates/$templateId"
-              params={{ templateId: template._id }}
-              className="text-blue-600 hover:underline text-sm font-medium"
-            >
-              View Details &rarr;
-            </Link>
+    <div className="space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-3">
+          <Link
+            to="/app"
+            title="Back to Dashboard"
+            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer select-none shrink-0"
+          >
+            <ArrowLeft size={20} weight="bold" />
+          </Link>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              Template Library
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
+              Manage, preview, and configure certificate & credential templates
+            </p>
           </div>
         </div>
-      ))}
+
+        {/* Search & Add CTA */}
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:w-64">
+            <MagnifyingGlass
+              size={18}
+              weight="bold"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+            />
+            <input
+              type="text"
+              placeholder="Search templates..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400"
+            />
+          </div>
+
+          <Link
+            to="/app/templates/new"
+            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer select-none text-sm shrink-0"
+          >
+            <Plus size={16} weight="bold" />
+            <span>Add Template</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
+          <InfinityTrack className="text-blue-600" />
+          <span className="text-sm font-medium text-slate-500">Loading templates...</span>
+        </div>
+      )}
+
+      {/* Error State */}
+      {!loading && error && (
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center justify-between">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={fetchTemplates}
+            className="text-xs font-bold uppercase tracking-wider text-rose-800 hover:underline cursor-pointer ml-3"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && !error && filteredTemplates.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
+            <FilePdf size={28} weight="duotone" />
+          </div>
+          <h3 className="text-base font-bold text-slate-900">
+            {searchQuery.trim() ? 'No matching templates' : 'No templates yet'}
+          </h3>
+          <p className="text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
+            {searchQuery.trim()
+              ? `No templates matched "${searchQuery}". Try a different keyword.`
+              : 'Upload a PDF document to create your first certificate or credential template.'}
+          </p>
+          {searchQuery.trim() ? (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+            >
+              Clear search filter
+            </button>
+          ) : (
+            <Link
+              to="/app/templates/new"
+              className="mt-2 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer select-none text-sm"
+            >
+              <Plus size={16} weight="bold" />
+              <span>Create your first template</span>
+            </Link>
+          )}
+        </div>
+      )}
+
+      {/* Template Card Grid */}
+      {!loading && !error && filteredTemplates.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {filteredTemplates.map((template) => {
+            const versionObj =
+              typeof template.currentVersionId === 'object' && template.currentVersionId !== null
+                ? template.currentVersionId
+                : null
+            const versionText = versionObj?.version ? `v${versionObj.version}` : 'v1'
+            const pageCountText = versionObj?.pageCount
+              ? `${versionObj.pageCount} ${versionObj.pageCount === 1 ? 'Page' : 'Pages'}`
+              : '1 Page'
+
+            return (
+              <div
+                key={template._id}
+                onClick={() =>
+                  navigate({
+                    to: '/app/templates/$templateId',
+                    params: { templateId: template._id },
+                  })
+                }
+                className="rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-lg transition-all overflow-hidden group flex flex-col cursor-pointer"
+              >
+                {/* Thumbnail Area */}
+                <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
+                  {/* Badges Overlay */}
+                  <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10 pointer-events-none">
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-white/90 backdrop-blur-xs text-slate-700 shadow-xs border border-slate-200/60">
+                      {versionText}
+                    </span>
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-blue-50/90 backdrop-blur-xs text-blue-700 shadow-xs border border-blue-200/60">
+                      PDF
+                    </span>
+                  </div>
+                  <div className="absolute top-2.5 right-2.5 z-10 pointer-events-none">
+                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-white/90 backdrop-blur-xs text-slate-600 shadow-xs border border-slate-200/60">
+                      {pageCountText}
+                    </span>
+                  </div>
+
+                  {template.thumbnailUrl ? (
+                    <img
+                      src={template.thumbnailUrl}
+                      alt={template.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100/80 p-4 relative group-hover:bg-slate-100/90 transition-colors">
+                      {/* Document silhouette */}
+                      <div className="w-3/4 h-4/5 rounded-lg border border-slate-200/70 bg-white shadow-xs p-3 flex flex-col justify-between transition-transform duration-300 group-hover:scale-[1.03]">
+                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                          <Certificate size={20} weight="duotone" className="text-blue-600" />
+                          <div className="h-1.5 w-12 bg-slate-200 rounded-full" />
+                        </div>
+                        <div className="space-y-1.5 my-auto">
+                          <div className="h-1.5 w-3/4 bg-slate-200/80 rounded-full" />
+                          <div className="h-1.5 w-1/2 bg-slate-100 rounded-full" />
+                          <div className="h-1.5 w-2/3 bg-slate-100 rounded-full" />
+                        </div>
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[8px] text-slate-400 font-medium">
+                          <span>OFFICIAL</span>
+                          <div className="w-3.5 h-3.5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <CheckCircle size={10} weight="bold" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card Info & Actions */}
+                <div className="p-4 flex-1 flex flex-col justify-between gap-3">
+                  <div>
+                    <h3
+                      className="font-bold text-sm sm:text-base text-slate-900 truncate"
+                      title={template.name}
+                    >
+                      {template.name}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                      Created {formatDate(template.createdAt)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100/80">
+                    <Link
+                      to="/app/templates/$templateId"
+                      params={{ templateId: template._id }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 group/link cursor-pointer"
+                    >
+                      <span>View Details</span>
+                      <span className="transition-transform group-hover/link:translate-x-0.5">&rarr;</span>
+                    </Link>
+
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setDeleteTarget(template)
+                      }}
+                      title="Delete template"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash size={16} weight="bold" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteTarget && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs"
+        >
+          <div className="w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-start gap-4">
+              <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash size={20} weight="bold" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Delete Template</h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Are you sure you want to delete{' '}
+                  <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>? This
+                  template will be permanently removed.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmDelete(deleteTarget._id)}
+                disabled={isDeleting}
+                className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Template'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
