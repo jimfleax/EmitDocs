@@ -1,3 +1,17 @@
 {
-  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531"
+  "name": "emitdocs",
+  "private": true,
+  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
+  "scripts": {
+    "test:backend": "cd api && npx tsx test/templates-version.test.ts",
+    "test:engine": "cd web && npx tsx src/lib/pdf-engine/__tests__/pdf-engine.test.ts",
+    "test:ac": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/acceptance-matrix.test.ts",
+    "test:core04": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/core-04-acceptance-matrix.test.ts",
+    "test:core05": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/core-05-acceptance-matrix.test.ts",
+    "test": "pnpm run test:backend && pnpm run test:engine && pnpm run test:ac && pnpm run test:core04 && pnpm run test:core05",
+    "build:api": "cd api && npx tsc --noEmit",
+    "build:web": "cd web && pnpm run build",
+    "build": "pnpm run build:api && pnpm run build:web",
+    "lint": "npx --prefix web oxlint api test && cd web && pnpm run lint"
+  }
 }

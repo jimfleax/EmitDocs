@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ArrowLeft, FilePdf, Certificate, Calendar, CheckCircle } from '@phosphor-icons/react'
-import { InfinityTrack } from '@/components/ui/InfinityTrack'
+import { FilePdf, Certificate, Calendar } from '@phosphor-icons/react'
+import { PageShell } from '@/components/layout/PageShell'
+import { Badge } from '@/components/ui/Badge'
+import { Alert } from '@/components/ui/Alert'
 
 interface TemplateVersion {
   _id: string
@@ -27,6 +29,8 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
   const [versions, setVersions] = useState<TemplateVersion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [imageErrorUrl, setImageErrorUrl] = useState<string | null>(null)
+  const hasImageError = !!template?.thumbnailUrl && imageErrorUrl === template.thumbnailUrl
 
   useEffect(() => {
     const fetchData = async () => {
@@ -55,84 +59,74 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
     fetchData()
   }, [templateId])
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
-        <InfinityTrack className="text-blue-600" />
-        <span className="text-sm font-medium text-slate-500">Loading template details...</span>
-      </div>
-    )
-  }
-
-  if (error || !template) {
-    return (
-      <div className="space-y-4 max-w-3xl">
-        <Link
-          to="/app/templates"
-          className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-        >
-          <ArrowLeft size={16} weight="bold" />
-          <span>Back to Templates</span>
-        </Link>
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm">
-          {error || 'Template not found'}
-        </div>
-      </div>
-    )
-  }
-
   const currentVer =
-    typeof template.currentVersionId === 'object' && template.currentVersionId !== null
+    template && typeof template.currentVersionId === 'object' && template.currentVersionId !== null
       ? template.currentVersionId
       : null
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Header with Back button */}
-      <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-        <Link
-          to="/app/templates"
-          title="Back to Templates"
-          className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer select-none shrink-0"
-        >
-          <ArrowLeft size={20} weight="bold" />
-        </Link>
-        <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-              {template.name}
-            </h1>
-            <span className="px-2 py-0.5 text-xs font-bold uppercase tracking-wider rounded-md bg-blue-50 text-blue-700 border border-blue-200/60">
+    <PageShell
+      title={
+        template ? (
+          <span className="flex items-center gap-2.5">
+            {template.name}
+            <Badge variant="primary" size="md" shape="rounded" mono>
               {currentVer?.version ? `v${currentVer.version}` : 'v1'}
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1 flex items-center gap-2 font-normal">
+            </Badge>
+          </span>
+        ) : (
+          'Template Details'
+        )
+      }
+      subtitle={
+        template ? (
+          <span className="flex items-center gap-2">
             <Calendar size={14} weight="bold" />
-            <span>
-              Created on{' '}
-              {new Date(template.createdAt).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      {/* Main Details Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            Created on{' '}
+            {new Date(template.createdAt).toLocaleDateString('en-US', {
+              month: 'long',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </span>
+        ) : undefined
+      }
+      backTo="/app/templates"
+      backLabel="Back to Templates"
+      isLoading={loading}
+      loadingTitle="Loading template details..."
+      maxWidth="full"
+      actions={
+        currentVer?._id && template ? (
+          <Link
+            to="/app/templates/$templateId/versions/$versionId"
+            params={{ templateId: template._id, versionId: currentVer._id }}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
+          >
+            <span>Map Fields & Preview</span>
+            <span>→</span>
+          </Link>
+        ) : undefined
+      }
+    >
+      {error || !template ? (
+        <Alert variant="error">
+          {error || 'Template not found'}
+        </Alert>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left Column: Preview Card */}
         <div className="md:col-span-1 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs space-y-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Document Preview
           </h3>
           <div className="aspect-[3/4] rounded-xl bg-slate-50 border border-slate-200/60 flex flex-col items-center justify-center p-4 relative overflow-hidden">
-            {template.thumbnailUrl ? (
+            {template.thumbnailUrl && !hasImageError ? (
               <img
                 src={template.thumbnailUrl}
                 alt={template.name}
-                className="w-full h-full object-cover rounded-lg"
+                onError={() => setImageErrorUrl(template.thumbnailUrl || null)}
+                className="w-full h-full object-cover rounded-lg shadow-xs"
               />
             ) : (
               <div className="w-full h-full flex flex-col justify-between items-center text-center py-4">
@@ -141,10 +135,9 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
                   <p className="text-xs font-bold text-slate-700">{template.name}</p>
                   <p className="text-[10px] text-slate-400">PDF Template</p>
                 </div>
-                <div className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
-                  <CheckCircle size={10} weight="fill" />
-                  <span>Ready</span>
-                </div>
+                <Badge variant="success" size="sm" shape="pill" dot>
+                  Ready
+                </Badge>
               </div>
             )}
           </div>
@@ -200,16 +193,27 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
                         </p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60">
-                      Active
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="success" size="sm" shape="pill">
+                        v{ver.version}
+                      </Badge>
+                      <Link
+                        to="/app/templates/$templateId/versions/$versionId"
+                        params={{ templateId: template._id, versionId: ver._id }}
+                        className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-[11px] font-semibold transition-colors"
+                      >
+                        Map Fields
+                      </Link>
+                    </div>
                   </div>
                 ))
               )}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+        </div>
+      )}
+    </PageShell>
   )
 }
+

@@ -5,11 +5,11 @@ import {
   UploadSimple,
   FilePdf,
   CloudArrowUp,
-  CircleNotch,
-  CheckCircle,
-  WarningCircle,
-  X,
 } from '@phosphor-icons/react'
+import { Badge } from '@/components/ui/Badge'
+import { Alert } from '@/components/ui/Alert'
+import { Spinner } from '@/components/ui/Spinner'
+import { toast } from '@/components/ui/toast'
 
 interface SignUploadResponse {
   signature: string
@@ -158,7 +158,7 @@ export function PdfUploadDropzone() {
 
       const cloudinaryData = await new Promise<CloudinaryUploadResponse>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloud_name}/raw/upload`)
+        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`)
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
@@ -223,6 +223,8 @@ export function PdfUploadDropzone() {
         throw new Error('Template created but no template ID was returned.')
       }
 
+      toast.success('Template Uploaded', `Template "${name.trim()}" created successfully.`)
+
       navigate({
         to: '/app/templates/$templateId',
         params: { templateId },
@@ -230,6 +232,7 @@ export function PdfUploadDropzone() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'An unexpected error occurred during upload.'
       setError(message)
+      toast.error('Upload Failed', message)
       setUploadProgress(0)
     } finally {
       setIsUploading(false)
@@ -313,10 +316,9 @@ export function PdfUploadDropzone() {
                   <p className="font-bold text-sm sm:text-base text-slate-900 truncate" title={file.name}>
                     {file.name}
                   </p>
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60 shrink-0">
-                    <CheckCircle size={12} weight="fill" />
+                  <Badge variant="success" size="sm" shape="pill" dot className="shrink-0">
                     Ready
-                  </span>
+                  </Badge>
                 </div>
                 <p className="text-xs text-slate-500 font-medium mt-0.5">
                   {(file.size / 1024 / 1024).toFixed(2)} MB · PDF Document
@@ -349,7 +351,7 @@ export function PdfUploadDropzone() {
         <div className="space-y-2 pt-1 animate-in fade-in duration-200">
           <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
             <span className="flex items-center gap-2">
-              <CircleNotch size={14} weight="bold" className="animate-spin text-blue-600" />
+              <Spinner size="sm" />
               {uploadProgress >= 90 ? 'Finalizing template registration...' : 'Uploading PDF document...'}
             </span>
             <span className="text-blue-600 font-bold">{uploadProgress}%</span>
@@ -365,20 +367,13 @@ export function PdfUploadDropzone() {
 
       {/* Error Banner */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-start justify-between gap-3 animate-in fade-in duration-200">
-          <div className="flex items-start gap-2.5">
-            <WarningCircle size={18} weight="fill" className="text-rose-500 shrink-0 mt-0.5" />
-            <span className="font-medium text-xs sm:text-sm leading-relaxed">{error}</span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setError('')}
-            className="p-1 text-rose-500 hover:text-rose-700 rounded-lg hover:bg-rose-100/50 transition-colors cursor-pointer shrink-0"
-            title="Dismiss error"
-          >
-            <X size={14} weight="bold" />
-          </button>
-        </div>
+        <Alert
+          variant="error"
+          onDismiss={() => setError('')}
+          className="animate-in fade-in duration-200"
+        >
+          {error}
+        </Alert>
       )}
 
       {/* Action Buttons */}
@@ -397,7 +392,7 @@ export function PdfUploadDropzone() {
         >
           {isUploading ? (
             <>
-              <CircleNotch size={18} weight="bold" className="animate-spin" />
+              <Spinner size="md" variant="current" />
               <span>Uploading...</span>
             </>
           ) : (

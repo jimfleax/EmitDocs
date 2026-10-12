@@ -4,6 +4,7 @@ import { RouterProvider, createRouter } from '@tanstack/react-router'
 import { routeTree } from './routeTree.gen'
 import { AuthProvider, useAuth } from './lib/auth-context'
 import { InfinityTrack } from './components/ui/InfinityTrack'
+import { NotFoundView, GeneralErrorView } from './components/errors'
 import './index.css'
 
 const router = createRouter({
@@ -11,6 +12,10 @@ const router = createRouter({
   context: {
     auth: undefined!, // This will be injected by the provider
   },
+  defaultNotFoundComponent: () => <NotFoundView />,
+  defaultErrorComponent: ({ error, reset }) => (
+    <GeneralErrorView error={error} reset={reset} />
+  ),
 })
 
 declare module '@tanstack/react-router' {

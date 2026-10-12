@@ -11,6 +11,8 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
 
   const isHomeActive = pathname === '/app'
   const isTemplatesActive = pathname.startsWith('/app/templates')
+  const isBatchesActive = pathname.startsWith('/app/batches')
+  const isEditorRoute = pathname.includes('/versions/')
 
   const handleSignOut = async () => {
     try {
@@ -51,7 +53,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
         <div className="flex items-center justify-between gap-3">
           {/* Brand */}
           <div className="flex items-center gap-2.5">
-            <div className="p-1 rounded-xl bg-white/10 backdrop-blur-md border border-white/20 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.3)] flex-none">
+            <div className="p-1 rounded-xl bg-white shadow-xs border border-white/30 flex-none">
               <img
                 src="/favicon.svg"
                 alt="EmitDocs"
@@ -60,9 +62,6 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             </div>
             <span className="font-extrabold text-lg tracking-tight text-white drop-shadow-xs">
               Emit<span className="text-blue-300">Docs</span>
-            </span>
-            <span className="text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white/90 border border-white/25">
-              Beta
             </span>
           </div>
 
@@ -131,40 +130,40 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             <span className="translate-y-[1px]">Templates</span>
           </Link>
 
-          <button
-            type="button"
-            className="flex items-center gap-2 text-sm font-bold text-white/55 hover:text-white transition-colors duration-200 cursor-pointer select-none shrink-0 group"
+          <Link
+            to="/app/batches/new"
+            className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
+              isBatchesActive
+                ? 'font-black text-white'
+                : 'font-bold text-white/55 hover:text-white'
+            }`}
           >
-            <PlusCircle size={16} weight="bold" className="shrink-0 text-white/55 group-hover:text-white transition-colors" />
+            <PlusCircle
+              size={16}
+              weight="bold"
+              className={`shrink-0 ${isBatchesActive ? 'text-white' : 'text-white/55'}`}
+            />
             <span className="translate-y-[1px]">New Batch</span>
-          </button>
+          </Link>
         </div>
       </header>
 
-      {/* Desktop Left Navigation Plane (~20% width on lg+) */}
-      <aside className="hidden lg:flex w-full lg:w-[20%] xl:w-[20%] flex-col justify-between p-4 lg:p-6 shrink-0 h-full relative z-10">
+      {/* Desktop Left Navigation Plane (Fixed width on lg+) */}
+      <aside className="hidden lg:flex w-56 xl:w-64 flex-col justify-between p-4 lg:p-6 shrink-0 h-full relative z-10">
         {/* Top Section */}
         <div className="space-y-10">
           {/* Brand Header */}
           <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/25 shadow-[0_8px_20px_rgba(0,0,0,0.15),inset_0_1px_0_0_rgba(255,255,255,0.35)] flex-none">
+            <div className="p-1.5 rounded-2xl bg-white shadow-md border border-white/30 flex-none">
               <img
                 src="/favicon.svg"
                 alt="EmitDocs"
                 className="w-7 h-7 rounded-xl"
               />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-white drop-shadow-xs">
-                  Emit<span className="text-blue-300">Docs</span>
-                </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-white/15 backdrop-blur-md text-white/90 border border-white/25 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)]">
-                  Beta
-                </span>
-              </div>
-              <p className="text-[11px] text-blue-100/75 mt-0.5 font-medium">Credential Platform</p>
-            </div>
+            <span className="font-extrabold text-xl tracking-tight text-white drop-shadow-xs">
+              Emit<span className="text-blue-300">Docs</span>
+            </span>
           </div>
 
           {/* Navigation Text List matching Figma style */}
@@ -215,14 +214,27 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
               </span>
             </Link>
 
-            {/* New Batch */}
-            <button
-              type="button"
-              className="flex items-center gap-3 w-full text-left text-base font-bold text-white/50 hover:text-white transition-colors duration-200 cursor-pointer select-none group"
+            <Link
+              to="/app/batches/new"
+              className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
+                isBatchesActive
+                  ? 'text-xl font-black text-white'
+                  : 'text-base font-bold text-white/50 hover:text-white'
+              }`}
             >
-              <PlusCircle size={20} weight="bold" className="shrink-0 text-white/50 group-hover:text-white transition-colors" />
-              <span className="translate-y-[1.5px]">New Batch</span>
-            </button>
+              <PlusCircle
+                size={isBatchesActive ? 22 : 20}
+                weight="bold"
+                className={`shrink-0 ${
+                  isBatchesActive
+                    ? 'text-white'
+                    : 'text-white/50 group-hover:text-white transition-colors'
+                }`}
+              />
+              <span className={isBatchesActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
+                New Batch
+              </span>
+            </Link>
           </nav>
         </div>
 
@@ -264,8 +276,12 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* Right Main Container (80% width on lg+) */}
-      <main className="w-full lg:w-[80%] xl:w-[80%] flex-1 min-h-0 h-full bg-white/95 backdrop-blur-2xl rounded-3xl lg:rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.25)] overflow-y-auto p-6 lg:p-10 text-gray-900 border border-white/40 ring-1 ring-black/5 relative z-10">
+      {/* Right Main Container (Full remaining flex width on lg+) */}
+      <main
+        className={`flex-1 min-w-0 min-h-0 w-full h-full bg-white/95 backdrop-blur-2xl rounded-3xl lg:rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.25)] text-gray-900 border border-white/40 ring-1 ring-black/5 relative z-10 transition-all ${
+          isEditorRoute ? 'p-0 overflow-hidden' : 'p-6 lg:p-10 overflow-y-auto'
+        }`}
+      >
         {children}
       </main>
     </div>

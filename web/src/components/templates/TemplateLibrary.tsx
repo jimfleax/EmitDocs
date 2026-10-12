@@ -1,7 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
-  ArrowLeft,
   MagnifyingGlass,
   Plus,
   Trash,
@@ -9,7 +8,10 @@ import {
   Certificate,
   CheckCircle,
 } from '@phosphor-icons/react'
-import { InfinityTrack } from '@/components/ui/InfinityTrack'
+import { PageShell } from '@/components/layout/PageShell'
+import { Badge } from '@/components/ui/Badge'
+import { Alert } from '@/components/ui/Alert'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 interface TemplateVersion {
   _id?: string
@@ -43,6 +45,52 @@ function formatDate(isoString: string): string {
   }
 }
 
+function TemplateCardThumbnail({
+  thumbnailUrl,
+  name,
+}: {
+  thumbnailUrl?: string | null
+  name: string
+}) {
+  const [errorUrl, setErrorUrl] = useState<string | null>(null)
+  const hasError = errorUrl === thumbnailUrl
+
+  if (thumbnailUrl && !hasError) {
+    return (
+      <img
+        src={thumbnailUrl}
+        alt={name}
+        loading="lazy"
+        onError={() => setErrorUrl(thumbnailUrl)}
+        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+      />
+    )
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100/80 p-4 relative group-hover:bg-slate-100/90 transition-colors">
+      {/* Document silhouette */}
+      <div className="w-3/4 h-4/5 rounded-lg border border-slate-200/70 bg-white shadow-xs p-3 flex flex-col justify-between transition-transform duration-300 group-hover:scale-[1.03]">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <Certificate size={20} weight="duotone" className="text-blue-600" />
+          <div className="h-1.5 w-12 bg-slate-200 rounded-full" />
+        </div>
+        <div className="space-y-1.5 my-auto">
+          <div className="h-1.5 w-3/4 bg-slate-200/80 rounded-full" />
+          <div className="h-1.5 w-1/2 bg-slate-100 rounded-full" />
+          <div className="h-1.5 w-2/3 bg-slate-100 rounded-full" />
+        </div>
+        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[8px] text-slate-400 font-medium">
+          <span>OFFICIAL</span>
+          <div className="w-3.5 h-3.5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+            <CheckCircle size={10} weight="bold" />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function TemplateLibrary() {
   const navigate = useNavigate()
   const [templates, setTemplates] = useState<Template[]>([])
@@ -51,33 +99,48 @@ export function TemplateLibrary() {
   const [searchQuery, setSearchQuery] = useState('')
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
-
-  const fetchTemplates = async () => {
-    try {
-      const res = await fetch('/api/templates', {
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        throw new Error(`Failed to fetch templates (${res.status})`)
-      }
-      const data = await res.json()
-      const list: Template[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.templates)
-          ? data.templates
-          : []
-      setTemplates(list)
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to fetch templates'
-      setError(message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
-    fetchTemplates()
-  }, [])
+    let isCancelled = false;
+
+    async function fetchTemplates() {
+      try {
+        setLoading(true);
+        setError('');
+        const res = await fetch('/api/templates', {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch templates (${res.status})`);
+        }
+        const data = await res.json();
+        if (!isCancelled) {
+          const list: Template[] = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.templates)
+              ? data.templates
+              : [];
+          setTemplates(list);
+        }
+      } catch (err: unknown) {
+        if (!isCancelled) {
+          const message = err instanceof Error ? err.message : 'Failed to fetch templates';
+          setError(message);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchTemplates();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [retryCount]);
 
   const filteredTemplates = useMemo(() => {
     if (!searchQuery.trim()) return templates
@@ -107,28 +170,14 @@ export function TemplateLibrary() {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between pb-2 border-b border-slate-100">
-        <div className="flex items-center gap-3">
-          <Link
-            to="/app"
-            title="Back to Dashboard"
-            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer select-none shrink-0"
-          >
-            <ArrowLeft size={20} weight="bold" />
-          </Link>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-              Template Library
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 mt-1 font-normal">
-              Manage, preview, and configure certificate & credential templates
-            </p>
-          </div>
-        </div>
-
-        {/* Search & Add CTA */}
+    <PageShell
+      title="Template Library"
+      subtitle="Manage, preview, and configure certificate & credential templates"
+      backTo="/app"
+      backLabel="Back to Dashboard"
+      isLoading={loading}
+      loadingTitle="Loading templates..."
+      actions={
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <div className="relative flex-1 sm:w-64">
             <MagnifyingGlass
@@ -153,62 +202,46 @@ export function TemplateLibrary() {
             <span>Add Template</span>
           </Link>
         </div>
-      </div>
-
-      {/* Loading State */}
-      {loading && (
-        <div className="flex flex-col items-center justify-center py-24 gap-3 text-slate-400">
-          <InfinityTrack className="text-blue-600" />
-          <span className="text-sm font-medium text-slate-500">Loading templates...</span>
-        </div>
-      )}
-
+      }
+    >
       {/* Error State */}
-      {!loading && error && (
-        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button
-            type="button"
-            onClick={fetchTemplates}
-            className="text-xs font-bold uppercase tracking-wider text-rose-800 hover:underline cursor-pointer ml-3"
-          >
-            Retry
-          </button>
-        </div>
+      {error && (
+        <Alert variant="error" onRetry={() => setRetryCount((c) => c + 1)}>
+          {error}
+        </Alert>
       )}
 
       {/* Empty State */}
-      {!loading && !error && filteredTemplates.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/50 p-12 text-center flex flex-col items-center justify-center space-y-3">
-          <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-1">
-            <FilePdf size={28} weight="duotone" />
-          </div>
-          <h3 className="text-base font-bold text-slate-900">
-            {searchQuery.trim() ? 'No matching templates' : 'No templates yet'}
-          </h3>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-sm leading-relaxed">
-            {searchQuery.trim()
+      {!error && filteredTemplates.length === 0 && (
+        <EmptyState
+          icon={<FilePdf size={28} weight="duotone" />}
+          title={searchQuery.trim() ? 'No matching templates' : 'No templates yet'}
+          description={
+            searchQuery.trim()
               ? `No templates matched "${searchQuery}". Try a different keyword.`
-              : 'Upload a PDF document to create your first certificate or credential template.'}
-          </p>
-          {searchQuery.trim() ? (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="mt-2 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
-            >
-              Clear search filter
-            </button>
-          ) : (
-            <Link
-              to="/app/templates/new"
-              className="mt-2 inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer select-none text-sm"
-            >
-              <Plus size={16} weight="bold" />
-              <span>Create your first template</span>
-            </Link>
-          )}
-        </div>
+              : 'Upload a PDF document to create your first certificate or credential template.'
+          }
+          variant={searchQuery.trim() ? 'solid' : 'dashed'}
+          action={
+            searchQuery.trim() ? (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+              >
+                Clear search filter
+              </button>
+            ) : (
+              <Link
+                to="/app/templates/new"
+                className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 active:scale-[0.98] text-white font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer select-none text-sm"
+              >
+                <Plus size={16} weight="bold" />
+                <span>Create your first template</span>
+              </Link>
+            )
+          }
+        />
       )}
 
       {/* Template Card Grid */}
@@ -239,47 +272,23 @@ export function TemplateLibrary() {
                 <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden flex items-center justify-center border-b border-slate-100">
                   {/* Badges Overlay */}
                   <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 z-10 pointer-events-none">
-                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-white/90 backdrop-blur-xs text-slate-700 shadow-xs border border-slate-200/60">
+                    <Badge variant="glass" size="sm" shape="rounded" mono>
                       {versionText}
-                    </span>
-                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-blue-50/90 backdrop-blur-xs text-blue-700 shadow-xs border border-blue-200/60">
+                    </Badge>
+                    <Badge variant="primary" size="sm" shape="rounded" mono>
                       PDF
-                    </span>
+                    </Badge>
                   </div>
                   <div className="absolute top-2.5 right-2.5 z-10 pointer-events-none">
-                    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-white/90 backdrop-blur-xs text-slate-600 shadow-xs border border-slate-200/60">
+                    <Badge variant="glass" size="sm" shape="rounded" mono>
                       {pageCountText}
-                    </span>
+                    </Badge>
                   </div>
 
-                  {template.thumbnailUrl ? (
-                    <img
-                      src={template.thumbnailUrl}
-                      alt={template.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100/80 p-4 relative group-hover:bg-slate-100/90 transition-colors">
-                      {/* Document silhouette */}
-                      <div className="w-3/4 h-4/5 rounded-lg border border-slate-200/70 bg-white shadow-xs p-3 flex flex-col justify-between transition-transform duration-300 group-hover:scale-[1.03]">
-                        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-                          <Certificate size={20} weight="duotone" className="text-blue-600" />
-                          <div className="h-1.5 w-12 bg-slate-200 rounded-full" />
-                        </div>
-                        <div className="space-y-1.5 my-auto">
-                          <div className="h-1.5 w-3/4 bg-slate-200/80 rounded-full" />
-                          <div className="h-1.5 w-1/2 bg-slate-100 rounded-full" />
-                          <div className="h-1.5 w-2/3 bg-slate-100 rounded-full" />
-                        </div>
-                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[8px] text-slate-400 font-medium">
-                          <span>OFFICIAL</span>
-                          <div className="w-3.5 h-3.5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                            <CheckCircle size={10} weight="bold" />
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <TemplateCardThumbnail
+                    thumbnailUrl={template.thumbnailUrl}
+                    name={template.name}
+                  />
                 </div>
 
                 {/* Card Info & Actions */}
@@ -370,6 +379,6 @@ export function TemplateLibrary() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   )
 }

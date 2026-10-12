@@ -23,11 +23,13 @@ function SignIn() {
         {/* Branding */}
         <div>
           <Link to="/" className="inline-flex items-center gap-2.5 group">
-            <img
-              src="/favicon.svg"
-              alt="EmitDocs"
-              className="w-9 h-9 rounded-xl shadow-sm group-hover:scale-105 transition-transform flex-none"
-            />
+            <div className="p-1 rounded-xl bg-white border border-slate-200/80 shadow-xs flex-none group-hover:scale-105 transition-transform">
+              <img
+                src="/favicon.svg"
+                alt="EmitDocs"
+                className="w-7 h-7 rounded-lg"
+              />
+            </div>
             <span className="font-extrabold text-2xl tracking-tight text-slate-900">
               Emit<span className="text-blue-600">Docs</span>
             </span>
@@ -51,14 +53,35 @@ function SignIn() {
 
           <div className="mt-8 pt-6 border-t border-slate-100">
             <p className="text-xs text-slate-400 text-center leading-relaxed">
-              By continuing, you agree to EmitDocs' Terms of Service and Privacy Policy.
+              By continuing, you agree to EmitDocs'{" "}
+              <a
+                href="/terms"
+                className="text-slate-600 hover:text-blue-600 underline underline-offset-2 transition-colors"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="/privacy"
+                className="text-slate-600 hover:text-blue-600 underline underline-offset-2 transition-colors"
+              >
+                Privacy Policy
+              </a>.
             </p>
           </div>
         </div>
 
         {/* Footer info */}
-        <div className="text-xs text-slate-400">
-          © {CURRENT_YEAR} EmitDocs. All rights reserved.
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
+          <span>© {CURRENT_YEAR} EmitDocs. All rights reserved.</span>
+          <div className="flex items-center gap-4">
+            <Link to="/terms" className="hover:text-slate-600 transition-colors">
+              Terms
+            </Link>
+            <Link to="/privacy" className="hover:text-slate-600 transition-colors">
+              Privacy
+            </Link>
+          </div>
         </div>
       </div>
 

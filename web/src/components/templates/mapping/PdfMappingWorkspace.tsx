@@ -1,0 +1,907 @@
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { Link } from '@tanstack/react-router';
+import { ArrowLeft } from '@phosphor-icons/react';
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  Background,
+  BackgroundVariant,
+  Controls,
+  useNodesState,
+  useReactFlow,
+  SelectionMode,
+  type Node,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
+import type { IFieldMapping, TemplateVersionData, TemplateData } from './types';
+import { PdfPageNode } from './nodes/PdfPageNode';
+import { FieldNode } from './nodes/FieldNode';
+import { AlignmentGuidesOverlay } from './nodes/AlignmentGuidesOverlay';
+import { FloatingTopToolbar } from './panels/FloatingTopToolbar';
+import { PreviewDocumentPane } from './PreviewDocumentPane';
+import { KeyboardShortcutsModal } from './modals/KeyboardShortcutsModal';
+import { useEditorHistory } from '@/hooks/useEditorHistory';
+import {
+  applyAlignmentToFields,
+  type AlignmentAction,
+} from '@/lib/pdf-engine/alignment-tools';
+
+import type { DetectedToken } from '@/lib/pdf-engine/token-detector';
+import type { EngineWarning } from '@/lib/pdf-engine/pdf-preview-engine';
+import {
+  domToPdfRect,
+  pdfToDomRect,
+  type ViewportConfig,
+  type DomRect,
+} from '@/lib/pdf-engine/coordinate-transforms';
+import {
+  calculateSnapping,
+  type AlignmentGuide,
+} from '@/lib/pdf-engine/alignment-snapper';
+import { InfinityTrack } from '@/components/ui/InfinityTrack';
+import { toast } from '@/components/ui/toast';
+import { Tooltip } from '@/components/ui/tooltip';
+
+interface PdfMappingWorkspaceProps {
+  templateId: string;
+  versionId: string;
+}
+
+const nodeTypes = {
+  pdfPage: PdfPageNode,
+  field: FieldNode,
+};
+
+const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
+  templateId,
+  versionId,
+}) => {
+  const { fitView } = useReactFlow();
+
+  const [template, setTemplate] = useState<TemplateData | null>(null);
+  const [version, setVersion] = useState<TemplateVersionData | null>(null);
+  const [sourcePdfBytes, setSourcePdfBytes] = useState<Uint8Array | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // History & Mapping state
+  const {
+    fieldMappings,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    pushSnapshot,
+    resetHistory,
+  } = useEditorHistory([]);
+
+  const [selectedFieldIds, setSelectedFieldIds] = useState<string[]>([]);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [activePageIndex, setActivePageIndex] = useState(0);
+  const [pageCount, setPageCount] = useState(1);
+  const [pageDimensions, setPageDimensions] = useState<{ width: number; height: number }>({
+    width: 595,
+    height: 842,
+  });
+  const [rotation, setRotation] = useState(0);
+  const [detectedTokens, setDetectedTokens] = useState<DetectedToken[]>([]);
+  const [warnings, setWarnings] = useState<EngineWarning[]>([]);
+
+  // Derived single selected field ID (first selected or null)
+  const selectedFieldId = selectedFieldIds[0] || null;
+
+  // Snapping & Guides state
+  const [isSnapEnabled, setIsSnapEnabled] = useState(true);
+  const [snapThresholdPx, setSnapThresholdPx] = useState(8);
+  const [activeGuides, setActiveGuidesState] = useState<AlignmentGuide[]>([]);
+
+  // View state: editor, preview (Split View removed)
+  const [viewMode, setViewMode] = useState<'editor' | 'preview'>('editor');
+  const [samplePreset, setSamplePreset] = useState<'normal' | 'long' | 'unicode' | 'empty'>('normal');
+
+  // Concurrency & saving
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(null);
+  const [casError, setCasError] = useState<string | null>(null);
+
+  // Viewport configuration for coordinate transformation (scale: 1.0 for canonical canvas)
+  const currentViewport: ViewportConfig = useMemo(
+    () => ({
+      width: pageDimensions.width,
+      height: pageDimensions.height,
+      scale: 1.0,
+      rotation,
+    }),
+    [pageDimensions.width, pageDimensions.height, rotation]
+  );
+
+  // Fetch initial data
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchWorkspaceData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [tplRes, verRes] = await Promise.all([
+          fetch(`/api/templates/${templateId}`, { credentials: 'include' }),
+          fetch(`/api/templates/${templateId}/versions/${versionId}`, { credentials: 'include' }),
+        ]);
+
+        if (!tplRes.ok) throw new Error('Failed to load template metadata');
+        if (!verRes.ok) throw new Error('Failed to load template version');
+
+        const tplData = await tplRes.json();
+        const verData = await verRes.json();
+
+        if (isCancelled) return;
+        setTemplate(tplData.template);
+        setVersion(verData.version);
+        resetHistory(verData.version.fieldMappings || []);
+
+        const fileRes = await fetch(`/api/templates/${templateId}/versions/${versionId}/file`, {
+          credentials: 'include',
+        });
+        if (!fileRes.ok) throw new Error('Failed to fetch source PDF bytes');
+
+        const arrayBuffer = await fileRes.arrayBuffer();
+        if (isCancelled) return;
+        setSourcePdfBytes(new Uint8Array(arrayBuffer));
+      } catch (err: any) {
+        if (!isCancelled) {
+          console.error('Error loading workspace data:', err);
+          setError(err.message || 'Error loading workspace');
+        }
+      } finally {
+        if (!isCancelled) setLoading(false);
+      }
+    };
+
+    fetchWorkspaceData();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [templateId, versionId, resetHistory]);
+
+  // Selected field reference
+  const selectedField = useMemo(
+    () => fieldMappings.find((m) => m.id === selectedFieldId) || null,
+    [fieldMappings, selectedFieldId]
+  );
+
+  // Sample data mapping for live preview presets
+  const sampleData = useMemo(() => {
+    const data: Record<string, string> = {};
+    for (const m of fieldMappings) {
+      if (samplePreset === 'long') {
+        data[m.key] =
+          m.fitMode === 'multi-line'
+            ? 'Wolfeschlegelsteinhausenbergerdorff Department of Operational Quality, Suite 400, Innovation District'
+            : 'Wolfeschlegelsteinhausenbergerdorff';
+      } else if (samplePreset === 'unicode') {
+        data[m.key] =
+          m.fitMode === 'multi-line'
+            ? 'José María Núñez (Müller)\nCalle de la Constitución 104\n100% Vérifié & Garanti'
+            : 'José María Núñez (100% Verified)';
+      } else if (samplePreset === 'empty') {
+        data[m.key] = '';
+      } else {
+        data[m.key] = m.sampleValue || `Sample ${m.label || m.key}`;
+      }
+    }
+    return data;
+  }, [fieldMappings, samplePreset]);
+
+  // Token confirmation handler (AC1: user explicitly confirms suggested token)
+  const handleConfirmToken = useCallback(
+    (token: DetectedToken) => {
+      const newField: IFieldMapping = {
+        id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        key: token.key,
+        label: token.key
+          .replace(/[-_]/g, ' ')
+          .replace(/\b\w/g, (c) => c.toUpperCase()),
+        type: 'text',
+        pageIndex: token.pageIndex,
+        rect: { ...token.rect },
+        alignment: 'left',
+        fontFamily: token.detectedFontFamily || 'Helvetica',
+        fontSize: token.detectedFontSize || Math.round(token.rect.height * 0.8) || 12,
+        minFontSize: 8,
+        maxFontSize: 24,
+        color: '#000000',
+        fitMode: 'shrink-to-fit',
+        maskMode: 'solid-white', // Default solid white over detected placeholder
+        sampleValue: `Sample ${token.key}`,
+      };
+
+      pushSnapshot([...fieldMappings, newField]);
+      setSelectedFieldIds([newField.id]);
+    },
+    [fieldMappings, pushSnapshot]
+  );
+
+  const handleDismissToken = useCallback((token: DetectedToken) => {
+    setDetectedTokens((prev) => prev.filter((t) => t.key !== token.key || t.pageIndex !== token.pageIndex));
+  }, []);
+
+  // Update field mapping
+  const handleUpdateField = useCallback(
+    (updated: IFieldMapping) => {
+      const next = fieldMappings.map((f) => (f.id === updated.id ? updated : f));
+      pushSnapshot(next);
+    },
+    [fieldMappings, pushSnapshot]
+  );
+
+  // Delete single field mapping
+  const handleDeleteField = useCallback(
+    (id: string) => {
+      const next = fieldMappings.filter((f) => f.id !== id);
+      pushSnapshot(next);
+      setSelectedFieldIds((prev) => prev.filter((fid) => fid !== id));
+    },
+    [fieldMappings, pushSnapshot]
+  );
+
+  // Delete multiple field mappings
+  const handleDeleteMultiple = useCallback(
+    (ids: string[]) => {
+      const idSet = new Set(ids);
+      const next = fieldMappings.filter((f) => !idSet.has(f.id));
+      pushSnapshot(next);
+      setSelectedFieldIds((prev) => prev.filter((fid) => !idSet.has(fid)));
+    },
+    [fieldMappings, pushSnapshot]
+  );
+
+  // Duplicate field with offset
+  const handleDuplicateField = useCallback(
+    (field: IFieldMapping) => {
+      const duplicated: IFieldMapping = {
+        ...field,
+        id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        key: `${field.key}_copy`,
+        label: field.label ? `${field.label} (Copy)` : `${field.key} (Copy)`,
+        rect: {
+          ...field.rect,
+          x: Math.round((field.rect.x + 12) * 10) / 10,
+          y: Math.round((field.rect.y - 12) * 10) / 10,
+        },
+      };
+      pushSnapshot([...fieldMappings, duplicated]);
+      setSelectedFieldIds([duplicated.id]);
+    },
+    [fieldMappings, pushSnapshot]
+  );
+
+  // Direct Add Field (adds 180×36pt transparent field at page center)
+  const handleAddField = useCallback(() => {
+    const fieldIndex = fieldMappings.length + 1;
+    const boxWidth = 180;
+    const boxHeight = 36;
+    const centerX = Math.max(0, Math.round((pageDimensions.width - boxWidth) / 2));
+    const centerY = Math.max(0, Math.round((pageDimensions.height - boxHeight) / 2));
+
+    const domRect: DomRect = {
+      x: centerX,
+      y: centerY,
+      width: boxWidth,
+      height: boxHeight,
+    };
+    const initialRect = domToPdfRect(domRect, currentViewport);
+
+    const newField: IFieldMapping = {
+      id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      key: `field_${fieldIndex}`,
+      label: `Field ${fieldIndex}`,
+      type: 'text',
+      pageIndex: activePageIndex,
+      rect: {
+        x: Math.round(initialRect.x * 10) / 10,
+        y: Math.round(initialRect.y * 10) / 10,
+        width: Math.round(initialRect.width * 10) / 10,
+        height: Math.round(initialRect.height * 10) / 10,
+      },
+      alignment: 'left',
+      fontFamily: 'Helvetica',
+      fontSize: 14,
+      minFontSize: 8,
+      maxFontSize: 24,
+      color: '#000000',
+      fitMode: 'shrink-to-fit',
+      maskMode: 'none', // 100% Transparent background by default
+      sampleValue: `Value ${fieldIndex}`,
+    };
+
+    pushSnapshot([...fieldMappings, newField]);
+    setSelectedFieldIds([newField.id]);
+  }, [fieldMappings, pageDimensions.width, pageDimensions.height, currentViewport, activePageIndex, pushSnapshot]);
+
+  // Alignment dispatcher
+  const handleApplyAlignment = useCallback(
+    (action: AlignmentAction) => {
+      const nextMappings = applyAlignmentToFields(
+        selectedFieldIds,
+        fieldMappings,
+        action,
+        currentViewport,
+        pageDimensions
+      );
+      pushSnapshot(nextMappings);
+    },
+    [selectedFieldIds, fieldMappings, currentViewport, pageDimensions, pushSnapshot]
+  );
+
+  // Page dimensions & count determined by PdfPageNode
+  const handlePageLoaded = useCallback(
+    (dims: { width: number; height: number; pageCount: number }) => {
+      setPageDimensions({ width: dims.width, height: dims.height });
+      setPageCount(dims.pageCount);
+      setTimeout(() => {
+        fitView({ padding: 0.15, duration: 400 });
+      }, 50);
+    },
+    [fitView]
+  );
+
+  // Page navigation with auto-centering
+  const handlePrevPage = useCallback(() => {
+    if (activePageIndex <= 0) return;
+    setActivePageIndex((p) => Math.max(0, p - 1));
+    setSelectedFieldIds([]);
+    setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 80);
+  }, [activePageIndex, fitView]);
+
+  const handleNextPage = useCallback(() => {
+    if (activePageIndex >= pageCount - 1) return;
+    setActivePageIndex((p) => Math.min(pageCount - 1, p + 1));
+    setSelectedFieldIds([]);
+    setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 80);
+  }, [activePageIndex, pageCount, fitView]);
+
+  // Keyboard navigation & nudging & shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.tagName === 'SELECT' ||
+          (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+
+      // History Undo / Redo
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
+      // Select All on active page
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        const pageFieldIds = fieldMappings
+          .filter((m) => m.pageIndex === activePageIndex)
+          .map((m) => m.id);
+        setSelectedFieldIds(pageFieldIds);
+        return;
+      }
+
+      // Duplicate selected
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        if (selectedFieldIds.length === 0) return;
+        const selected = fieldMappings.filter((f) => selectedFieldIds.includes(f.id));
+        const duplicates: IFieldMapping[] = selected.map((field) => ({
+          ...field,
+          id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          key: `${field.key}_copy`,
+          label: field.label ? `${field.label} (Copy)` : `${field.key} (Copy)`,
+          rect: {
+            ...field.rect,
+            x: Math.round((field.rect.x + 12) * 10) / 10,
+            y: Math.round((field.rect.y - 12) * 10) / 10,
+          },
+        }));
+        pushSnapshot([...fieldMappings, ...duplicates]);
+        setSelectedFieldIds(duplicates.map((d) => d.id));
+        return;
+      }
+
+      // Shortcuts Modal
+      if (e.key === '?') {
+        e.preventDefault();
+        setIsShortcutsModalOpen(true);
+        return;
+      }
+
+      // Escape
+      if (e.key === 'Escape') {
+        if (selectedFieldIds.length > 0) {
+          e.preventDefault();
+          setSelectedFieldIds([]);
+          return;
+        }
+      }
+
+      // Delete / Backspace
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (selectedFieldIds.length > 0) {
+          e.preventDefault();
+          handleDeleteMultiple(selectedFieldIds);
+          return;
+        }
+      }
+
+      // Arrow keys nudging
+      if (selectedFieldIds.length > 0 && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+        e.preventDefault();
+        const delta = e.shiftKey ? 10 : 1;
+        const selectedSet = new Set(selectedFieldIds);
+        const updated = fieldMappings.map((f) => {
+          if (!selectedSet.has(f.id)) return f;
+          let { x, y } = f.rect;
+          if (e.key === 'ArrowLeft') x -= delta;
+          if (e.key === 'ArrowRight') x += delta;
+          if (e.key === 'ArrowUp') y += delta;
+          if (e.key === 'ArrowDown') y -= delta;
+          return {
+            ...f,
+            rect: {
+              ...f.rect,
+              x: Math.round(x * 10) / 10,
+              y: Math.round(y * 10) / 10,
+            },
+          };
+        });
+        pushSnapshot(updated);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    selectedFieldIds,
+    fieldMappings,
+    activePageIndex,
+    undo,
+    redo,
+    pushSnapshot,
+    handleDeleteMultiple,
+  ]);
+
+  // Save version with CAS concurrency check (AC7)
+  const handleSaveVersion = async () => {
+    if (!version) return;
+
+    try {
+      setIsSaving(true);
+      setCasError(null);
+      setSaveSuccessMessage(null);
+
+      const res = await fetch(`/api/templates/${templateId}/versions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          expectedVersion: version.version,
+          fieldMappings,
+        }),
+      });
+
+      if (res.status === 409) {
+        const errorData = await res.json().catch(() => ({}));
+        const msg = errorData.message || 'Conflict: another user or tab saved a newer version.';
+        setCasError(msg);
+        toast.error('Version Conflict (409)', msg);
+        return;
+      }
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        const msg = errorData.error || errorData.message || 'Failed to save template version';
+        throw new Error(msg);
+      }
+
+      const data = await res.json();
+      setVersion(data.version);
+      const successMsg = `Saved as immutable Version ${data.version.version}!`;
+      setSaveSuccessMessage(successMsg);
+      toast.success('Template Saved', `Version ${data.version.version} created and published successfully.`);
+      setTimeout(() => setSaveSuccessMessage(null), 4000);
+    } catch (err: any) {
+      const errorMsg = err.message || 'Error saving template version';
+      setCasError(errorMsg);
+      toast.error('Save Failed', errorMsg);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Node Dragging with Magnetic Alignment Guides
+  const handleNodeDrag = useCallback(
+    (e: MouseEvent | TouchEvent, node: Node) => {
+      if (node.type !== 'field') return;
+      if (!isSnapEnabled) {
+        setActiveGuidesState([]);
+        return;
+      }
+
+      const currentDom: DomRect = {
+        x: node.position.x,
+        y: node.position.y,
+        width: Number(node.style?.width) || 100,
+        height: Number(node.style?.height) || 30,
+      };
+
+      const siblings = fieldMappings
+        .filter((m) => m.id !== node.id && m.pageIndex === activePageIndex)
+        .map((m) => pdfToDomRect(m.rect, currentViewport));
+
+      const snapResult = calculateSnapping(currentDom, siblings, currentViewport, {
+        thresholdPx: snapThresholdPx,
+        isAltPressed: 'altKey' in e ? e.altKey : false,
+        handleType: 'move',
+      });
+
+      setActiveGuidesState(snapResult.guides);
+    },
+    [isSnapEnabled, fieldMappings, activePageIndex, currentViewport, snapThresholdPx]
+  );
+
+  const handleNodeDragStop = useCallback(
+    (e: MouseEvent | TouchEvent, node: Node, draggedNodes: Node[]) => {
+      if (node.type !== 'field') return;
+      setActiveGuidesState([]);
+
+      // Multi-node drag support: if multiple nodes were dragged together
+      if (draggedNodes && draggedNodes.length > 1) {
+        const draggedFieldNodes = draggedNodes.filter((n) => n.type === 'field');
+        const draggedIds = new Set(draggedFieldNodes.map((n) => n.id));
+
+        const updatedMappings = fieldMappings.map((m) => {
+          if (!draggedIds.has(m.id)) return m;
+          const dn = draggedFieldNodes.find((n) => n.id === m.id)!;
+          const domRect: DomRect = {
+            x: dn.position.x,
+            y: dn.position.y,
+            width: Number(dn.style?.width) || 100,
+            height: Number(dn.style?.height) || 30,
+          };
+          const pdfRect = domToPdfRect(domRect, currentViewport);
+          return {
+            ...m,
+            rect: {
+              x: Math.round(pdfRect.x * 10) / 10,
+              y: Math.round(pdfRect.y * 10) / 10,
+              width: Math.max(20, Math.round(pdfRect.width * 10) / 10),
+              height: Math.max(12, Math.round(pdfRect.height * 10) / 10),
+            },
+          };
+        });
+        pushSnapshot(updatedMappings);
+        return;
+      }
+
+      // Single node drag with snapping
+      const field = fieldMappings.find((m) => m.id === node.id);
+      if (!field) return;
+
+      let finalDom: DomRect = {
+        x: node.position.x,
+        y: node.position.y,
+        width: Number(node.style?.width) || 100,
+        height: Number(node.style?.height) || 30,
+      };
+
+      if (isSnapEnabled) {
+        const siblings = fieldMappings
+          .filter((m) => m.id !== node.id && m.pageIndex === activePageIndex)
+          .map((m) => pdfToDomRect(m.rect, currentViewport));
+
+        const snapResult = calculateSnapping(finalDom, siblings, currentViewport, {
+          thresholdPx: snapThresholdPx,
+          isAltPressed: 'altKey' in e ? e.altKey : false,
+          handleType: 'move',
+        });
+        finalDom = snapResult.rect;
+      }
+
+      const pdfRect = domToPdfRect(finalDom, currentViewport);
+      const next = fieldMappings.map((f) =>
+        f.id === field.id
+          ? {
+              ...f,
+              rect: {
+                x: Math.round(pdfRect.x * 10) / 10,
+                y: Math.round(pdfRect.y * 10) / 10,
+                width: Math.max(20, Math.round(pdfRect.width * 10) / 10),
+                height: Math.max(12, Math.round(pdfRect.height * 10) / 10),
+              },
+            }
+          : f
+      );
+      pushSnapshot(next);
+    },
+    [isSnapEnabled, fieldMappings, activePageIndex, currentViewport, snapThresholdPx, pushSnapshot]
+  );
+
+  // Compute React Flow nodes
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+
+  // Memoize stable pageNode reference so selecting/dragging fields never marks parent dirty
+  const pageNode: Node = useMemo(
+    () => ({
+      id: 'pdf-page',
+      type: 'pdfPage',
+      position: { x: 0, y: 0 },
+      draggable: false,
+      selectable: false,
+      deletable: false,
+      data: {
+        sourcePdfBytes,
+        activePageIndex,
+        pageWidth: pageDimensions.width,
+        pageHeight: pageDimensions.height,
+        rotation,
+        detectedTokens,
+        onConfirmToken: handleConfirmToken,
+        onPageLoaded: handlePageLoaded,
+        onTokensDiscovered: setDetectedTokens,
+        viewport: currentViewport,
+      },
+      style: {
+        width: `${pageDimensions.width}px`,
+        height: `${pageDimensions.height}px`,
+      },
+    }),
+    [
+      sourcePdfBytes,
+      activePageIndex,
+      pageDimensions.width,
+      pageDimensions.height,
+      rotation,
+      detectedTokens,
+      handleConfirmToken,
+      handlePageLoaded,
+      currentViewport,
+    ]
+  );
+
+  useEffect(() => {
+    const currentPageFields = fieldMappings.filter((m) => m.pageIndex === activePageIndex);
+    const siblingsDomRects = currentPageFields.map((m) => pdfToDomRect(m.rect, currentViewport));
+
+    const fieldNodes: Node[] = currentPageFields.map((field) => {
+      const domRect = pdfToDomRect(field.rect, currentViewport);
+      const isSelected = selectedFieldIds.includes(field.id);
+
+      return {
+        id: field.id,
+        type: 'field',
+        parentId: 'pdf-page',
+        extent: 'parent',
+        expandParent: false,
+        position: { x: domRect.x, y: domRect.y },
+        style: { width: `${domRect.width}px`, height: `${domRect.height}px` },
+        data: {
+          field,
+          viewport: currentViewport,
+          onUpdateField: handleUpdateField,
+          onDuplicateField: handleDuplicateField,
+          onDeleteField: handleDeleteField,
+          isSnapEnabled,
+          snapThresholdPx,
+          setActiveGuides: setActiveGuidesState,
+          siblingsDomRects: siblingsDomRects.filter((_, idx) => currentPageFields[idx].id !== field.id),
+        },
+        selected: isSelected,
+      };
+    });
+
+    setNodes([pageNode, ...fieldNodes]);
+  }, [
+    pageNode,
+    fieldMappings,
+    activePageIndex,
+    currentViewport,
+    selectedFieldIds,
+    handleUpdateField,
+    handleDuplicateField,
+    handleDeleteField,
+    isSnapEnabled,
+    snapThresholdPx,
+    setNodes,
+  ]);
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground h-full bg-slate-50 rounded-3xl lg:rounded-[28px]">
+        <InfinityTrack className="text-blue-600" />
+        <span className="text-sm font-medium">Loading template editor</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 text-center max-w-lg mx-auto h-screen flex flex-col items-center justify-center">
+        <div className="text-red-500 font-medium mb-2">Error loading template workspace</div>
+        <p className="text-sm text-slate-500 mb-4">{error}</p>
+        <button
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 bg-slate-800 text-white rounded text-sm hover:bg-slate-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full overflow-hidden bg-slate-100 flex flex-col rounded-3xl lg:rounded-[28px]">
+      {/* Fixed Top-Left Back Button */}
+      <Tooltip content="Back to Template Details" side="bottom">
+        <Link
+          to="/app/templates/$templateId"
+          params={{ templateId }}
+          className="absolute top-3 left-3 z-40 flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md hover:shadow-lg rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-white transition-all select-none"
+        >
+          <ArrowLeft size={16} weight="bold" />
+          <span>Back</span>
+        </Link>
+      </Tooltip>
+
+      {viewMode === 'preview' ? (
+        // Full Preview Mode
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-2.5 bg-white border-b border-slate-200 shrink-0 pl-28">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-bold text-slate-800">{template?.name} (Preview)</h2>
+              <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-mono font-medium">
+                v{version?.version}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode('editor')}
+                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium"
+              >
+                Back to Canvas Studio
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-slate-200/50">
+            <PreviewDocumentPane
+              sourcePdfBytes={sourcePdfBytes}
+              fieldMappings={fieldMappings}
+              sampleData={sampleData}
+              activePageIndex={activePageIndex}
+              scale={1.0}
+              rotation={rotation}
+              onWarningsGenerated={setWarnings}
+            />
+          </div>
+        </div>
+      ) : (
+        // Infinite Canvas Studio Mode
+        <div className="w-full h-full relative">
+          <ReactFlow
+            nodes={nodes}
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange}
+            onNodeDrag={handleNodeDrag}
+            onNodeDragStop={handleNodeDragStop}
+            onSelectionChange={({ nodes: selNodes }) => {
+              const fieldIds = selNodes.filter((n) => n.type === 'field').map((n) => n.id);
+              setSelectedFieldIds(fieldIds);
+            }}
+            onNodeClick={(_, node) => {
+              if (node.type === 'field') {
+                setSelectedFieldIds((prev) => (prev.includes(node.id) ? prev : [node.id]));
+              }
+            }}
+            onPaneClick={() => setSelectedFieldIds([])}
+            fitView
+            minZoom={0.2}
+            maxZoom={3.0}
+            proOptions={{ hideAttribution: true }}
+            panOnDrag={true}
+            nodesDraggable={true}
+            elementsSelectable={true}
+            selectionMode={SelectionMode.Partial}
+            selectionKeyCode="Shift"
+            multiSelectionKeyCode="Shift"
+            deleteKeyCode={null}
+          >
+            <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#cbd5e1" />
+            <AlignmentGuidesOverlay
+              guides={activeGuides}
+              width={pageDimensions.width}
+              height={pageDimensions.height}
+            />
+            <Controls position="bottom-left" showInteractive={false} />
+
+            {/* Unified Floating Top HUD Toolbar & Inspector */}
+            <FloatingTopToolbar
+              templateName={template?.name}
+              versionNumber={version?.version}
+              activePageIndex={activePageIndex}
+              pageCount={pageCount}
+              onPrevPage={handlePrevPage}
+              onNextPage={handleNextPage}
+              onAddField={handleAddField}
+              isSnapEnabled={isSnapEnabled}
+              onToggleSnap={() => setIsSnapEnabled((s) => !s)}
+              snapThresholdPx={snapThresholdPx}
+              onChangeSnapThreshold={setSnapThresholdPx}
+              viewMode={viewMode}
+              onChangeViewMode={setViewMode}
+              samplePreset={samplePreset}
+              onChangeSamplePreset={setSamplePreset}
+              onSaveVersion={handleSaveVersion}
+              isSaving={isSaving}
+              saveSuccessMessage={saveSuccessMessage}
+              casError={casError}
+              onFitView={() => fitView({ padding: 0.15, duration: 300 })}
+              rotation={rotation}
+              onRotate={() => setRotation((r) => (r + 90) % 360)}
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={undo}
+              onRedo={redo}
+              selectedFieldIds={selectedFieldIds}
+              onApplyAlignment={handleApplyAlignment}
+              onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+              onDeleteMultiple={handleDeleteMultiple}
+              field={selectedField}
+              fields={fieldMappings}
+              selectedFieldId={selectedFieldId}
+              onSelectField={(id) => setSelectedFieldIds(id ? [id] : [])}
+              onUpdateField={handleUpdateField}
+              onDeleteField={handleDeleteField}
+              detectedTokens={detectedTokens}
+              onConfirmToken={handleConfirmToken}
+              onDismissToken={handleDismissToken}
+              warnings={warnings}
+            />
+          </ReactFlow>
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Cheat Sheet Modal */}
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+      />
+    </div>
+  );
+};
+
+export const PdfMappingWorkspace: React.FC<PdfMappingWorkspaceProps> = (props) => {
+  return (
+    <ReactFlowProvider>
+      <PdfMappingWorkspaceInner {...props} />
+    </ReactFlowProvider>
+  );
+};

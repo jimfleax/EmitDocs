@@ -53,11 +53,11 @@ function AppIndexRoute() {
   const [dateRange] = useState('01 - 25 Oct, 2026')
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 lg:gap-10 w-full min-w-0">
       {/* ======================================================== */}
       {/* Left Main Column: Title, Activity Chart, Grouped Batches */}
       {/* ======================================================== */}
-      <div className="xl:col-span-8 space-y-8">
+      <div className="xl:col-span-8 space-y-8 min-w-0">
         {/* Header: Page Title, Date Range & Collaborator Avatars */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
@@ -265,7 +265,7 @@ function AppIndexRoute() {
       {/* ======================================================== */}
       {/* Right Column: Category Progress Bars & Quick Start Card   */}
       {/* ======================================================== */}
-      <div className="xl:col-span-4 flex flex-col justify-between space-y-8 pt-2 xl:pt-0 xl:border-l xl:border-slate-100 xl:pl-8">
+      <div className="xl:col-span-4 flex flex-col justify-between space-y-8 pt-2 xl:pt-0 xl:border-l xl:border-slate-100 xl:pl-8 min-w-0">
         {/* Category Breakdown Progress Bars */}
         <div className="space-y-6">
           <div>
