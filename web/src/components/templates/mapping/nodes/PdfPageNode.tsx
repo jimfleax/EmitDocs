@@ -1,11 +1,17 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useViewport, type NodeProps, type Node } from '@xyflow/react';
-import { pdfjsLib, STANDARD_FONT_DATA_URL } from '@/lib/pdf-engine/worker-setup';
-import type { ViewportConfig } from '@/lib/pdf-engine/coordinate-transforms';
-import { pdfToDomRect } from '@/lib/pdf-engine/coordinate-transforms';
-import { detectTokensInTextItems, type DetectedToken } from '@/lib/pdf-engine/token-detector';
-import type { IFieldMapping } from '../types';
-import { Tooltip } from '@/components/ui/tooltip';
+import React, { useEffect, useRef, useState } from "react";
+import { useViewport, type NodeProps, type Node } from "@xyflow/react";
+import {
+  pdfjsLib,
+  STANDARD_FONT_DATA_URL,
+} from "@/lib/pdf-engine/worker-setup";
+import type { ViewportConfig } from "@/lib/pdf-engine/coordinate-transforms";
+import { pdfToDomRect } from "@/lib/pdf-engine/coordinate-transforms";
+import {
+  detectTokensInTextItems,
+  type DetectedToken,
+} from "@/lib/pdf-engine/token-detector";
+import type { IFieldMapping } from "../types";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export interface PdfPageNodeData {
   sourcePdfBytes: Uint8Array | null;
@@ -16,20 +22,32 @@ export interface PdfPageNodeData {
   detectedTokens?: DetectedToken[];
   fieldMappings?: IFieldMapping[];
   onConfirmToken?: (token: DetectedToken, isMulti?: boolean) => void;
-  onPageLoaded?: (dimensions: { width: number; height: number; pageCount: number }) => void;
+  onPageLoaded?: (dimensions: {
+    width: number;
+    height: number;
+    pageCount: number;
+    effectiveRotation: number;
+    rotation?: number;
+  }) => void;
   onTokensDiscovered?: (tokens: DetectedToken[]) => void;
   onPageClick?: () => void;
   viewport?: ViewportConfig;
   [key: string]: unknown;
 }
 
-export type PdfPageNodeType = Node<PdfPageNodeData, 'pdfPage'>;
+export type PdfPageNodeType = Node<PdfPageNodeData, "pdfPage">;
 
 interface MemoizedPdfCanvasProps {
   doc: any;
   activePageIndex: number;
   rotation: number;
-  onPageLoaded?: (dimensions: { width: number; height: number; pageCount: number }) => void;
+  onPageLoaded?: (dimensions: {
+    width: number;
+    height: number;
+    pageCount: number;
+    effectiveRotation: number;
+    rotation?: number;
+  }) => void;
   onTokensDiscovered?: (tokens: DetectedToken[]) => void;
 }
 
@@ -40,7 +58,7 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
     const renderTaskRef = useRef<any>(null);
     const debounceTimerRef = useRef<any>(null);
     const renderedScaleRef = useRef<number>(0);
-    const lastRenderedKeyRef = useRef<string>('');
+    const lastRenderedKeyRef = useRef<string>("");
 
     const onPageLoadedRef = useRef(onPageLoaded);
     const onTokensDiscoveredRef = useRef(onTokensDiscovered);
@@ -53,11 +71,15 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
     useEffect(() => {
       if (!doc) return;
 
-      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      const dpr =
+        typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
       // High-precision adaptive scale: baseline minimum 2.0x (144+ DPI), dynamic up to 4.0x
-      const effectiveScale = Math.min(4.0, Math.max(2.0, Math.round(zoom * dpr * 10) / 10));
+      const effectiveScale = Math.min(
+        4.0,
+        Math.max(2.0, Math.round(zoom * dpr * 10) / 10),
+      );
       const effectiveRotation = ((rotation % 360) + 360) % 360;
-      const docId = doc?.fingerprints?.[0] || doc?.fingerprint || 'doc';
+      const docId = doc?.fingerprints?.[0] || doc?.fingerprint || "doc";
       const baseKey = `${docId}_${activePageIndex}_${effectiveRotation}`;
       const fullRenderKey = `${baseKey}@${effectiveScale}x`;
 
@@ -77,52 +99,74 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
             renderTaskRef.current = null;
           }
 
-          const targetPageNum = Math.min(doc.numPages, Math.max(1, activePageIndex + 1));
+          const targetPageNum = Math.min(
+            doc.numPages,
+            Math.max(1, activePageIndex + 1),
+          );
           const page = await doc.getPage(targetPageNum);
           if (isCancelled) return;
 
           // Only discover tokens and determine page dimensions on doc/page/rotation change
-          const isNewPageOrDoc = !lastRenderedKeyRef.current.startsWith(baseKey);
+          const isNewPageOrDoc =
+            !lastRenderedKeyRef.current.startsWith(baseKey);
           if (isNewPageOrDoc) {
-            const textContent = await page.getTextContent({ includeMarkedContent: false });
+            const textContent = await page.getTextContent({
+              includeMarkedContent: false,
+            });
             if (!isCancelled) {
-              const textItems = textContent.items.filter((item: any) => typeof item.str === 'string') as any[];
-              const discovered = detectTokensInTextItems(textItems, activePageIndex, textContent.styles as any);
+              const textItems = textContent.items.filter(
+                (item: any) => typeof item.str === "string",
+              ) as any[];
+              const discovered = detectTokensInTextItems(
+                textItems,
+                activePageIndex,
+                textContent.styles as any,
+              );
               onTokensDiscoveredRef.current?.(discovered);
             }
           }
 
-          const pageRotation = ((page.rotate + rotation) % 360 + 360) % 360;
-          const canonicalViewport = page.getViewport({ scale: 1.0, rotation: pageRotation });
+          const pageRotation = (((page.rotate + rotation) % 360) + 360) % 360;
+          const canonicalViewport = page.getViewport({
+            scale: 1.0,
+            rotation: pageRotation,
+          });
 
           if (isNewPageOrDoc) {
             onPageLoadedRef.current?.({
               width: canonicalViewport.width,
               height: canonicalViewport.height,
               pageCount: doc.numPages,
+              effectiveRotation: pageRotation,
+              rotation: pageRotation,
             });
           }
 
           // High-precision render viewport
-          const renderViewport = page.getViewport({ scale: scaleToRender, rotation: pageRotation });
+          const renderViewport = page.getViewport({
+            scale: scaleToRender,
+            rotation: pageRotation,
+          });
           const targetPixelW = Math.floor(renderViewport.width);
           const targetPixelH = Math.floor(renderViewport.height);
 
           // Double-buffering: Render onto offscreen canvas first to prevent white flash
-          const offscreenCanvas = document.createElement('canvas');
+          const offscreenCanvas = document.createElement("canvas");
           offscreenCanvas.width = targetPixelW;
           offscreenCanvas.height = targetPixelH;
 
-          const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
+          const offscreenCtx = offscreenCanvas.getContext("2d", {
+            alpha: false,
+          });
           if (!offscreenCtx) return;
 
           offscreenCtx.imageSmoothingEnabled = true;
-          offscreenCtx.imageSmoothingQuality = 'high';
+          offscreenCtx.imageSmoothingQuality = "high";
 
           const renderTask = page.render({
             canvasContext: offscreenCtx,
             viewport: renderViewport,
-            intent: 'display',
+            intent: "display",
           });
           renderTaskRef.current = renderTask;
           await renderTask.promise;
@@ -133,7 +177,10 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
           const visibleCanvas = canvasRef.current;
           if (!visibleCanvas) return;
 
-          if (visibleCanvas.width !== targetPixelW || visibleCanvas.height !== targetPixelH) {
+          if (
+            visibleCanvas.width !== targetPixelW ||
+            visibleCanvas.height !== targetPixelH
+          ) {
             visibleCanvas.width = targetPixelW;
             visibleCanvas.height = targetPixelH;
           }
@@ -142,18 +189,18 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
           visibleCanvas.style.width = `${Math.floor(canonicalViewport.width)}px`;
           visibleCanvas.style.height = `${Math.floor(canonicalViewport.height)}px`;
 
-          const visibleCtx = visibleCanvas.getContext('2d');
+          const visibleCtx = visibleCanvas.getContext("2d");
           if (!visibleCtx) return;
 
           visibleCtx.imageSmoothingEnabled = true;
-          visibleCtx.imageSmoothingQuality = 'high';
+          visibleCtx.imageSmoothingQuality = "high";
           visibleCtx.drawImage(offscreenCanvas, 0, 0);
 
           renderedScaleRef.current = scaleToRender;
           lastRenderedKeyRef.current = fullRenderKey;
         } catch (err: any) {
-          if (!isCancelled && err?.name !== 'RenderingCancelledException') {
-            console.error('Error rendering page in MemoizedPdfCanvas:', err);
+          if (!isCancelled && err?.name !== "RenderingCancelledException") {
+            console.error("Error rendering page in MemoizedPdfCanvas:", err);
           }
         }
       };
@@ -197,7 +244,7 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
         ref={canvasRef}
         className="block pointer-events-none"
         style={{
-          imageRendering: 'auto',
+          imageRendering: "auto",
         }}
       />
     );
@@ -205,10 +252,12 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
   (prev, next) =>
     prev.doc === next.doc &&
     prev.activePageIndex === next.activePageIndex &&
-    prev.rotation === next.rotation
+    prev.rotation === next.rotation,
 );
 
-const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) => {
+const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({
+  data,
+}) => {
   const {
     sourcePdfBytes,
     activePageIndex = 0,
@@ -250,8 +299,8 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) =>
         setDoc(loadedDoc);
       } catch (err: any) {
         if (!isCancelled) {
-          console.error('Error loading PDF document in PdfPageNode:', err);
-          setError(err.message || 'Failed to load PDF document');
+          console.error("Error loading PDF document in PdfPageNode:", err);
+          setError(err.message || "Failed to load PDF document");
         }
       } finally {
         if (!isCancelled) setLoading(false);
@@ -276,7 +325,9 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) =>
   const pageTokens = detectedTokens.filter(
     (t) =>
       t.pageIndex === activePageIndex &&
-      !fieldMappings.some((m) => m.key === t.key && m.pageIndex === activePageIndex)
+      !fieldMappings.some(
+        (m) => m.key === t.key && m.pageIndex === activePageIndex,
+      ),
   );
 
   return (
@@ -335,7 +386,9 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) =>
       {/* Error Overlay */}
       {error && (
         <div className="absolute inset-0 bg-red-50/90 flex items-center justify-center p-4 z-40">
-          <div className="text-red-600 text-xs text-center font-medium">{error}</div>
+          <div className="text-red-600 text-xs text-center font-medium">
+            {error}
+          </div>
         </div>
       )}
     </div>
@@ -353,5 +406,6 @@ export const PdfPageNode = React.memo(
     prev.data.detectedTokens === next.data.detectedTokens &&
     prev.data.fieldMappings === next.data.fieldMappings &&
     prev.data.onConfirmToken === next.data.onConfirmToken &&
-    prev.data.onPageClick === next.data.onPageClick
+    prev.data.onPageClick === next.data.onPageClick &&
+    prev.data.viewport === next.data.viewport,
 );

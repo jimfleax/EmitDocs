@@ -26,7 +26,9 @@ export function detectDuplicatesAcrossRows<T extends DetectDuplicateItem>(
   return rows.map((row) => {
     const fingerprint = computeRowFingerprint(row.effectiveData);
     const existing = seenFingerprints.get(fingerprint);
-    const warnings: RowWarning[] = (row.warnings as RowWarning[]) || [];
+    const warnings: RowWarning[] = ((row.warnings as RowWarning[]) || []).filter(
+      (w) => w.code !== 'DUPLICATE_ROW'
+    );
 
     if (fingerprint.length > 0 && existing && existing.length > 0) {
       const references = [...existing];

@@ -2,7 +2,7 @@
  * Converts a 0-indexed column number to Excel column letters (0 -> A, 25 -> Z, 26 -> AA).
  */
 export function getColumnLetter(colIndex: number): string {
-  let letter = '';
+  let letter = "";
   let temp = colIndex;
   while (temp >= 0) {
     letter = String.fromCharCode((temp % 26) + 65) + letter;
@@ -38,7 +38,13 @@ export function extractHeadersAndRows(grid: any[][]): ExtractedGrid {
   let headerRowIndex = -1;
   for (let i = 0; i < grid.length; i++) {
     const row = grid[i];
-    if (row && row.some((cell) => cell !== null && cell !== undefined && String(cell).trim().length > 0)) {
+    if (
+      row &&
+      row.some(
+        (cell) =>
+          cell !== null && cell !== undefined && String(cell).trim().length > 0,
+      )
+    ) {
       headerRowIndex = i;
       break;
     }
@@ -69,7 +75,8 @@ export function extractHeadersAndRows(grid: any[][]): ExtractedGrid {
 
   for (let colIdx = 0; colIdx < maxCols; colIdx++) {
     const rawVal = rawHeaderRow[colIdx];
-    const headerStr = rawVal !== null && rawVal !== undefined ? String(rawVal).trim() : '';
+    const headerStr =
+      rawVal !== null && rawVal !== undefined ? String(rawVal).trim() : "";
     rawHeaders.push(headerStr);
 
     let effectiveHeader = headerStr;
@@ -96,7 +103,10 @@ export function extractHeadersAndRows(grid: any[][]): ExtractedGrid {
     if (!row) continue;
     // Skip completely empty row if desired or preserve?
     // Check if row has at least one populated value
-    const hasData = row.some((cell) => cell !== null && cell !== undefined && String(cell).trim().length > 0);
+    const hasData = row.some(
+      (cell) =>
+        cell !== null && cell !== undefined && String(cell).trim().length > 0,
+    );
     if (!hasData) continue;
 
     // Pad row to maxCols

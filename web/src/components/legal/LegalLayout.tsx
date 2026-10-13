@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react'
-import { Link } from '@tanstack/react-router'
+import React, { useState, useEffect } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   Printer,
   ArrowRight,
@@ -10,22 +10,22 @@ import {
   FileText,
   Scales,
   X,
-} from '@phosphor-icons/react'
-import { authClient } from '@/lib/auth-client'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from "@phosphor-icons/react";
+import { authClient } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export interface LegalLayoutProps {
-  title: string
-  subtitle: string
-  lastUpdated: string
-  version: string
-  activeDoc: 'terms' | 'privacy'
-  sections: Array<{ id: string; title: string; number?: string | number }>
-  children: React.ReactNode
+  title: string;
+  subtitle: string;
+  lastUpdated: string;
+  version: string;
+  activeDoc: "terms" | "privacy";
+  sections: Array<{ id: string; title: string; number?: string | number }>;
+  children: React.ReactNode;
 }
 
-const CURRENT_YEAR = new Date().getFullYear()
+const CURRENT_YEAR = new Date().getFullYear();
 
 export function LegalLayout({
   title,
@@ -36,11 +36,11 @@ export function LegalLayout({
   sections,
   children,
 }: LegalLayoutProps) {
-  const { data: session } = authClient.useSession()
-  const [searchQuery, setSearchQuery] = useState('')
+  const { data: session } = authClient.useSession();
+  const [searchQuery, setSearchQuery] = useState("");
   const [activeSectionId, setActiveSectionId] = useState<string>(
-    sections[0]?.id || ''
-  )
+    sections[0]?.id || "",
+  );
 
   // Scrollspy via IntersectionObserver
   useEffect(() => {
@@ -48,33 +48,33 @@ export function LegalLayout({
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            setActiveSectionId(entry.target.id)
+            setActiveSectionId(entry.target.id);
           }
-        })
+        });
       },
       {
-        rootMargin: '-80px 0px -60% 0px',
+        rootMargin: "-80px 0px -60% 0px",
         threshold: 0,
-      }
-    )
+      },
+    );
 
     sections.forEach(({ id }) => {
-      const element = document.getElementById(id)
-      if (element) observer.observe(element)
-    })
+      const element = document.getElementById(id);
+      if (element) observer.observe(element);
+    });
 
-    return () => observer.disconnect()
-  }, [sections])
+    return () => observer.disconnect();
+  }, [sections]);
 
   const filteredSections = sections.filter((s) =>
-    s.title.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+    s.title.toLowerCase().includes(searchQuery.toLowerCase()),
+  );
 
   const handlePrint = () => {
-    if (typeof window !== 'undefined') {
-      window.print()
+    if (typeof window !== "undefined") {
+      window.print();
     }
-  }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col selection:bg-blue-100 selection:text-blue-900">
@@ -123,23 +123,29 @@ export function LegalLayout({
             <Link
               to="/terms"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                activeDoc === 'terms'
-                  ? 'bg-white text-blue-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                activeDoc === "terms"
+                  ? "bg-white text-blue-600 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <Scales size={15} weight={activeDoc === 'terms' ? 'bold' : 'regular'} />
+              <Scales
+                size={15}
+                weight={activeDoc === "terms" ? "bold" : "regular"}
+              />
               <span>Terms of Service</span>
             </Link>
             <Link
               to="/privacy"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
-                activeDoc === 'privacy'
-                  ? 'bg-white text-blue-600 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
+                activeDoc === "privacy"
+                  ? "bg-white text-blue-600 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <ShieldCheck size={15} weight={activeDoc === 'privacy' ? 'bold' : 'regular'} />
+              <ShieldCheck
+                size={15}
+                weight={activeDoc === "privacy" ? "bold" : "regular"}
+              />
               <span>Privacy Policy</span>
             </Link>
           </nav>
@@ -220,7 +226,7 @@ export function LegalLayout({
                 {searchQuery && (
                   <button
                     type="button"
-                    onClick={() => setSearchQuery('')}
+                    onClick={() => setSearchQuery("")}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
                     aria-label="Clear filter"
                   >
@@ -232,21 +238,23 @@ export function LegalLayout({
               {/* Navigation List */}
               <nav className="max-h-[calc(100vh-22rem)] overflow-y-auto space-y-1 pr-1 text-xs font-medium scrollbar-thin">
                 {filteredSections.map((sec) => {
-                  const isActive = activeSectionId === sec.id
+                  const isActive = activeSectionId === sec.id;
                   return (
                     <a
                       key={sec.id}
                       href={`#${sec.id}`}
                       className={`group flex items-start gap-2 px-2.5 py-1.5 rounded-lg transition-all ${
                         isActive
-                          ? 'bg-blue-50 text-blue-700 font-semibold'
-                          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                          ? "bg-blue-50 text-blue-700 font-semibold"
+                          : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                       }`}
                     >
                       {sec.number && (
                         <span
                           className={`font-mono text-[11px] shrink-0 ${
-                            isActive ? 'text-blue-600 font-bold' : 'text-slate-400'
+                            isActive
+                              ? "text-blue-600 font-bold"
+                              : "text-slate-400"
                           }`}
                         >
                           {sec.number}.
@@ -254,7 +262,7 @@ export function LegalLayout({
                       )}
                       <span className="line-clamp-1">{sec.title}</span>
                     </a>
-                  )
+                  );
                 })}
                 {filteredSections.length === 0 && (
                   <p className="text-xs text-slate-400 py-3 text-center">
@@ -270,15 +278,17 @@ export function LegalLayout({
                 </div>
                 <a
                   href={
-                    activeDoc === 'terms'
-                      ? 'mailto:legal@emitdocs.com'
-                      : 'mailto:privacy@emitdocs.com'
+                    activeDoc === "terms"
+                      ? "mailto:legal@emitdocs.com"
+                      : "mailto:privacy@emitdocs.com"
                   }
                   className="inline-flex items-center gap-1.5 text-slate-600 hover:text-blue-600 transition-colors font-medium text-xs"
                 >
                   <EnvelopeSimple size={14} weight="bold" />
                   <span>
-                    {activeDoc === 'terms' ? 'legal@emitdocs.com' : 'privacy@emitdocs.com'}
+                    {activeDoc === "terms"
+                      ? "legal@emitdocs.com"
+                      : "privacy@emitdocs.com"}
                   </span>
                 </a>
               </div>
@@ -305,15 +315,24 @@ export function LegalLayout({
 
               <div className="flex flex-wrap items-center gap-4 mt-6 text-xs text-slate-400 font-medium">
                 <div>
-                  Effective: <span className="text-slate-600 font-semibold">{lastUpdated}</span>
+                  Effective:{" "}
+                  <span className="text-slate-600 font-semibold">
+                    {lastUpdated}
+                  </span>
                 </div>
                 <div>·</div>
                 <div>
-                  Last Updated: <span className="text-slate-600 font-semibold">{lastUpdated}</span>
+                  Last Updated:{" "}
+                  <span className="text-slate-600 font-semibold">
+                    {lastUpdated}
+                  </span>
                 </div>
                 <div>·</div>
                 <div>
-                  Governing Entity: <span className="text-slate-600 font-semibold">EmitDocs Platform</span>
+                  Governing Entity:{" "}
+                  <span className="text-slate-600 font-semibold">
+                    EmitDocs Platform
+                  </span>
                 </div>
               </div>
             </div>
@@ -328,7 +347,11 @@ export function LegalLayout({
       <footer className="no-print mt-auto bg-white border-t border-slate-200 py-8 text-xs text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <img src="/favicon.svg" alt="EmitDocs" className="w-5 h-5 rounded-md" />
+            <img
+              src="/favicon.svg"
+              alt="EmitDocs"
+              className="w-5 h-5 rounded-md"
+            />
             <span className="font-semibold text-slate-800">EmitDocs</span>
           </div>
 
@@ -336,10 +359,16 @@ export function LegalLayout({
             <Link to="/terms" className="hover:text-blue-600 transition-colors">
               Terms of Service
             </Link>
-            <Link to="/privacy" className="hover:text-blue-600 transition-colors">
+            <Link
+              to="/privacy"
+              className="hover:text-blue-600 transition-colors"
+            >
               Privacy Policy
             </Link>
-            <Link to="/sign-in" className="hover:text-blue-600 transition-colors">
+            <Link
+              to="/sign-in"
+              className="hover:text-blue-600 transition-colors"
+            >
               Sign In
             </Link>
             <a
@@ -354,5 +383,5 @@ export function LegalLayout({
         </div>
       </footer>
     </div>
-  )
+  );
 }

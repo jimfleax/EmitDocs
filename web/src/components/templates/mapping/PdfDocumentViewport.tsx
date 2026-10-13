@@ -1,10 +1,19 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { pdfjsLib, STANDARD_FONT_DATA_URL } from '@/lib/pdf-engine/worker-setup';
-import type { ViewportConfig, PdfRect } from '@/lib/pdf-engine/coordinate-transforms';
-import { detectTokensInTextItems, type DetectedToken } from '@/lib/pdf-engine/token-detector';
-import { FieldOverlayLayer } from './FieldOverlayLayer';
-import { FieldSelectionTool } from './FieldSelectionTool';
-import type { IFieldMapping } from './types';
+import React, { useEffect, useRef, useState } from "react";
+import {
+  pdfjsLib,
+  STANDARD_FONT_DATA_URL,
+} from "@/lib/pdf-engine/worker-setup";
+import type {
+  ViewportConfig,
+  PdfRect,
+} from "@/lib/pdf-engine/coordinate-transforms";
+import {
+  detectTokensInTextItems,
+  type DetectedToken,
+} from "@/lib/pdf-engine/token-detector";
+import { FieldOverlayLayer } from "./FieldOverlayLayer";
+import { FieldSelectionTool } from "./FieldSelectionTool";
+import type { IFieldMapping } from "./types";
 
 interface PdfDocumentViewportProps {
   sourcePdfBytes: Uint8Array | null;
@@ -62,7 +71,9 @@ export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({
   }, [onTokensDiscovered, onPageCountDetermined, onViewportChange]);
 
   const [doc, setDoc] = useState<any>(null);
-  const [viewportConfig, setViewportConfig] = useState<ViewportConfig | null>(null);
+  const [viewportConfig, setViewportConfig] = useState<ViewportConfig | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,8 +102,8 @@ export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({
         onPageCountDeterminedRef.current(loadedDoc.numPages);
       } catch (err: any) {
         if (!isCancelled) {
-          console.error('Error loading PDF document in viewport:', err);
-          setError(err.message || 'Failed to load PDF document');
+          console.error("Error loading PDF document in viewport:", err);
+          setError(err.message || "Failed to load PDF document");
           setLoading(false);
         }
       }
@@ -126,40 +137,56 @@ export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({
           renderTaskRef.current = null;
         }
 
-        const targetPageNum = Math.min(doc.numPages, Math.max(1, activePageIndex + 1));
+        const targetPageNum = Math.min(
+          doc.numPages,
+          Math.max(1, activePageIndex + 1),
+        );
         const page = await doc.getPage(targetPageNum);
         if (isCancelled) return;
 
         // Extract text items for token discovery
         const textContent = await page.getTextContent();
         if (!isCancelled) {
-          const textItems = textContent.items.filter((item: any) => typeof item.str === 'string') as any[];
-          const discovered = detectTokensInTextItems(textItems, activePageIndex);
+          const textItems = textContent.items.filter(
+            (item: any) => typeof item.str === "string",
+          ) as any[];
+          const discovered = detectTokensInTextItems(
+            textItems,
+            activePageIndex,
+          );
           onTokensDiscoveredRef.current(discovered);
         }
 
-        const effectiveRotation = ((page.rotate + rotation) % 360 + 360) % 360;
-        const canonicalViewport = page.getViewport({ scale, rotation: effectiveRotation });
+        const effectiveRotation =
+          (((page.rotate + rotation) % 360) + 360) % 360;
+        const canonicalViewport = page.getViewport({
+          scale,
+          rotation: effectiveRotation,
+        });
 
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+        const dpr =
+          typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
         const effectiveScale = Math.min(4.0, Math.max(2.0, scale * dpr));
-        const renderViewport = page.getViewport({ scale: effectiveScale, rotation: effectiveRotation });
+        const renderViewport = page.getViewport({
+          scale: effectiveScale,
+          rotation: effectiveRotation,
+        });
 
         const targetPixelWidth = Math.floor(renderViewport.width);
         const targetPixelHeight = Math.floor(renderViewport.height);
 
-        const offscreenCanvas = document.createElement('canvas');
+        const offscreenCanvas = document.createElement("canvas");
         offscreenCanvas.width = targetPixelWidth;
         offscreenCanvas.height = targetPixelHeight;
 
-        const offCtx = offscreenCanvas.getContext('2d', { alpha: false });
+        const offCtx = offscreenCanvas.getContext("2d", { alpha: false });
         if (!offCtx) return;
 
         offCtx.imageSmoothingEnabled = true;
-        offCtx.imageSmoothingQuality = 'high';
+        offCtx.imageSmoothingQuality = "high";
 
         const newVp: ViewportConfig = {
           width: canonicalViewport.width,
@@ -173,30 +200,33 @@ export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({
         const renderTask = page.render({
           canvasContext: offCtx,
           viewport: renderViewport,
-          intent: 'display',
+          intent: "display",
         });
         renderTaskRef.current = renderTask;
         await renderTask.promise;
 
         if (isCancelled) return;
 
-        if (canvas.width !== targetPixelWidth || canvas.height !== targetPixelHeight) {
+        if (
+          canvas.width !== targetPixelWidth ||
+          canvas.height !== targetPixelHeight
+        ) {
           canvas.width = targetPixelWidth;
           canvas.height = targetPixelHeight;
         }
         canvas.style.width = `${Math.floor(canonicalViewport.width)}px`;
         canvas.style.height = `${Math.floor(canonicalViewport.height)}px`;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
         if (!ctx) return;
 
         ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
+        ctx.imageSmoothingQuality = "high";
         ctx.drawImage(offscreenCanvas, 0, 0);
       } catch (err: any) {
-        if (!isCancelled && err?.name !== 'RenderingCancelledException') {
-          console.error('Error rendering PDF page in viewport:', err);
-          setError(err.message || 'Failed to render PDF page');
+        if (!isCancelled && err?.name !== "RenderingCancelledException") {
+          console.error("Error rendering PDF page in viewport:", err);
+          setError(err.message || "Failed to render PDF page");
         }
       } finally {
         if (!isCancelled) setLoading(false);
@@ -227,9 +257,19 @@ export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({
       ) : (
         <div
           className="relative shadow-2xl bg-white border border-slate-300 rounded overflow-visible select-none inline-block"
-          style={viewportConfig ? { width: `${viewportConfig.width}px`, height: `${viewportConfig.height}px` } : undefined}
+          style={
+            viewportConfig
+              ? {
+                  width: `${viewportConfig.width}px`,
+                  height: `${viewportConfig.height}px`,
+                }
+              : undefined
+          }
           onMouseDown={(e) => {
-            if (e.target === canvasRef.current || e.target === e.currentTarget) {
+            if (
+              e.target === canvasRef.current ||
+              e.target === e.currentTarget
+            ) {
               onSelectField(null);
             }
           }}

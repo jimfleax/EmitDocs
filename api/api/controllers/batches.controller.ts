@@ -135,36 +135,55 @@ export const createImport = async (c: Context) => {
       rawHeaders,
       disambiguatedHeaders,
       columnMap,
+      dateFormatHints,
     } = body || {};
 
     if (!sourceFileName || sourceFileSize === undefined) {
       return c.json({ error: 'sourceFileName and sourceFileSize are required' }, 400);
     }
 
-    // Increment revision strictly (AC8)
-    const nextRevision = (batch.currentImportRevision || 0) + 1;
+    // Allocate next revision derived from highest existing revision and currentImportRevision,
+    // handling concurrent creation collisions atomically via retry loop
+    let batchImport: any = null;
+    let attempts = 0;
+    while (!batchImport && attempts < 3) {
+      attempts++;
+      const latestImport = await BatchImport.findOne({ batchId: batch._id })
+        .sort({ revision: -1 })
+        .select('revision');
+      const highestRevision = Math.max(batch.currentImportRevision || 0, latestImport?.revision || 0);
+      const nextRevision = highestRevision + 1;
 
-    const batchImport = await BatchImport.create({
-      batchId: batch._id,
-      ownerId: user.id,
-      revision: nextRevision,
-      sourceFileName,
-      sourceFileSize,
-      sourceChecksum,
-      worksheetName,
-      availableWorksheets: availableWorksheets || [],
-      rawHeaders: rawHeaders || [],
-      disambiguatedHeaders: disambiguatedHeaders || [],
-      columnMap: columnMap || {},
-      status: 'uploading',
-      totalExpectedRows: 0,
-      totalExpectedChunks: 0,
-      receivedChunkIds: [],
-      rowCount: 0,
-      validCount: 0,
-      invalidCount: 0,
-      duplicateCount: 0,
-    });
+      try {
+        batchImport = await BatchImport.create({
+          batchId: batch._id,
+          ownerId: user.id,
+          revision: nextRevision,
+          sourceFileName,
+          sourceFileSize,
+          sourceChecksum,
+          worksheetName,
+          availableWorksheets: availableWorksheets || [],
+          rawHeaders: rawHeaders || [],
+          disambiguatedHeaders: disambiguatedHeaders || [],
+          columnMap: columnMap || {},
+          dateFormatHints: dateFormatHints || {},
+          status: 'uploading',
+          totalExpectedRows: 0,
+          totalExpectedChunks: 0,
+          receivedChunkIds: [],
+          rowCount: 0,
+          validCount: 0,
+          invalidCount: 0,
+          duplicateCount: 0,
+        });
+      } catch (insertErr: any) {
+        if (insertErr.code === 11000 && attempts < 3) {
+          continue;
+        }
+        throw insertErr;
+      }
+    }
 
     batch.status = 'importing';
     await batch.save();
@@ -189,12 +208,15 @@ export const updateImportMapping = async (c: Context) => {
     if (!batchImport) return c.json({ error: 'Import not found' }, 404);
 
     const body = await getJsonBody(c);
-    const { columnMap } = body || {};
+    const { columnMap, dateFormatHints } = body || {};
     if (!columnMap || typeof columnMap !== 'object') {
       return c.json({ error: 'Valid columnMap object is required' }, 400);
     }
 
     batchImport.columnMap = columnMap;
+    if (dateFormatHints && typeof dateFormatHints === 'object') {
+      batchImport.dateFormatHints = dateFormatHints;
+    }
     await batchImport.save();
 
     return c.json({ batchImport });
@@ -240,7 +262,7 @@ export const finalizeImport = async (c: Context) => {
   const { id: batchId, importId } = c.req.param();
   try {
     const body = await getJsonBody(c);
-    const { totalExpectedRows, totalExpectedChunks, columnMap } = body || {};
+    const { totalExpectedRows, totalExpectedChunks, columnMap, dateFormatHints, promote } = body || {};
 
     const result = await BatchIntake.finalizeImport({
       batchId,
@@ -249,6 +271,8 @@ export const finalizeImport = async (c: Context) => {
       totalExpectedRows,
       totalExpectedChunks,
       columnMap,
+      dateFormatHints,
+      promote,
     });
 
     return c.json(result);

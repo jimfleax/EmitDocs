@@ -1,8 +1,8 @@
-import React from 'react';
-import type { IFieldMapping } from './types';
-import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
-import { Trash } from '@phosphor-icons/react';
+import React from "react";
+import type { IFieldMapping } from "./types";
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
+import { Trash } from "@phosphor-icons/react";
 
 interface MappedFieldListProps {
   fields: IFieldMapping[];
@@ -46,18 +46,20 @@ export const MappedFieldList: React.FC<MappedFieldListProps> = ({
           return (
             <div
               key={field.id}
-              onClick={(e) => onSelectField(field.id, e.shiftKey || e.ctrlKey || e.metaKey)}
+              onClick={(e) =>
+                onSelectField(field.id, e.shiftKey || e.ctrlKey || e.metaKey)
+              }
               className={`p-2 rounded border text-xs cursor-pointer transition-all ${
                 isSelected
-                  ? 'border-blue-500 bg-blue-50/80 ring-1 ring-blue-500 shadow-xs'
-                  : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
+                  ? "border-blue-500 bg-blue-50/80 ring-1 ring-blue-500 shadow-xs"
+                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60"
               }`}
             >
               <div className="flex items-center justify-between gap-1">
                 <div className="flex items-center gap-1.5 min-w-0">
                   <span
                     className={`w-2 h-2 rounded-full shrink-0 ${
-                      isSelected ? 'bg-blue-600' : 'bg-slate-300'
+                      isSelected ? "bg-blue-600" : "bg-slate-300"
                     }`}
                   />
                   <span className="font-mono text-xs font-semibold text-slate-800 truncate">
@@ -91,10 +93,10 @@ export const MappedFieldList: React.FC<MappedFieldListProps> = ({
               </div>
 
               <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-500 pl-3.5">
-                <span>{field.fontFamily || 'Helvetica'}</span>
+                <span>{field.fontFamily || "Helvetica"}</span>
                 <span>•</span>
                 <span>{field.fontSize || 12}pt</span>
-                {field.fitMode === 'multi-line' && (
+                {field.fitMode === "multi-line" && (
                   <>
                     <span>•</span>
                     <span className="text-[9px] bg-purple-50 text-purple-700 px-1 py-0.2 rounded border border-purple-200">
@@ -104,7 +106,7 @@ export const MappedFieldList: React.FC<MappedFieldListProps> = ({
                 )}
                 <span>•</span>
                 <span className="truncate max-w-[100px] text-slate-400">
-                  {field.label || 'No label'}
+                  {field.label || "No label"}
                 </span>
               </div>
             </div>

@@ -7,7 +7,7 @@ export interface FitResult {
   fittedFontSize: number;
   isOverflow: boolean;
   overflowPixels: number;
-  status: 'fits' | 'clamped' | 'overflow';
+  status: "fits" | "clamped" | "overflow";
   textWidth: number;
   textHeight: number;
 }
@@ -17,7 +17,7 @@ export interface MultiLineFitResult {
   fittedFontSize: number;
   isOverflow: boolean;
   overflowPixels: number;
-  status: 'fits' | 'clamped' | 'overflow';
+  status: "fits" | "clamped" | "overflow";
   lineHeight: number;
   totalHeight: number;
 }
@@ -29,16 +29,16 @@ export function calculateMultiLineWrap(
   fontSize = 12,
   lineHeightMultiplier = 1.25,
   minFontSize = 8,
-  maxFontSize = 24
+  maxFontSize = 24,
 ): MultiLineFitResult {
   if (!text || text.trim().length === 0) {
     const singleLineHeight = fontSize * lineHeightMultiplier;
     return {
-      lines: [''],
+      lines: [""],
       fittedFontSize: fontSize,
       isOverflow: false,
       overflowPixels: 0,
-      status: 'fits',
+      status: "fits",
       lineHeight: singleLineHeight,
       totalHeight: singleLineHeight,
     };
@@ -46,21 +46,24 @@ export function calculateMultiLineWrap(
 
   let currentSize = Math.min(Math.max(fontSize, minFontSize), maxFontSize);
 
-  const wrapAtSize = (size: number): { lines: string[]; height: number; lineHeight: number } => {
+  const wrapAtSize = (
+    size: number,
+  ): { lines: string[]; height: number; lineHeight: number } => {
     const lh = Math.round(size * lineHeightMultiplier * 10) / 10;
-    const paragraphs = text.split('\n');
+    const paragraphs = text.split("\n");
     const wrappedLines: string[] = [];
 
     for (const paragraph of paragraphs) {
       const words = paragraph.trim().split(/\s+/).filter(Boolean);
       if (words.length === 0) {
-        wrappedLines.push('');
+        wrappedLines.push("");
         continue;
       }
 
-      let currentLine = '';
+      let currentLine = "";
       for (const word of words) {
-        const testLine = currentLine.length === 0 ? word : `${currentLine} ${word}`;
+        const testLine =
+          currentLine.length === 0 ? word : `${currentLine} ${word}`;
         const testWidth = font.widthOfTextAtSize(testLine, size);
 
         if (testWidth <= box.width) {
@@ -71,7 +74,7 @@ export function calculateMultiLineWrap(
             currentLine = word;
           } else {
             wrappedLines.push(word);
-            currentLine = '';
+            currentLine = "";
           }
         }
       }
@@ -92,12 +95,14 @@ export function calculateMultiLineWrap(
   }
 
   const isOverflow = wrapped.height > box.height;
-  const overflowPixels = isOverflow ? Math.round((wrapped.height - box.height) * 10) / 10 : 0;
-  const status: 'fits' | 'clamped' | 'overflow' = isOverflow
-    ? 'overflow'
+  const overflowPixels = isOverflow
+    ? Math.round((wrapped.height - box.height) * 10) / 10
+    : 0;
+  const status: "fits" | "clamped" | "overflow" = isOverflow
+    ? "overflow"
     : currentSize < fontSize
-    ? 'clamped'
-    : 'fits';
+      ? "clamped"
+      : "fits";
 
   return {
     lines: wrapped.lines,
@@ -116,10 +121,18 @@ export function calculateFit(
   box: { width: number; height: number },
   minFontSize = 8,
   maxFontSize = 24,
-  fitMode: 'shrink-to-fit' | 'fixed' | 'multi-line' = 'shrink-to-fit'
+  fitMode: "shrink-to-fit" | "fixed" | "multi-line" = "shrink-to-fit",
 ): FitResult {
-  if (fitMode === 'multi-line') {
-    const multi = calculateMultiLineWrap(text, font, box, maxFontSize, 1.25, minFontSize, maxFontSize);
+  if (fitMode === "multi-line") {
+    const multi = calculateMultiLineWrap(
+      text,
+      font,
+      box,
+      maxFontSize,
+      1.25,
+      minFontSize,
+      maxFontSize,
+    );
     return {
       fittedFontSize: multi.fittedFontSize,
       isOverflow: multi.isOverflow,
@@ -134,7 +147,7 @@ export function calculateFit(
       fittedFontSize: maxFontSize,
       isOverflow: false,
       overflowPixels: 0,
-      status: 'fits',
+      status: "fits",
       textWidth: 0,
       textHeight: font.heightAtSize(maxFontSize),
     };
@@ -143,7 +156,7 @@ export function calculateFit(
   const unitWidth = font.widthOfTextAtSize(text, 1);
   const unitHeight = font.heightAtSize(1);
 
-  if (fitMode === 'fixed') {
+  if (fitMode === "fixed") {
     const textWidth = unitWidth * maxFontSize;
     const textHeight = unitHeight * maxFontSize;
     const isOverflow = textWidth > box.width || textHeight > box.height;
@@ -153,7 +166,7 @@ export function calculateFit(
       fittedFontSize: maxFontSize,
       isOverflow,
       overflowPixels,
-      status: isOverflow ? 'overflow' : 'fits',
+      status: isOverflow ? "overflow" : "fits",
       textWidth,
       textHeight,
     };
@@ -161,9 +174,15 @@ export function calculateFit(
 
   // shrink-to-fit mode
   // Max size that physically fits horizontally and vertically
-  const maxFittingWidthSize = unitWidth > 0 ? box.width / unitWidth : maxFontSize;
-  const maxFittingHeightSize = unitHeight > 0 ? box.height / unitHeight : maxFontSize;
-  const idealSize = Math.min(maxFontSize, maxFittingWidthSize, maxFittingHeightSize);
+  const maxFittingWidthSize =
+    unitWidth > 0 ? box.width / unitWidth : maxFontSize;
+  const maxFittingHeightSize =
+    unitHeight > 0 ? box.height / unitHeight : maxFontSize;
+  const idealSize = Math.min(
+    maxFontSize,
+    maxFittingWidthSize,
+    maxFittingHeightSize,
+  );
 
   if (idealSize < minFontSize) {
     // Fits neither width nor height even at min font size
@@ -175,7 +194,7 @@ export function calculateFit(
       fittedFontSize: minFontSize,
       isOverflow: true,
       overflowPixels: Math.round(overflowPixels * 10) / 10,
-      status: 'overflow',
+      status: "overflow",
       textWidth: Math.round(actualWidth * 10) / 10,
       textHeight: Math.round(actualHeight * 10) / 10,
     };
@@ -189,7 +208,7 @@ export function calculateFit(
     fittedFontSize,
     isOverflow: false,
     overflowPixels: 0,
-    status: fittedFontSize < maxFontSize ? 'clamped' : 'fits',
+    status: fittedFontSize < maxFontSize ? "clamped" : "fits",
     textWidth,
     textHeight,
   };

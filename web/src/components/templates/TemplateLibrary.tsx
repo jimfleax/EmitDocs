@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useEffect, useState, useMemo } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   MagnifyingGlass,
   Plus,
@@ -8,43 +8,43 @@ import {
   Certificate,
   CheckCircle,
   PlusCircle,
-} from '@phosphor-icons/react'
-import { PageShell } from '@/components/layout/PageShell'
-import { Badge } from '@/components/ui/Badge'
-import { Alert } from '@/components/ui/Alert'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { TemplateLibrarySkeleton } from '@/components/skeletons/TemplateLibrarySkeleton'
+} from "@phosphor-icons/react";
+import { PageShell } from "@/components/layout/PageShell";
+import { Badge } from "@/components/ui/Badge";
+import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { TemplateLibrarySkeleton } from "@/components/skeletons/TemplateLibrarySkeleton";
 
 interface TemplateVersion {
-  _id?: string
-  version?: number
-  pageCount?: number
-  bytes?: number
-  sourceObjectKey?: string
-  status?: string
-  fieldMappings?: any[]
+  _id?: string;
+  version?: number;
+  pageCount?: number;
+  bytes?: number;
+  sourceObjectKey?: string;
+  status?: string;
+  fieldMappings?: any[];
 }
 
 interface Template {
-  _id: string
-  name: string
-  ownerId?: string
-  currentVersionId?: string | TemplateVersion
-  thumbnailUrl?: string
-  createdAt: string
-  updatedAt?: string
+  _id: string;
+  name: string;
+  ownerId?: string;
+  currentVersionId?: string | TemplateVersion;
+  thumbnailUrl?: string;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 function formatDate(isoString: string): string {
   try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+    const d = new Date(isoString);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   } catch {
-    return isoString
+    return isoString;
   }
 }
 
@@ -52,11 +52,11 @@ function TemplateCardThumbnail({
   thumbnailUrl,
   name,
 }: {
-  thumbnailUrl?: string | null
-  name: string
+  thumbnailUrl?: string | null;
+  name: string;
 }) {
-  const [errorUrl, setErrorUrl] = useState<string | null>(null)
-  const hasError = errorUrl === thumbnailUrl
+  const [errorUrl, setErrorUrl] = useState<string | null>(null);
+  const hasError = errorUrl === thumbnailUrl;
 
   if (thumbnailUrl && !hasError) {
     return (
@@ -67,7 +67,7 @@ function TemplateCardThumbnail({
         onError={() => setErrorUrl(thumbnailUrl)}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
       />
-    )
+    );
   }
 
   return (
@@ -91,18 +91,18 @@ function TemplateCardThumbnail({
         </div>
       </div>
     </div>
-  )
+  );
 }
 
 export function TemplateLibrary() {
-  const navigate = useNavigate()
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [deleteTarget, setDeleteTarget] = useState<Template | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [retryCount, setRetryCount] = useState(0)
+  const navigate = useNavigate();
+  const [templates, setTemplates] = useState<Template[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     let isCancelled = false;
@@ -110,10 +110,11 @@ export function TemplateLibrary() {
     async function fetchTemplates() {
       try {
         setLoading(true);
-        setError('');
-        const url = retryCount > 0 ? `/api/templates?_r=${retryCount}` : '/api/templates';
+        setError("");
+        const url =
+          retryCount > 0 ? `/api/templates?_r=${retryCount}` : "/api/templates";
         const res = await fetch(url, {
-          credentials: 'include',
+          credentials: "include",
         });
         if (!res.ok) {
           throw new Error(`Failed to fetch templates (${res.status})`);
@@ -129,7 +130,8 @@ export function TemplateLibrary() {
         }
       } catch (err: unknown) {
         if (!isCancelled) {
-          const message = err instanceof Error ? err.message : 'Failed to fetch templates';
+          const message =
+            err instanceof Error ? err.message : "Failed to fetch templates";
           setError(message);
         }
       } finally {
@@ -147,31 +149,33 @@ export function TemplateLibrary() {
   }, [retryCount]);
 
   const filteredTemplates = useMemo(() => {
-    if (!searchQuery.trim()) return templates
-    const q = searchQuery.toLowerCase().trim()
-    return templates.filter((t) => t.name.toLowerCase().includes(q))
-  }, [templates, searchQuery])
+    if (!searchQuery.trim()) return templates;
+    const q = searchQuery.toLowerCase().trim();
+    return templates.filter((t) => t.name.toLowerCase().includes(q));
+  }, [templates, searchQuery]);
 
   const confirmDelete = async (id: string) => {
     try {
-      setIsDeleting(true)
+      setIsDeleting(true);
       const res = await fetch(`/api/templates/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
+        method: "DELETE",
+        credentials: "include",
+      });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.error || errData.message || 'Failed to delete template')
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(
+          errData.error || errData.message || "Failed to delete template",
+        );
       }
-      setTemplates((prev) => prev.filter((t) => t._id !== id))
-      setDeleteTarget(null)
+      setTemplates((prev) => prev.filter((t) => t._id !== id));
+      setDeleteTarget(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Delete failed'
-      alert(message)
+      const message = err instanceof Error ? err.message : "Delete failed";
+      alert(message);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
   return (
     <PageShell
@@ -220,18 +224,20 @@ export function TemplateLibrary() {
       {!error && filteredTemplates.length === 0 && (
         <EmptyState
           icon={<FilePdf size={28} weight="duotone" />}
-          title={searchQuery.trim() ? 'No matching templates' : 'No templates yet'}
+          title={
+            searchQuery.trim() ? "No matching templates" : "No templates yet"
+          }
           description={
             searchQuery.trim()
               ? `No templates matched "${searchQuery}". Try a different keyword.`
-              : 'Upload a PDF document to create your first certificate or credential template.'
+              : "Upload a PDF document to create your first certificate or credential template."
           }
-          variant={searchQuery.trim() ? 'solid' : 'dashed'}
+          variant={searchQuery.trim() ? "solid" : "dashed"}
           action={
             searchQuery.trim() ? (
               <button
                 type="button"
-                onClick={() => setSearchQuery('')}
+                onClick={() => setSearchQuery("")}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
               >
                 Clear search filter
@@ -254,27 +260,35 @@ export function TemplateLibrary() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
           {filteredTemplates.map((template) => {
             const versionObj =
-              typeof template.currentVersionId === 'object' && template.currentVersionId !== null
+              typeof template.currentVersionId === "object" &&
+              template.currentVersionId !== null
                 ? template.currentVersionId
-                : null
-            const versionText = versionObj?.version ? `v${versionObj.version}` : 'v1'
+                : null;
+            const versionText = versionObj?.version
+              ? `v${versionObj.version}`
+              : "v1";
             const pageCountText = versionObj?.pageCount
-              ? `${versionObj.pageCount} ${versionObj.pageCount === 1 ? 'Page' : 'Pages'}`
-              : '1 Page'
+              ? `${versionObj.pageCount} ${versionObj.pageCount === 1 ? "Page" : "Pages"}`
+              : "1 Page";
 
-            const isMapped = Boolean(versionObj?.fieldMappings && versionObj.fieldMappings.length > 0)
+            const isMapped = Boolean(
+              versionObj?.fieldMappings && versionObj.fieldMappings.length > 0,
+            );
 
             return (
               <div
                 key={template._id}
                 onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('emitdocs_active_template_id', template._id)
+                  if (typeof window !== "undefined") {
+                    localStorage.setItem(
+                      "emitdocs_active_template_id",
+                      template._id,
+                    );
                   }
                   navigate({
-                    to: '/app/templates/$templateId',
+                    to: "/app/templates/$templateId",
                     params: { templateId: template._id },
-                  })
+                  });
                 }}
                 className="rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-lg transition-all overflow-hidden group flex flex-col cursor-pointer"
               >
@@ -320,15 +334,20 @@ export function TemplateLibrary() {
                       to="/app/templates/$templateId"
                       params={{ templateId: template._id }}
                       onClick={(e) => {
-                        e.stopPropagation()
-                        if (typeof window !== 'undefined') {
-                          localStorage.setItem('emitdocs_active_template_id', template._id)
+                        e.stopPropagation();
+                        if (typeof window !== "undefined") {
+                          localStorage.setItem(
+                            "emitdocs_active_template_id",
+                            template._id,
+                          );
                         }
                       }}
                       className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 group/link cursor-pointer"
                     >
                       <span>View Details</span>
-                      <span className="transition-transform group-hover/link:translate-x-0.5">&rarr;</span>
+                      <span className="transition-transform group-hover/link:translate-x-0.5">
+                        &rarr;
+                      </span>
                     </Link>
 
                     <div className="flex items-center gap-1.5">
@@ -337,9 +356,12 @@ export function TemplateLibrary() {
                           to="/app/batches/new"
                           search={{ templateId: template._id }}
                           onClick={(e) => {
-                            e.stopPropagation()
-                            if (typeof window !== 'undefined') {
-                              localStorage.setItem('emitdocs_active_template_id', template._id)
+                            e.stopPropagation();
+                            if (typeof window !== "undefined") {
+                              localStorage.setItem(
+                                "emitdocs_active_template_id",
+                                template._id,
+                              );
                             }
                           }}
                           className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
@@ -352,9 +374,9 @@ export function TemplateLibrary() {
                       <button
                         type="button"
                         onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setDeleteTarget(template)
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setDeleteTarget(template);
                         }}
                         title="Delete template"
                         className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
@@ -365,7 +387,7 @@ export function TemplateLibrary() {
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -383,11 +405,15 @@ export function TemplateLibrary() {
                 <Trash size={20} weight="bold" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-slate-900">Delete Template</h3>
+                <h3 className="text-base font-bold text-slate-900">
+                  Delete Template
+                </h3>
                 <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                  Are you sure you want to delete{' '}
-                  <span className="font-semibold text-slate-700">"{deleteTarget.name}"</span>? This
-                  template will be permanently removed.
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold text-slate-700">
+                    "{deleteTarget.name}"
+                  </span>
+                  ? This template will be permanently removed.
                 </p>
               </div>
             </div>
@@ -407,12 +433,12 @@ export function TemplateLibrary() {
                 disabled={isDeleting}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >
-                {isDeleting ? 'Deleting...' : 'Delete Template'}
+                {isDeleting ? "Deleting..." : "Delete Template"}
               </button>
             </div>
           </div>
         </div>
       )}
     </PageShell>
-  )
+  );
 }

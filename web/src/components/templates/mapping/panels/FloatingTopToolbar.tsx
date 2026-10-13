@@ -1,14 +1,14 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Panel } from '@xyflow/react';
-import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
-import type { IFieldMapping } from '../types';
-import type { DetectedToken } from '@/lib/pdf-engine/token-detector';
-import type { EngineWarning } from '@/lib/pdf-engine/pdf-preview-engine';
-import { FieldPropertiesPanel } from '../FieldPropertiesPanel';
-import { MappedFieldList } from '../MappedFieldList';
-import { DetectedTokenList } from '../DetectedTokenList';
-import { LayoutWarningList } from '../LayoutWarningList';
+import React, { useState, useRef, useEffect } from "react";
+import { Panel } from "@xyflow/react";
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
+import type { IFieldMapping } from "../types";
+import type { DetectedToken } from "@/lib/pdf-engine/token-detector";
+import type { EngineWarning } from "@/lib/pdf-engine/pdf-preview-engine";
+import { FieldPropertiesPanel } from "../FieldPropertiesPanel";
+import { MappedFieldList } from "../MappedFieldList";
+import { DetectedTokenList } from "../DetectedTokenList";
+import { LayoutWarningList } from "../LayoutWarningList";
 import {
   Plus,
   Magnet,
@@ -35,8 +35,8 @@ import {
   ArrowsOutLineHorizontal,
   ArrowsOutLineVertical,
   Question,
-} from '@phosphor-icons/react';
-import type { AlignmentAction } from '@/lib/pdf-engine/alignment-tools';
+} from "@phosphor-icons/react";
+import type { AlignmentAction } from "@/lib/pdf-engine/alignment-tools";
 
 export interface FloatingTopToolbarProps {
   templateName?: string;
@@ -50,10 +50,12 @@ export interface FloatingTopToolbarProps {
   onToggleSnap: () => void;
   snapThresholdPx: number;
   onChangeSnapThreshold: (threshold: number) => void;
-  viewMode: 'editor' | 'preview';
-  onChangeViewMode: (mode: 'editor' | 'preview') => void;
-  samplePreset: 'normal' | 'long' | 'unicode' | 'empty';
-  onChangeSamplePreset: (preset: 'normal' | 'long' | 'unicode' | 'empty') => void;
+  viewMode: "editor" | "preview";
+  onChangeViewMode: (mode: "editor" | "preview") => void;
+  samplePreset: "normal" | "long" | "unicode" | "empty";
+  onChangeSamplePreset: (
+    preset: "normal" | "long" | "unicode" | "empty",
+  ) => void;
   onSaveVersion: () => void;
   isSaving: boolean;
   saveSuccessMessage?: string | null;
@@ -85,7 +87,7 @@ export interface FloatingTopToolbarProps {
   warnings?: EngineWarning[];
 }
 
-type TabType = 'properties' | 'fields' | 'tokens' | 'warnings';
+type TabType = "properties" | "fields" | "tokens" | "warnings";
 
 const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   templateName,
@@ -133,8 +135,10 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
 }) => {
   // Inspector drawer open/collapsed state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<TabType>('properties');
-  const [prevSelectedFieldId, setPrevSelectedFieldId] = useState<string | null>(selectedFieldId || null);
+  const [activeTab, setActiveTab] = useState<TabType>("properties");
+  const [prevSelectedFieldId, setPrevSelectedFieldId] = useState<string | null>(
+    selectedFieldId || null,
+  );
   const drawerRef = useRef<HTMLDivElement>(null);
   const inspectorBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -142,7 +146,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   if (selectedFieldId !== prevSelectedFieldId) {
     setPrevSelectedFieldId(selectedFieldId || null);
     if (selectedFieldId && isDrawerOpen) {
-      setActiveTab('properties');
+      setActiveTab("properties");
     }
   }
 
@@ -172,33 +176,40 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
         const isInsideDrawer = drawerRef.current?.contains(target);
         const isInsideInspectorBtn = inspectorBtnRef.current?.contains(target);
         const isInsideSelectContent = Boolean(
-          target.closest?.('[data-select-content]') || target.closest?.('[role="listbox"]')
+          target.closest?.("[data-select-content]") ||
+          target.closest?.('[role="listbox"]'),
         );
 
-        if (!isInsideDrawer && !isInsideInspectorBtn && !isInsideSelectContent) {
+        if (
+          !isInsideDrawer &&
+          !isInsideInspectorBtn &&
+          !isInsideSelectContent
+        ) {
           setIsDrawerOpen(false);
         }
       }
     };
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         setIsDrawerOpen(false);
         setIsMoreOpen(false);
         setIsAlignOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isDrawerOpen]);
 
   // Filter detected tokens for current active page
-  const pageTokens = detectedTokens.filter((t) => t.pageIndex === activePageIndex);
+  const pageTokens = detectedTokens.filter(
+    (t) => t.pageIndex === activePageIndex,
+  );
 
   return (
     <Panel
@@ -207,9 +218,9 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
       className="!m-0 !top-3 !left-1/2 !-translate-x-1/2 z-35 pointer-events-auto"
       style={{
         margin: 0,
-        top: '12px',
-        left: '50%',
-        transform: 'translateX(-50%)',
+        top: "12px",
+        left: "50%",
+        transform: "translateX(-50%)",
         zIndex: 35,
       }}
     >
@@ -287,7 +298,11 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
 
           {/* Magnet Snapping Toggle */}
           <Tooltip
-            content={isSnapEnabled ? 'Magnetic Snapping: ON (Hold Alt to bypass)' : 'Magnetic Snapping: OFF'}
+            content={
+              isSnapEnabled
+                ? "Magnetic Snapping: ON (Hold Alt to bypass)"
+                : "Magnetic Snapping: OFF"
+            }
             side="bottom"
           >
             <Button
@@ -296,11 +311,11 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
               onClick={onToggleSnap}
               className={`h-7 px-1.5 rounded-lg flex items-center gap-1 font-medium text-[11px] shrink-0 border border-transparent ${
                 isSnapEnabled
-                  ? 'bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 hover:text-pink-800'
-                  : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
+                  ? "bg-pink-50 text-pink-700 border-pink-200 hover:bg-pink-100 hover:text-pink-800"
+                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
               }`}
             >
-              <Magnet size={13} weight={isSnapEnabled ? 'fill' : 'regular'} />
+              <Magnet size={13} weight={isSnapEnabled ? "fill" : "regular"} />
               <span className="hidden sm:inline">Snap</span>
             </Button>
           </Tooltip>
@@ -311,7 +326,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
               <Tooltip
                 content={
                   selectedFieldIds.length === 1
-                    ? 'Center on Page'
+                    ? "Center on Page"
                     : `Align & Distribute (${selectedFieldIds.length} selected)`
                 }
                 side="bottom"
@@ -322,8 +337,8 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                   onClick={() => setIsAlignOpen((prev) => !prev)}
                   className={`h-7 px-2 rounded-lg flex items-center gap-1 text-[11px] font-medium shrink-0 border border-slate-200 ${
                     isAlignOpen
-                      ? 'bg-blue-50 text-blue-700 border-blue-300 font-semibold'
-                      : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      ? "bg-blue-50 text-blue-700 border-blue-300 font-semibold"
+                      : "bg-slate-50 text-slate-700 hover:bg-slate-100"
                   }`}
                 >
                   <AlignLeft size={13} weight="bold" />
@@ -339,18 +354,20 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                   <div className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider px-1 pb-1 border-b border-slate-100 mb-1.5">
                     {selectedFieldIds.length > 1
                       ? `Align ${selectedFieldIds.length} Elements`
-                      : 'Center on Page'}
+                      : "Center on Page"}
                   </div>
 
                   {/* Multi-element Alignments */}
                   {selectedFieldIds.length > 1 && (
                     <div className="space-y-1 mb-2 pb-2 border-b border-slate-100">
-                      <div className="text-[10px] text-slate-400 px-1 font-medium">Horizontal</div>
+                      <div className="text-[10px] text-slate-400 px-1 font-medium">
+                        Horizontal
+                      </div>
                       <div className="grid grid-cols-3 gap-1">
                         <button
                           type="button"
                           onClick={() => {
-                            onApplyAlignment('alignLeft');
+                            onApplyAlignment("alignLeft");
                             setIsAlignOpen(false);
                           }}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -362,7 +379,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            onApplyAlignment('alignCenterH');
+                            onApplyAlignment("alignCenterH");
                             setIsAlignOpen(false);
                           }}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -374,7 +391,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            onApplyAlignment('alignRight');
+                            onApplyAlignment("alignRight");
                             setIsAlignOpen(false);
                           }}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -385,12 +402,14 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                         </button>
                       </div>
 
-                      <div className="text-[10px] text-slate-400 px-1 font-medium pt-1">Vertical</div>
+                      <div className="text-[10px] text-slate-400 px-1 font-medium pt-1">
+                        Vertical
+                      </div>
                       <div className="grid grid-cols-3 gap-1">
                         <button
                           type="button"
                           onClick={() => {
-                            onApplyAlignment('alignTop');
+                            onApplyAlignment("alignTop");
                             setIsAlignOpen(false);
                           }}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -402,7 +421,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            onApplyAlignment('alignMiddleV');
+                            onApplyAlignment("alignMiddleV");
                             setIsAlignOpen(false);
                           }}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -414,7 +433,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                         <button
                           type="button"
                           onClick={() => {
-                            onApplyAlignment('alignBottom');
+                            onApplyAlignment("alignBottom");
                             setIsAlignOpen(false);
                           }}
                           className="flex flex-col items-center justify-center p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -428,24 +447,29 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                       {/* Equal Spacing Distribution (when 3+ selected) */}
                       {selectedFieldIds.length >= 3 && (
                         <>
-                          <div className="text-[10px] text-slate-400 px-1 font-medium pt-1">Distribute</div>
+                          <div className="text-[10px] text-slate-400 px-1 font-medium pt-1">
+                            Distribute
+                          </div>
                           <div className="grid grid-cols-2 gap-1">
                             <button
                               type="button"
                               onClick={() => {
-                                onApplyAlignment('distributeH');
+                                onApplyAlignment("distributeH");
                                 setIsAlignOpen(false);
                               }}
                               className="flex items-center justify-center gap-1 p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
                               title="Distribute Horizontally"
                             >
-                              <ArrowsOutLineHorizontal size={13} weight="bold" />
+                              <ArrowsOutLineHorizontal
+                                size={13}
+                                weight="bold"
+                              />
                               <span>Horizontal</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => {
-                                onApplyAlignment('distributeV');
+                                onApplyAlignment("distributeV");
                                 setIsAlignOpen(false);
                               }}
                               className="flex items-center justify-center gap-1 p-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] transition-colors"
@@ -462,12 +486,14 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
 
                   {/* Page Center Actions */}
                   <div className="space-y-1">
-                    <div className="text-[10px] text-slate-400 px-1 font-medium">Page Center</div>
+                    <div className="text-[10px] text-slate-400 px-1 font-medium">
+                      Page Center
+                    </div>
                     <div className="grid grid-cols-2 gap-1">
                       <button
                         type="button"
                         onClick={() => {
-                          onApplyAlignment('centerOnPageH');
+                          onApplyAlignment("centerOnPageH");
                           setIsAlignOpen(false);
                         }}
                         className="py-1 px-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] font-medium text-center transition-colors"
@@ -477,7 +503,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                       <button
                         type="button"
                         onClick={() => {
-                          onApplyAlignment('centerOnPageV');
+                          onApplyAlignment("centerOnPageV");
                           setIsAlignOpen(false);
                         }}
                         className="py-1 px-1.5 rounded-lg bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 text-[10px] font-medium text-center transition-colors"
@@ -495,22 +521,22 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
           <div className="flex border border-slate-200 rounded-lg p-0.5 bg-slate-100 text-[10px] shrink-0">
             <button
               type="button"
-              onClick={() => onChangeViewMode('editor')}
+              onClick={() => onChangeViewMode("editor")}
               className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
-                viewMode === 'editor'
-                  ? 'bg-white text-blue-600 shadow-2xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                viewMode === "editor"
+                  ? "bg-white text-blue-600 shadow-2xs font-semibold"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Canvas
             </button>
             <button
               type="button"
-              onClick={() => onChangeViewMode('preview')}
+              onClick={() => onChangeViewMode("preview")}
               className={`px-2 py-0.5 rounded-md font-medium transition-colors ${
-                viewMode === 'preview'
-                  ? 'bg-white text-blue-600 shadow-2xs font-semibold'
-                  : 'text-slate-600 hover:text-slate-900'
+                viewMode === "preview"
+                  ? "bg-white text-blue-600 shadow-2xs font-semibold"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               Preview
@@ -525,7 +551,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 size="icon"
                 onClick={() => setIsMoreOpen((prev) => !prev)}
                 className={`h-7 w-7 rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 ${
-                  isMoreOpen ? 'bg-slate-100 text-slate-900' : ''
+                  isMoreOpen ? "bg-slate-100 text-slate-900" : ""
                 }`}
               >
                 <DotsThreeVertical size={15} weight="bold" />
@@ -552,7 +578,9 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 {/* Page Rotation */}
                 {onRotate && (
                   <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                    <span className="text-slate-600 font-medium text-[11px]">Page Rotation</span>
+                    <span className="text-slate-600 font-medium text-[11px]">
+                      Page Rotation
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
@@ -577,7 +605,11 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                     className="w-full flex items-center justify-between py-1 px-1 rounded-md text-slate-700 hover:bg-slate-100 text-[11px]"
                   >
                     <span>Fit Document to Screen</span>
-                    <ArrowsOut size={13} weight="bold" className="text-slate-500" />
+                    <ArrowsOut
+                      size={13}
+                      weight="bold"
+                      className="text-slate-500"
+                    />
                   </button>
                 )}
 
@@ -585,7 +617,9 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 <div className="py-1 border-t border-slate-100">
                   <div className="flex items-center justify-between mb-1 text-[11px] text-slate-600 font-medium">
                     <span>Snap Threshold</span>
-                    <span className="font-mono text-[10px] text-slate-500">{snapThresholdPx}px</span>
+                    <span className="font-mono text-[10px] text-slate-500">
+                      {snapThresholdPx}px
+                    </span>
                   </div>
                   <div className="grid grid-cols-3 gap-1">
                     {[4, 8, 14].map((thresh) => (
@@ -595,8 +629,8 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                         onClick={() => onChangeSnapThreshold(thresh)}
                         className={`py-0.5 rounded text-[10px] font-mono transition-colors ${
                           snapThresholdPx === thresh
-                            ? 'bg-blue-600 text-white font-semibold'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                            ? "bg-blue-600 text-white font-semibold"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
                         }`}
                       >
                         {thresh}px
@@ -607,22 +641,26 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
 
                 {/* Sample Presets */}
                 <div className="py-1 border-t border-slate-100">
-                  <div className="text-[11px] text-slate-600 font-medium mb-1">Preview Preset</div>
+                  <div className="text-[11px] text-slate-600 font-medium mb-1">
+                    Preview Preset
+                  </div>
                   <div className="grid grid-cols-2 gap-1">
-                    {(['normal', 'long', 'unicode', 'empty'] as const).map((preset) => (
-                      <button
-                        key={preset}
-                        type="button"
-                        onClick={() => onChangeSamplePreset(preset)}
-                        className={`py-0.5 px-1.5 rounded text-[10px] capitalize transition-colors ${
-                          samplePreset === preset
-                            ? 'bg-blue-600 text-white font-semibold'
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
-                      >
-                        {preset}
-                      </button>
-                    ))}
+                    {(["normal", "long", "unicode", "empty"] as const).map(
+                      (preset) => (
+                        <button
+                          key={preset}
+                          type="button"
+                          onClick={() => onChangeSamplePreset(preset)}
+                          className={`py-0.5 px-1.5 rounded text-[10px] capitalize transition-colors ${
+                            samplePreset === preset
+                              ? "bg-blue-600 text-white font-semibold"
+                              : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                          }`}
+                        >
+                          {preset}
+                        </button>
+                      ),
+                    )}
                   </div>
                 </div>
               </div>
@@ -657,7 +695,10 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 Saved
               </span>
             )}
-            <Tooltip content="Save and create new template version" side="bottom">
+            <Tooltip
+              content="Save and create new template version"
+              side="bottom"
+            >
               <Button
                 size="sm"
                 disabled={isSaving}
@@ -665,7 +706,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-300 text-white rounded-lg text-[11px] font-semibold shadow-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed"
               >
                 <FloppyDisk size={12} weight="bold" />
-                <span>{isSaving ? '...' : 'Create'}</span>
+                <span>{isSaving ? "..." : "Create"}</span>
               </Button>
             </Tooltip>
           </div>
@@ -674,16 +715,19 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
           <div className="w-px h-4 bg-slate-200 mx-0.5 shrink-0" />
 
           {/* Single Compact Inspector Toggle Button */}
-          <Tooltip content={isDrawerOpen ? 'Collapse Inspector' : 'Open Inspector'} side="bottom">
+          <Tooltip
+            content={isDrawerOpen ? "Collapse Inspector" : "Open Inspector"}
+            side="bottom"
+          >
             <Button
               ref={inspectorBtnRef}
-              variant={isDrawerOpen ? 'secondary' : 'ghost'}
+              variant={isDrawerOpen ? "secondary" : "ghost"}
               size="sm"
               onClick={() => setIsDrawerOpen((prev) => !prev)}
               className={`h-7 px-2.5 rounded-lg text-[11px] font-medium flex items-center gap-1.5 relative shrink-0 transition-colors ${
                 isDrawerOpen
-                  ? 'bg-blue-50 text-blue-600 font-semibold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? "bg-blue-50 text-blue-600 font-semibold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
               }`}
             >
               <SlidersHorizontal size={13} weight="bold" />
@@ -716,27 +760,32 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 <Tooltip content="Field Properties Inspector" side="bottom">
                   <button
                     type="button"
-                    onClick={() => setActiveTab('properties')}
+                    onClick={() => setActiveTab("properties")}
                     className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors ${
-                      activeTab === 'properties'
-                        ? 'bg-white text-blue-600 shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      activeTab === "properties"
+                        ? "bg-white text-blue-600 shadow-2xs font-semibold"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                     }`}
                   >
                     <SlidersHorizontal size={13} weight="bold" />
                     <span>Properties</span>
-                    {field && <span className="w-1.5 h-1.5 bg-blue-600 rounded-full" />}
+                    {field && (
+                      <span className="w-1.5 h-1.5 bg-blue-600 rounded-full" />
+                    )}
                   </button>
                 </Tooltip>
 
-                <Tooltip content={`Mapped Fields (${fields.length})`} side="bottom">
+                <Tooltip
+                  content={`Mapped Fields (${fields.length})`}
+                  side="bottom"
+                >
                   <button
                     type="button"
-                    onClick={() => setActiveTab('fields')}
+                    onClick={() => setActiveTab("fields")}
                     className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors ${
-                      activeTab === 'fields'
-                        ? 'bg-white text-blue-600 shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      activeTab === "fields"
+                        ? "bg-white text-blue-600 shadow-2xs font-semibold"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                     }`}
                   >
                     <Stack size={13} weight="bold" />
@@ -747,14 +796,17 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                   </button>
                 </Tooltip>
 
-                <Tooltip content={`Detected Placeholders (${pageTokens.length})`} side="bottom">
+                <Tooltip
+                  content={`Detected Placeholders (${pageTokens.length})`}
+                  side="bottom"
+                >
                   <button
                     type="button"
-                    onClick={() => setActiveTab('tokens')}
+                    onClick={() => setActiveTab("tokens")}
                     className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors ${
-                      activeTab === 'tokens'
-                        ? 'bg-white text-amber-700 shadow-2xs font-semibold'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                      activeTab === "tokens"
+                        ? "bg-white text-amber-700 shadow-2xs font-semibold"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/50"
                     }`}
                   >
                     <Sparkle size={13} weight="bold" />
@@ -768,14 +820,17 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 </Tooltip>
 
                 {warnings.length > 0 && (
-                  <Tooltip content={`Layout Alerts (${warnings.length})`} side="bottom">
+                  <Tooltip
+                    content={`Layout Alerts (${warnings.length})`}
+                    side="bottom"
+                  >
                     <button
                       type="button"
-                      onClick={() => setActiveTab('warnings')}
+                      onClick={() => setActiveTab("warnings")}
                       className={`px-2 py-1 rounded-lg text-[11px] font-medium flex items-center gap-1 transition-colors ${
-                        activeTab === 'warnings'
-                          ? 'bg-white text-red-700 shadow-2xs font-semibold'
-                          : 'text-red-600 hover:text-red-800 hover:bg-red-50'
+                        activeTab === "warnings"
+                          ? "bg-white text-red-700 shadow-2xs font-semibold"
+                          : "text-red-600 hover:text-red-800 hover:bg-red-50"
                       }`}
                     >
                       <Warning size={13} weight="bold" />
@@ -802,7 +857,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
 
             {/* Drawer Scrollable Content */}
             <div className="flex-1 overflow-y-auto min-h-0 p-3 space-y-3.5">
-              {activeTab === 'properties' && (
+              {activeTab === "properties" && (
                 <FieldPropertiesPanel
                   field={field || null}
                   fields={fields}
@@ -814,7 +869,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 />
               )}
 
-              {activeTab === 'fields' && (
+              {activeTab === "fields" && (
                 <MappedFieldList
                   fields={fields}
                   activePageIndex={activePageIndex}
@@ -825,7 +880,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 />
               )}
 
-              {activeTab === 'tokens' && (
+              {activeTab === "tokens" && (
                 <DetectedTokenList
                   tokens={detectedTokens}
                   fieldMappings={fields}
@@ -835,14 +890,14 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 />
               )}
 
-              {activeTab === 'warnings' && (
+              {activeTab === "warnings" && (
                 <LayoutWarningList
                   warnings={warnings}
                   onSelectField={(key) => {
                     const matched = fields.find((m) => m.key === key);
                     if (matched && onSelectField) {
                       onSelectField(matched.id);
-                      setActiveTab('properties');
+                      setActiveTab("properties");
                     }
                   }}
                 />
@@ -855,5 +910,7 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   );
 };
 
-export const FloatingTopToolbar = React.memo<FloatingTopToolbarProps>(FloatingTopToolbarComponent);
-FloatingTopToolbar.displayName = 'FloatingTopToolbar';
+export const FloatingTopToolbar = React.memo<FloatingTopToolbarProps>(
+  FloatingTopToolbarComponent,
+);
+FloatingTopToolbar.displayName = "FloatingTopToolbar";

@@ -1,14 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Eye, PencilSimple, ArrowClockwise, Check } from '@phosphor-icons/react';
-import { PageShell } from '@/components/layout/PageShell';
-import { Badge } from '@/components/ui/Badge';
-import { DraftGallery } from './DraftGallery';
-import { RecipientPreviewPanel } from './RecipientPreviewPanel';
-import { RowEditor, type DraftRowItem } from './RowEditor';
-import { ReimportModal } from './ReimportModal';
-import { toast } from '@/components/ui/toast';
-import { cn } from '@/lib/utils';
-import { DraftReviewSkeleton } from '@/components/skeletons/DraftReviewSkeleton';
+import { useState, useEffect, useCallback } from "react";
+import {
+  Eye,
+  PencilSimple,
+  ArrowClockwise,
+  Check,
+} from "@phosphor-icons/react";
+import { PageShell } from "@/components/layout/PageShell";
+import { Badge } from "@/components/ui/Badge";
+import { DraftGallery } from "./DraftGallery";
+import { RecipientPreviewPanel } from "./RecipientPreviewPanel";
+import { RowEditor, type DraftRowItem } from "./RowEditor";
+import { ReimportModal } from "./ReimportModal";
+import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
+import { DraftReviewSkeleton } from "@/components/skeletons/DraftReviewSkeleton";
 
 export interface DraftReviewWorkspaceProps {
   batchId: string;
@@ -24,7 +29,9 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
   const [error, setError] = useState<string | null>(null);
 
   const [selectedRow, setSelectedRow] = useState<DraftRowItem | null>(null);
-  const [rightPanelMode, setRightPanelMode] = useState<'preview' | 'edit'>('preview');
+  const [rightPanelMode, setRightPanelMode] = useState<"preview" | "edit">(
+    "preview",
+  );
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [isReimportModalOpen, setIsReimportModalOpen] = useState(false);
 
@@ -34,8 +41,10 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
       setIsLoading(true);
       setError(null);
 
-      const res = await fetch(`/api/batches/${batchId}`, { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to load batch metadata');
+      const res = await fetch(`/api/batches/${batchId}`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load batch metadata");
 
       const data = await res.json();
       setBatch(data.batch);
@@ -45,7 +54,7 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
       if (data.templateVersion) {
         const fileRes = await fetch(
           `/api/templates/${data.templateVersion.templateId}/versions/${data.templateVersion._id}/file`,
-          { credentials: 'include' }
+          { credentials: "include" },
         );
         if (fileRes.ok) {
           const ab = await fileRes.arrayBuffer();
@@ -53,7 +62,7 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Error loading review workspace');
+      setError(err.message || "Error loading review workspace");
     } finally {
       setIsLoading(false);
     }
@@ -64,8 +73,10 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
 
     const load = async () => {
       try {
-        const res = await fetch(`/api/batches/${batchId}`, { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed to load batch metadata');
+        const res = await fetch(`/api/batches/${batchId}`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to load batch metadata");
 
         const data = await res.json();
         if (!isMounted) return;
@@ -77,7 +88,7 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
         if (data.templateVersion) {
           const fileRes = await fetch(
             `/api/templates/${data.templateVersion.templateId}/versions/${data.templateVersion._id}/file`,
-            { credentials: 'include' }
+            { credentials: "include" },
           );
           if (fileRes.ok && isMounted) {
             const ab = await fileRes.arrayBuffer();
@@ -88,7 +99,7 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
         }
       } catch (err: any) {
         if (isMounted) {
-          setError(err.message || 'Error loading review workspace');
+          setError(err.message || "Error loading review workspace");
         }
       } finally {
         if (isMounted) {
@@ -122,13 +133,16 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
 
   const handleApproveBatch = () => {
     if (!batch || batch.invalidRows > 0) return;
-    toast.success('Batch Approved', 'Draft rows verified. Ready for document generation.');
+    toast.success(
+      "Batch Approved",
+      "Draft rows verified. Ready for document generation.",
+    );
   };
 
   const titleSlot = (
     <div className="flex flex-wrap items-center gap-2.5">
       <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
-        {batch?.name || 'Draft Review'}
+        {batch?.name || "Draft Review"}
       </h1>
       {batch && (
         <Badge variant="primary" size="md" shape="pill" mono>
@@ -141,7 +155,10 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
   const subtitleSlot = (
     <div className="flex flex-wrap items-center gap-2 mt-1">
       <span className="text-xs text-slate-400">
-        Template: <strong className="text-slate-600 dark:text-slate-300">{template?.name || 'Default'}</strong>
+        Template:{" "}
+        <strong className="text-slate-600 dark:text-slate-300">
+          {template?.name || "Default"}
+        </strong>
       </span>
       {batch && (
         <>
@@ -183,10 +200,10 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
         onClick={handleApproveBatch}
         disabled={!batch || batch.invalidRows > 0}
         className={cn(
-          'flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all select-none',
+          "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all select-none",
           batch && batch.invalidRows === 0
-            ? 'bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 text-white dark:text-slate-950 cursor-pointer active:scale-[0.98]'
-            : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed'
+            ? "bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 text-white dark:text-slate-950 cursor-pointer active:scale-[0.98]"
+            : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed",
         )}
       >
         <Check className="w-4 h-4" />
@@ -207,7 +224,9 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
       skeleton={<DraftReviewSkeleton />}
     >
       {error ? (
-        <div className="p-8 text-center text-rose-600 text-sm font-semibold">{error}</div>
+        <div className="p-8 text-center text-rose-600 text-sm font-semibold">
+          {error}
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left Column: Draft Gallery (5 cols) */}
@@ -227,12 +246,12 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => setRightPanelMode('preview')}
+                  onClick={() => setRightPanelMode("preview")}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none',
-                    rightPanelMode === 'preview'
-                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none",
+                    rightPanelMode === "preview"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
                   )}
                 >
                   <Eye className="w-3.5 h-3.5" />
@@ -241,12 +260,12 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
 
                 <button
                   type="button"
-                  onClick={() => setRightPanelMode('edit')}
+                  onClick={() => setRightPanelMode("edit")}
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none',
-                    rightPanelMode === 'edit'
-                      ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none",
+                    rightPanelMode === "edit"
+                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs"
+                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
                   )}
                 >
                   <PencilSimple className="w-3.5 h-3.5" />
@@ -264,18 +283,26 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
             {/* Main Panel Viewport */}
             <div
               className={cn(
-                'flex-1 min-h-0',
-                rightPanelMode === 'preview' ? 'flex flex-col' : 'overflow-y-auto pr-1'
+                "flex-1 min-h-0",
+                rightPanelMode === "preview"
+                  ? "flex flex-col"
+                  : "overflow-y-auto pr-1",
               )}
             >
-              {rightPanelMode === 'preview' ? (
+              {rightPanelMode === "preview" ? (
                 <RecipientPreviewPanel
                   batch={batch}
                   templateVersion={templateVersion}
                   sourcePdfBytes={sourcePdfBytes}
                   selectedRow={selectedRow}
-                  hasPrev={Boolean(selectedRow && selectedRow.sourceRowNumber > 1)}
-                  hasNext={Boolean(selectedRow && batch && selectedRow.sourceRowNumber < batch.totalRows)}
+                  hasPrev={Boolean(
+                    selectedRow && selectedRow.sourceRowNumber > 1,
+                  )}
+                  hasNext={Boolean(
+                    selectedRow &&
+                    batch &&
+                    selectedRow.sourceRowNumber < batch.totalRows,
+                  )}
                 />
               ) : selectedRow ? (
                 <RowEditor

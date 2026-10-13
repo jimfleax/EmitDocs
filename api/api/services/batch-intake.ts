@@ -96,6 +96,8 @@ export interface FinalizeImportInput {
   totalExpectedRows?: number;
   totalExpectedChunks?: number;
   columnMap?: Record<string, string>;
+  dateFormatHints?: Record<string, string>;
+  promote?: boolean;
 }
 
 export interface FinalizeImportSummary {
@@ -167,12 +169,13 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
     const rowKey = row.rowKey || `row_${sourceRowNumber}`;
     const importedData = row.importedData || {};
 
-    // Authoritative server-side validation against template fieldMappings
+    // Authoritative server-side validation against template fieldMappings and dateFormatHints
     const validation = validateDraftRow({
       rowData: importedData,
       sourceRowNumber,
       fieldMappings,
       columnMap: batchImport.columnMap || {},
+      dateFormatHints: (batchImport as any).dateFormatHints || {},
     });
 
     bulkOps.push({
@@ -205,14 +208,14 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
     await DraftRow.bulkWrite(bulkOps, { ordered: false });
   }
 
-  // Atomically append chunkId
-  await BatchImport.updateOne(
-    { _id: batchImport._id },
-    {
-      $push: { receivedChunkIds: chunkId },
-      ...(totalChunks !== undefined ? { totalExpectedChunks: totalChunks } : {}),
-    }
-  );
+  // Atomically record chunkId via $addToSet and update totalExpectedChunks under $set if provided
+  const updateDoc: any = {
+    $addToSet: { receivedChunkIds: chunkId },
+  };
+  if (totalChunks !== undefined) {
+    updateDoc.$set = { totalExpectedChunks: totalChunks };
+  }
+  await BatchImport.updateOne({ _id: batchImport._id }, updateDoc);
 
   return {
     chunkId,
@@ -226,7 +229,7 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
  * recalculates authoritative counters, and transitions batch to 'review' status.
  */
 export async function finalizeImport(input: FinalizeImportInput): Promise<FinalizeImportResult> {
-  const { batchId, importId, ownerId, totalExpectedRows, totalExpectedChunks, columnMap } = input;
+  const { batchId, importId, ownerId, totalExpectedRows, totalExpectedChunks, columnMap, dateFormatHints, promote } = input;
 
   const [batchImport, batch] = await Promise.all([
     BatchImport.findOne({
@@ -250,6 +253,9 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
   if (columnMap) {
     batchImport.columnMap = columnMap;
   }
+  if (dateFormatHints) {
+    batchImport.dateFormatHints = dateFormatHints;
+  }
 
   // Finalization chunk count validation
   if (totalExpectedChunks !== undefined) {
@@ -272,12 +278,48 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
     }
   }
 
-  // Run batch-wide duplicate detection
-  const allRows = await DraftRow.find({ importId: batchImport._id })
-    .sort({ sourceRowNumber: 1 })
-    .lean();
+  // Fetch template and revalidate all rows against current columnMap & dateFormatHints
+  const templateVersion = (await TemplateVersion.findById(batch.templateVersionId).lean()) as any;
+  const fieldMappings: FieldMappingItem[] = templateVersion?.fieldMappings || [];
+  const effectiveColumnMap = batchImport.columnMap || {};
+  const effectiveDateHints = (batchImport as any).dateFormatHints || {};
 
-  const duplicateChecked = detectDuplicatesAcrossRows(allRows as any[]);
+  const allRows = await DraftRow.find({ importId: batchImport._id })
+    .sort({ sourceRowNumber: 1 });
+
+  if (allRows.length > 0) {
+    const revalidateBulkOps = [];
+    for (const row of allRows) {
+      const validation = validateDraftRow({
+        rowData: row.importedData || {},
+        sourceRowNumber: row.sourceRowNumber,
+        fieldMappings,
+        columnMap: effectiveColumnMap,
+        dateFormatHints: effectiveDateHints,
+      });
+      row.effectiveData = validation.effectiveData;
+      row.status = validation.status;
+      row.errors = validation.errors as any;
+      revalidateBulkOps.push({
+        updateOne: {
+          filter: { _id: row._id },
+          update: {
+            $set: {
+              effectiveData: validation.effectiveData,
+              status: validation.status,
+              errors: validation.errors,
+            },
+          },
+        },
+      });
+    }
+    if (revalidateBulkOps.length > 0) {
+      await DraftRow.bulkWrite(revalidateBulkOps, { ordered: false });
+    }
+  }
+
+  // Run batch-wide duplicate detection
+  const duplicateChecked = detectDuplicatesAcrossRows(allRows.map((r) => r.toObject()));
 
   const duplicateBulkOps = [];
   for (const r of duplicateChecked) {
@@ -313,13 +355,19 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
   batchImport.duplicateCount = duplicateCount;
   await batchImport.save();
 
-  batch.currentImportRevision = batchImport.revision;
-  batch.status = 'review';
-  batch.totalRows = actualRowCount;
-  batch.validRows = validCount;
-  batch.invalidRows = invalidCount;
-  batch.duplicateRows = duplicateCount;
-  await batch.save();
+  // Promote batch fields only on first import or explicit promote request
+  const isFirstImport = !batch.currentImportRevision || batch.currentImportRevision === 0 || batchImport.revision === 1;
+  const shouldPromoteBatch = isFirstImport || promote === true;
+
+  if (shouldPromoteBatch) {
+    batch.currentImportRevision = batchImport.revision;
+    batch.status = 'review';
+    batch.totalRows = actualRowCount;
+    batch.validRows = validCount;
+    batch.invalidRows = invalidCount;
+    batch.duplicateRows = duplicateCount;
+    await batch.save();
+  }
 
   return {
     batch,
@@ -399,6 +447,7 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
     throw new BatchNotFoundError('Row not found or access denied');
   }
 
+  const targetVersion = expectedVersion !== undefined ? expectedVersion : row.version;
   if (expectedVersion !== undefined && row.version !== expectedVersion) {
     throw new ConcurrencyConflictError('Concurrent row modification', 'CONCURRENT_MODIFICATION');
   }
@@ -414,8 +463,6 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
       }
     }
   }
-  row.overrides = currentOverrides;
-  row.markModified('overrides');
 
   // Fetch TemplateVersion and BatchImport to recompute effective data
   const [templateVersion, batchImport] = await Promise.all([
@@ -425,13 +472,14 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
 
   const fieldMappings = (templateVersion as any)?.fieldMappings || [];
   const columnMap = (batchImport as any)?.columnMap || {};
+  const dateFormatHints = (batchImport as any)?.dateFormatHints || {};
 
   const combinedData: Record<string, any> = {};
   const effectiveColumnMap: Record<string, string> = {};
 
   for (const f of fieldMappings) {
-    if (row.overrides && row.overrides[f.key] !== undefined) {
-      combinedData[f.key] = row.overrides[f.key];
+    if (currentOverrides && currentOverrides[f.key] !== undefined) {
+      combinedData[f.key] = currentOverrides[f.key];
       effectiveColumnMap[f.key] = f.key;
     } else if (columnMap[f.key]) {
       const sheetCol = columnMap[f.key];
@@ -448,15 +496,31 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
     sourceRowNumber: row.sourceRowNumber,
     fieldMappings,
     columnMap: effectiveColumnMap,
+    dateFormatHints,
   });
 
-  row.effectiveData = validation.effectiveData;
-  row.markModified('effectiveData');
-  row.errors = validation.errors as any;
-  row.markModified('errors');
-  row.status = validation.status;
-  row.version = (row.version || 1) + 1;
-  await row.save();
+  // Atomic write conditioned on targetVersion (optimistic lock without check-then-save race)
+  const updatedRow = await DraftRow.findOneAndUpdate(
+    {
+      _id: rowId,
+      batchId: batch._id,
+      version: targetVersion,
+    },
+    {
+      $set: {
+        overrides: currentOverrides,
+        effectiveData: validation.effectiveData,
+        errors: validation.errors,
+        status: validation.status,
+      },
+      $inc: { version: 1 },
+    },
+    { new: true }
+  );
+
+  if (!updatedRow) {
+    throw new ConcurrencyConflictError('Concurrent row modification', 'CONCURRENT_MODIFICATION');
+  }
 
   // Invalidate approval state
   if (batch.approvedSnapshotId || batch.status === 'awaiting_approval' || batch.status === 'approved') {
@@ -473,7 +537,7 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
   await batch.save();
 
   return {
-    row,
+    row: updatedRow,
     batch,
     batchSummary: counters,
   };
@@ -578,7 +642,7 @@ export async function reconcileImportRevision(
   const rowsToDelete = new Set<string>();
   for (const amb of ambiguousResolutions) {
     const { newRowId, action, matchedOldRowId } = amb;
-    if (action === 'discard') {
+    if (action === 'discard' && newRowMap.has(newRowId)) {
       rowsToDelete.add(newRowId);
     } else if (action === 'match_old' && matchedOldRowId) {
       matchedNewToOld.set(newRowId, matchedOldRowId);
@@ -633,7 +697,11 @@ export async function reconcileImportRevision(
   }
 
   if (rowsToDelete.size > 0) {
-    await DraftRow.deleteMany({ _id: { $in: Array.from(rowsToDelete) } });
+    await DraftRow.deleteMany({
+      _id: { $in: Array.from(rowsToDelete) },
+      batchId: batch._id,
+      revision: newImport.revision,
+    });
   }
 
   for (const newRowId of affectedNewRows) {
@@ -661,6 +729,7 @@ export async function reconcileImportRevision(
       sourceRowNumber: newRow.sourceRowNumber,
       fieldMappings,
       columnMap: effectiveColumnMap,
+      dateFormatHints: (newImport as any).dateFormatHints || {},
     });
 
     newRow.effectiveData = validation.effectiveData;

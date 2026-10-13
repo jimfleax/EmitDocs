@@ -1,4 +1,4 @@
-import { Table } from '@phosphor-icons/react';
+import { Table } from "@phosphor-icons/react";
 
 interface WorksheetSelectorProps {
   worksheets: string[];
@@ -24,7 +24,9 @@ export function WorksheetSelector({
         <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
           Select Worksheet
         </h4>
-        <span className="text-xs text-slate-400">({worksheets.length} sheets found)</span>
+        <span className="text-xs text-slate-400">
+          ({worksheets.length} sheets found)
+        </span>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -38,9 +40,9 @@ export function WorksheetSelector({
               onClick={() => onSelectWorksheet(sheet)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 isSelected
-                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
-                  : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
-              } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer select-none'}`}
+                  ? "bg-blue-600 text-white shadow-sm shadow-blue-500/20"
+                  : "bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200"
+              } ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer select-none"}`}
             >
               {sheet}
             </button>

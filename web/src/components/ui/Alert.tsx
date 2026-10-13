@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from "react";
 import {
   WarningCircle,
   Warning,
@@ -6,9 +6,9 @@ import {
   CheckCircle,
   X,
   ArrowClockwise,
-} from "@phosphor-icons/react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+} from "@phosphor-icons/react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 const alertVariants = cva(
   "relative rounded-2xl border p-4 text-sm flex items-start gap-3.5 transition-all shadow-xs",
@@ -24,23 +24,44 @@ const alertVariants = cva(
     defaultVariants: {
       variant: "info",
     },
-  }
-)
+  },
+);
 
 const defaultIconMap = {
-  error: <WarningCircle size={20} weight="fill" className="text-rose-500 shrink-0 mt-0.5" />,
-  warning: <Warning size={20} weight="fill" className="text-amber-500 shrink-0 mt-0.5" />,
-  info: <Info size={20} weight="fill" className="text-blue-500 shrink-0 mt-0.5" />,
-  success: <CheckCircle size={20} weight="fill" className="text-emerald-500 shrink-0 mt-0.5" />,
-}
+  error: (
+    <WarningCircle
+      size={20}
+      weight="fill"
+      className="text-rose-500 shrink-0 mt-0.5"
+    />
+  ),
+  warning: (
+    <Warning
+      size={20}
+      weight="fill"
+      className="text-amber-500 shrink-0 mt-0.5"
+    />
+  ),
+  info: (
+    <Info size={20} weight="fill" className="text-blue-500 shrink-0 mt-0.5" />
+  ),
+  success: (
+    <CheckCircle
+      size={20}
+      weight="fill"
+      className="text-emerald-500 shrink-0 mt-0.5"
+    />
+  ),
+};
 
 export interface AlertProps
-  extends React.HTMLAttributes<HTMLDivElement>,
+  extends
+    React.HTMLAttributes<HTMLDivElement>,
     VariantProps<typeof alertVariants> {
-  title?: string
-  icon?: React.ReactNode
-  onRetry?: () => void
-  onDismiss?: () => void
+  title?: string;
+  icon?: React.ReactNode;
+  onRetry?: () => void;
+  onDismiss?: () => void;
 }
 
 function Alert({
@@ -53,8 +74,8 @@ function Alert({
   children,
   ...props
 }: AlertProps) {
-  const safeVariant = variant || "info"
-  const renderedIcon = icon !== undefined ? icon : defaultIconMap[safeVariant]
+  const safeVariant = variant || "info";
+  const renderedIcon = icon !== undefined ? icon : defaultIconMap[safeVariant];
 
   return (
     <div
@@ -66,9 +87,7 @@ function Alert({
 
       <div className="flex-1 min-w-0">
         {title && (
-          <h4 className="font-bold text-sm tracking-tight mb-1">
-            {title}
-          </h4>
+          <h4 className="font-bold text-sm tracking-tight mb-1">{title}</h4>
         )}
         <div className="text-xs sm:text-sm leading-relaxed opacity-95">
           {children}
@@ -101,8 +120,8 @@ function Alert({
         </div>
       )}
     </div>
-  )
+  );
 }
 
 // oxlint-disable-next-line react/only-export-components
-export { Alert, alertVariants }
+export { Alert, alertVariants };

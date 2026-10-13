@@ -49,7 +49,7 @@ export interface AmbiguousDiffItem {
   revision: number;
   rowKey: string;
   sourceRowNumber: number;
-  reason: 'COLLISION' | 'MISSING_KEY' | 'UNMAPPED_KEY';
+  reason: "COLLISION" | "MISSING_KEY" | "UNMAPPED_KEY";
   data: Record<string, any>;
 }
 

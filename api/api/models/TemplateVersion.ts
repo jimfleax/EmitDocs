@@ -71,7 +71,7 @@ const FieldMappingSchema = new Schema<IFieldMapping>(
     sampleValue: { type: String },
     customFontBytes: { type: String },
     customFontUrl: { type: String },
-    lineHeight: { type: Number, default: 1.2 },
+    lineHeight: { type: Number },
     textTransform: {
       type: String,
       enum: ['none', 'uppercase', 'lowercase', 'capitalize'],

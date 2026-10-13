@@ -1,7 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { DraftReviewWorkspace } from '@/components/batches/DraftReviewWorkspace';
+import { createFileRoute } from "@tanstack/react-router";
+import { DraftReviewWorkspace } from "@/components/batches/DraftReviewWorkspace";
 
-export const Route = createFileRoute('/_protected/app/batches/$batchId_/review')({
+export const Route = createFileRoute(
+  "/_protected/app/batches/$batchId_/review",
+)({
   component: BatchReviewRoute,
 });
 

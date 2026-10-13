@@ -1,12 +1,12 @@
-import { CheckCircle, WarningCircle } from '@phosphor-icons/react';
-import { Spinner } from '@/components/ui/Spinner';
+import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
+import { Spinner } from "@/components/ui/Spinner";
 
 interface ImportProgressProps {
   currentChunk: number;
   totalChunks: number;
   uploadedRows: number;
   totalRows: number;
-  status: 'idle' | 'uploading' | 'validating' | 'completed' | 'error';
+  status: "idle" | "uploading" | "validating" | "completed" | "error";
   errorMessage?: string | null;
 }
 
@@ -18,17 +18,20 @@ export function ImportProgress({
   status,
   errorMessage,
 }: ImportProgressProps) {
-  if (status === 'idle') return null;
+  if (status === "idle") return null;
 
-  const percent = totalRows > 0 ? Math.min(100, Math.round((uploadedRows / totalRows) * 100)) : 0;
+  const percent =
+    totalRows > 0
+      ? Math.min(100, Math.round((uploadedRows / totalRows) * 100))
+      : 0;
 
   return (
     <div className="bg-slate-50/80 border border-slate-200 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          {status === 'uploading' || status === 'validating' ? (
+          {status === "uploading" || status === "validating" ? (
             <Spinner size="md" className="shrink-0" />
-          ) : status === 'completed' ? (
+          ) : status === "completed" ? (
             <CheckCircle className="w-5 h-5 text-emerald-500 shrink-0" />
           ) : (
             <WarningCircle className="w-5 h-5 text-rose-500 shrink-0" />
@@ -36,17 +39,18 @@ export function ImportProgress({
 
           <div>
             <h4 className="text-sm font-bold text-slate-900">
-              {status === 'uploading' && `Uploading batch data (${percent}%)`}
-              {status === 'validating' && 'Running authoritative server validation...'}
-              {status === 'completed' && 'Data Ingestion & Validation Complete'}
-              {status === 'error' && 'Import Failed'}
+              {status === "uploading" && `Uploading batch data (${percent}%)`}
+              {status === "validating" &&
+                "Running authoritative server validation..."}
+              {status === "completed" && "Data Ingestion & Validation Complete"}
+              {status === "error" && "Import Failed"}
             </h4>
             <p className="text-xs text-slate-400 mt-0.5">
-              {status === 'uploading' &&
+              {status === "uploading" &&
                 `Processing chunk ${currentChunk} of ${totalChunks} (${uploadedRows.toLocaleString()} / ${totalRows.toLocaleString()} rows)`}
-              {status === 'completed' &&
+              {status === "completed" &&
                 `All ${totalRows.toLocaleString()} records ingested and verified.`}
-              {status === 'error' && errorMessage}
+              {status === "error" && errorMessage}
             </p>
           </div>
         </div>
@@ -59,11 +63,11 @@ export function ImportProgress({
       <div className="w-full h-2 rounded-full bg-slate-200 overflow-hidden">
         <div
           className={`h-full rounded-full transition-all duration-300 ${
-            status === 'error'
-              ? 'bg-rose-500'
-              : status === 'completed'
-              ? 'bg-emerald-500'
-              : 'bg-blue-500'
+            status === "error"
+              ? "bg-rose-500"
+              : status === "completed"
+                ? "bg-emerald-500"
+                : "bg-blue-500"
           }`}
           style={{ width: `${percent}%` }}
         />

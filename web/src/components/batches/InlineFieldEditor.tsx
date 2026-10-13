@@ -1,8 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Check, X, ArrowCounterClockwise, PencilSimple } from '@phosphor-icons/react';
-import { Badge } from '@/components/ui/Badge';
-import { Spinner } from '@/components/ui/Spinner';
-import { cn } from '@/lib/utils';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Check,
+  X,
+  ArrowCounterClockwise,
+  PencilSimple,
+} from "@phosphor-icons/react";
+import { Badge } from "@/components/ui/Badge";
+import { Spinner } from "@/components/ui/Spinner";
+import { cn } from "@/lib/utils";
 
 export interface InlineFieldEditorProps {
   fieldKey: string;
@@ -21,7 +26,7 @@ export interface InlineFieldEditorProps {
 export function InlineFieldEditor({
   fieldKey,
   label,
-  type = 'text',
+  type = "text",
   required = false,
   value,
   originalValue,
@@ -32,7 +37,9 @@ export function InlineFieldEditor({
   disabled = false,
 }: InlineFieldEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [draftValue, setDraftValue] = useState(value !== null && value !== undefined ? String(value) : '');
+  const [draftValue, setDraftValue] = useState(
+    value !== null && value !== undefined ? String(value) : "",
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isReverting, setIsReverting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,19 +53,20 @@ export function InlineFieldEditor({
 
   const handleStartEdit = () => {
     if (disabled || isSaving || isReverting) return;
-    setDraftValue(value !== null && value !== undefined ? String(value) : '');
+    setDraftValue(value !== null && value !== undefined ? String(value) : "");
     setIsEditing(true);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setDraftValue(value !== null && value !== undefined ? String(value) : '');
+    setDraftValue(value !== null && value !== undefined ? String(value) : "");
   };
 
   const handleCommit = async () => {
     if (disabled || isSaving) return;
     const trimmed = draftValue.trim();
-    const currentStr = value !== null && value !== undefined ? String(value).trim() : '';
+    const currentStr =
+      value !== null && value !== undefined ? String(value).trim() : "";
     if (trimmed === currentStr) {
       setIsEditing(false);
       return;
@@ -89,10 +97,10 @@ export function InlineFieldEditor({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       handleCommit();
-    } else if (e.key === 'Escape') {
+    } else if (e.key === "Escape") {
       e.preventDefault();
       handleCancel();
     }
@@ -101,12 +109,12 @@ export function InlineFieldEditor({
   return (
     <div
       className={cn(
-        'group relative p-3 rounded-xl border transition-all duration-150',
+        "group relative p-3 rounded-xl border transition-all duration-150",
         errorMessage
-          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900'
+          ? "bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900"
           : isOverridden
-          ? 'bg-blue-50/30 dark:bg-blue-950/20 border-blue-200/80 dark:border-blue-800/80'
-          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+            ? "bg-blue-50/30 dark:bg-blue-950/20 border-blue-200/80 dark:border-blue-800/80"
+            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700",
       )}
     >
       {/* Field Label Header */}
@@ -115,7 +123,9 @@ export function InlineFieldEditor({
           <span className="text-xs font-bold text-slate-700 dark:text-slate-200 truncate">
             {label}
           </span>
-          {required && <span className="text-rose-500 font-bold text-xs">*</span>}
+          {required && (
+            <span className="text-rose-500 font-bold text-xs">*</span>
+          )}
           <span className="text-[10px] text-slate-400 uppercase tracking-wider font-mono">
             {type}
           </span>
@@ -130,7 +140,7 @@ export function InlineFieldEditor({
                 title={
                   originalValue !== undefined
                     ? `Original spreadsheet value: "${originalValue}"`
-                    : 'Manually overridden value'
+                    : "Manually overridden value"
                 }
               >
                 Override
@@ -187,7 +197,11 @@ export function InlineFieldEditor({
               className="p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer shrink-0"
               title="Save override (Enter)"
             >
-              {isSaving ? <Spinner size="sm" variant="current" /> : <Check className="w-3.5 h-3.5" />}
+              {isSaving ? (
+                <Spinner size="sm" variant="current" />
+              ) : (
+                <Check className="w-3.5 h-3.5" />
+              )}
             </button>
 
             <button
@@ -200,7 +214,9 @@ export function InlineFieldEditor({
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
-          <p className="text-[10px] text-slate-400">Press Enter to save, Esc to cancel</p>
+          <p className="text-[10px] text-slate-400">
+            Press Enter to save, Esc to cancel
+          </p>
         </div>
       ) : (
         <div
@@ -208,7 +224,9 @@ export function InlineFieldEditor({
           className="cursor-pointer min-h-[24px] flex items-center justify-between"
         >
           <div className="text-xs text-slate-900 dark:text-slate-100 font-medium break-all">
-            {value !== null && value !== undefined && String(value).trim().length > 0 ? (
+            {value !== null &&
+            value !== undefined &&
+            String(value).trim().length > 0 ? (
               String(value)
             ) : (
               <span className="text-slate-400 dark:text-slate-500 italic font-normal text-xs">

@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import SwipeToast from './SwipeToast';
-import { useToast } from './toast';
+import type { ReactNode } from "react";
+import SwipeToast from "./SwipeToast";
+import { useToast } from "./toast";
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { toasts, dismiss } = useToast();
@@ -14,11 +14,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       >
         {toasts.map((item) => (
           <div key={item.id} className="pointer-events-auto">
-            <SwipeToast
-              {...item}
-              inline
-              onClose={() => dismiss(item.id)}
-            />
+            <SwipeToast {...item} inline onClose={() => dismiss(item.id)} />
           </div>
         ))}
       </div>

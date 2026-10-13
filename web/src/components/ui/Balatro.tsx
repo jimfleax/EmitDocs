@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { Renderer, Program, Mesh, Triangle } from 'ogl';
-import { cn } from '@/lib/utils';
+import { useEffect, useRef } from "react";
+import { Renderer, Program, Mesh, Triangle } from "ogl";
+import { cn } from "@/lib/utils";
 
-export interface BalatroProps extends React.ComponentProps<'div'> {
+export interface BalatroProps extends React.ComponentProps<"div"> {
   spinRotation?: number;
   spinSpeed?: number;
   offset?: [number, number];
@@ -21,7 +21,7 @@ export interface BalatroProps extends React.ComponentProps<'div'> {
 }
 
 function hexToVec4(hex: string): [number, number, number, number] {
-  const hexStr = hex.replace('#', '');
+  const hexStr = hex.replace("#", "");
   let r = 0,
     g = 0,
     b = 0,
@@ -125,9 +125,9 @@ export function Balatro({
   spinRotation = -2.0,
   spinSpeed = 7.0,
   offset = [0.0, 0.0],
-  color1 = '#DE443B',
-  color2 = '#006BB4',
-  color3 = '#162325',
+  color1 = "#DE443B",
+  color2 = "#006BB4",
+  color3 = "#162325",
   contrast = 3.5,
   lighting = 0.4,
   spinAmount = 0.25,
@@ -143,12 +143,15 @@ export function Balatro({
   useEffect(() => {
     if (!containerRef.current) return;
     const container = containerRef.current;
-    const renderer = new Renderer({ alpha: true, dpr: Math.min(window.devicePixelRatio || 1, 2) });
+    const renderer = new Renderer({
+      alpha: true,
+      dpr: Math.min(window.devicePixelRatio || 1, 2),
+    });
     const gl = renderer.gl;
     gl.clearColor(0, 0, 0, 1);
-    gl.canvas.style.width = '100%';
-    gl.canvas.style.height = '100%';
-    gl.canvas.style.display = 'block';
+    gl.canvas.style.width = "100%";
+    gl.canvas.style.height = "100%";
+    gl.canvas.style.display = "block";
 
     const geometry = new Triangle(gl);
     const program = new Program(gl, {
@@ -157,7 +160,11 @@ export function Balatro({
       uniforms: {
         iTime: { value: 0 },
         iResolution: {
-          value: [gl.canvas.width, gl.canvas.height, gl.canvas.width / (gl.canvas.height || 1)]
+          value: [
+            gl.canvas.width,
+            gl.canvas.height,
+            gl.canvas.width / (gl.canvas.height || 1),
+          ],
         },
         uSpinRotation: { value: spinRotation },
         uSpinSpeed: { value: spinSpeed },
@@ -171,8 +178,8 @@ export function Balatro({
         uPixelFilter: { value: pixelFilter },
         uSpinEase: { value: spinEase },
         uIsRotate: { value: isRotate },
-        uMouse: { value: [0.5, 0.5] }
-      }
+        uMouse: { value: [0.5, 0.5] },
+      },
     });
 
     function resize() {
@@ -183,13 +190,13 @@ export function Balatro({
       program.uniforms.iResolution.value = [
         gl.canvas.width,
         gl.canvas.height,
-        gl.canvas.width / (gl.canvas.height || 1)
+        gl.canvas.width / (gl.canvas.height || 1),
       ];
     }
 
     const resizeObserver = new ResizeObserver(() => resize());
     resizeObserver.observe(container);
-    window.addEventListener('resize', resize);
+    window.addEventListener("resize", resize);
     resize();
 
     const mesh = new Mesh(gl, { geometry, program });
@@ -210,17 +217,17 @@ export function Balatro({
       const y = 1.0 - (e.clientY - rect.top) / (rect.height || 1);
       program.uniforms.uMouse.value = [x, y];
     }
-    container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener("mousemove", handleMouseMove);
 
     return () => {
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', resize);
+      window.removeEventListener("resize", resize);
       resizeObserver.disconnect();
-      container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener("mousemove", handleMouseMove);
       if (gl.canvas && container.contains(gl.canvas)) {
         container.removeChild(gl.canvas);
       }
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
   }, [
     spinRotation,
@@ -235,13 +242,13 @@ export function Balatro({
     pixelFilter,
     spinEase,
     isRotate,
-    mouseInteraction
+    mouseInteraction,
   ]);
 
   return (
     <div
       ref={containerRef}
-      className={cn('w-full h-full relative overflow-hidden', className)}
+      className={cn("w-full h-full relative overflow-hidden", className)}
       {...props}
     />
   );

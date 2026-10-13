@@ -58,73 +58,79 @@ async function runAcceptanceCriteriaMatrix() {
   await mongoose.connect(MONGODB_URI, { dbName: 'emitdocs_ac_test' });
   console.log('✓ Connected to MongoDB test database\n');
 
-  const testUserId = `ac_user_${Date.now()}`;
-  const mockUser = { id: testUserId, email: 'ac@example.com' };
+  let template: any = null;
+  let testBatch: any = null;
+  let benchmarkBatch: any = null;
+  let benchmarkImport: any = null;
 
-  // Setup Template & TemplateVersion fixture
-  const template = await Template.create({
-    ownerId: testUserId,
-    name: 'Executive Certificate Template',
-    cloudinaryPublicId: 'ac_cert_fixture',
-    sourceUrl: 'https://example.com/ac_cert.pdf',
-    status: 'active',
-  });
+  try {
+    const testUserId = `ac_user_${Date.now()}`;
+    const mockUser = { id: testUserId, email: 'ac@example.com' };
 
-  const templateVersion = await TemplateVersion.create({
-    templateId: template._id,
-    ownerId: testUserId,
-    version: 1,
-    sourceObjectKey: 'ac_cert.pdf',
-    bytes: 2048,
-    pageCount: 1,
-    status: 'active',
-    fieldMappings: [
-      {
-        id: 'f_name',
-        key: 'recipientName',
-        label: 'Recipient Name',
-        type: 'text',
-        required: true,
-        pageIndex: 0,
-        rect: { x: 50, y: 100, width: 200, height: 30 },
+    // Setup Template & TemplateVersion fixture
+    template = await Template.create({
+      ownerId: testUserId,
+      name: 'Executive Certificate Template',
+      cloudinaryPublicId: 'ac_cert_fixture',
+      sourceUrl: 'https://example.com/ac_cert.pdf',
+      status: 'active',
+    });
+
+    const templateVersion = await TemplateVersion.create({
+      templateId: template._id,
+      ownerId: testUserId,
+      version: 1,
+      sourceObjectKey: 'ac_cert.pdf',
+      bytes: 2048,
+      pageCount: 1,
+      status: 'active',
+      fieldMappings: [
+        {
+          id: 'f_name',
+          key: 'recipientName',
+          label: 'Recipient Name',
+          type: 'text',
+          required: true,
+          pageIndex: 0,
+          rect: { x: 50, y: 100, width: 200, height: 30 },
+        },
+        {
+          id: 'f_date',
+          key: 'awardDate',
+          label: 'Award Date',
+          type: 'date',
+          required: true,
+          pageIndex: 0,
+          rect: { x: 50, y: 150, width: 150, height: 30 },
+        },
+        {
+          id: 'f_score',
+          key: 'finalScore',
+          label: 'Final Score',
+          type: 'number',
+          required: false,
+          pageIndex: 0,
+          rect: { x: 50, y: 200, width: 100, height: 30 },
+        },
+      ],
+      mappingHash: 'b'.repeat(64),
+    });
+
+    template.currentVersionId = templateVersion._id;
+    await template.save();
+
+    // Create Batch
+    const cBatch = createMockContext({
+      user: mockUser,
+      body: {
+        name: 'Q4 Global Certifications',
+        templateId: template._id.toString(),
       },
-      {
-        id: 'f_date',
-        key: 'awardDate',
-        label: 'Award Date',
-        type: 'date',
-        required: true,
-        pageIndex: 0,
-        rect: { x: 50, y: 150, width: 150, height: 30 },
-      },
-      {
-        id: 'f_score',
-        key: 'finalScore',
-        label: 'Final Score',
-        type: 'number',
-        required: false,
-        pageIndex: 0,
-        rect: { x: 50, y: 200, width: 100, height: 30 },
-      },
-    ],
-    mappingHash: 'b'.repeat(64),
-  });
-
-  template.currentVersionId = templateVersion._id;
-  await template.save();
-
-  // Create Batch
-  const cBatch = createMockContext({
-    user: mockUser,
-    body: {
-      name: 'Q4 Global Certifications',
-      templateId: template._id.toString(),
-    },
-  });
-  await createBatch(cBatch as any);
-  const testBatch = cBatch._getResponse().data.batch;
-  const testBatchId = testBatch._id.toString();
-  console.log(`✓ Initialized test batch: ${testBatch.name} (${testBatchId})\n`);
+    });
+    await createBatch(cBatch as any);
+    testBatch = cBatch._getResponse().data.batch;
+    const testBatchId = testBatch._id.toString();
+    console.log(`✓ Initialized test batch: ${testBatch.name} (${testBatchId})\n`);
 
   // -------------------------------------------------------------------------
   // AC1: CSV/XLSX follow header/worksheet rules
@@ -153,7 +159,8 @@ async function runAcceptanceCriteriaMatrix() {
 
     assert.strictEqual(parsed.selectedWorksheet, 'Recipients');
     assert.deepStrictEqual(parsed.availableWorksheets, ['Notes', 'Recipients']);
-    assert.strictEqual(parsed.dataStartRowIndex, 2, 'First non-empty row correctly identified as header');
+    assert.strictEqual(parsed.headerRowIndex, 2, 'First non-empty row correctly identified as header');
+    assert.strictEqual(parsed.dataStartRowIndex, 3, 'Data starts at row index 3');
     assert.deepStrictEqual(
       parsed.disambiguatedHeaders,
       ['Full Name', 'Column_B', 'Full Name_2', 'Issue Date'],
@@ -297,6 +304,15 @@ async function runAcceptanceCriteriaMatrix() {
     const numRes = normalizeNumberValue('1.250.50');
     assert.strictEqual(numRes.error?.code, 'AMBIGUOUS_NUMBER');
 
+    const numResComma3 = normalizeNumberValue('1,250');
+    assert.strictEqual(numResComma3.error?.code, 'AMBIGUOUS_NUMBER');
+
+    const numResDecimalComma = normalizeNumberValue('3,5');
+    assert.strictEqual(numResDecimalComma.value, 3.5);
+
+    const numResDot3EU = normalizeNumberValue('1.250', 'EU');
+    assert.strictEqual(numResDot3EU.error?.code, 'AMBIGUOUS_NUMBER');
+
     // Formula missing cache
     const formRes = normalizeTextValue('__FORMULA_CACHE_MISSING__');
     assert.strictEqual(formRes.error?.code, 'FORMULA_CACHE_MISSING');
@@ -388,7 +404,7 @@ async function runAcceptanceCriteriaMatrix() {
   console.log('--- PERFORMANCE BENCHMARK: 5,000 Rows Bounded Ingestion ---');
   {
     const startTime = Date.now();
-    const benchmarkBatch = await Batch.create({
+    benchmarkBatch = await Batch.create({
       ownerId: testUserId,
       templateId: template._id,
       templateVersionId: templateVersion._id,
@@ -397,7 +413,7 @@ async function runAcceptanceCriteriaMatrix() {
       currentImportRevision: 1,
     });
 
-    const benchmarkImport = await BatchImport.create({
+    benchmarkImport = await BatchImport.create({
       batchId: benchmarkBatch._id,
       ownerId: testUserId,
       revision: 1,
@@ -463,24 +479,31 @@ async function runAcceptanceCriteriaMatrix() {
 
     console.log(`   ✓ Benchmark Complete: ${TOTAL_ROWS} rows ingested & validated in ${elapsedMs}ms (${(elapsedMs / 1000).toFixed(2)}s).`);
     assert.ok(elapsedMs < 60000, `Throughput must complete within 60 seconds over WAN cloud database (actual: ${elapsedMs}ms)`);
-
-    // Clean up benchmark batch
-    await DraftRow.deleteMany({ importId: benchmarkImport._id });
-    await BatchImport.deleteMany({ _id: benchmarkImport._id });
-    await Batch.deleteMany({ _id: benchmarkBatch._id });
   }
-
-  // Cleanup test database
-  await DraftRow.deleteMany({ batchId: testBatchId });
-  await BatchImport.deleteMany({ batchId: testBatchId });
-  await Batch.deleteMany({ _id: testBatchId });
-  await TemplateVersion.deleteMany({ templateId: template._id });
-  await Template.deleteMany({ _id: template._id });
-  await mongoose.disconnect();
 
   console.log('\n===========================================================');
   console.log('🎉 ALL PRD-CORE-04 ACCEPTANCE CRITERIA (AC1-AC8) PASSED!');
   console.log('===========================================================');
+  } finally {
+    // Guaranteed cleanup runs on both success and failure
+    if (benchmarkImport) {
+      await DraftRow.deleteMany({ importId: benchmarkImport._id });
+      await BatchImport.deleteMany({ _id: benchmarkImport._id });
+    }
+    if (benchmarkBatch) {
+      await Batch.deleteMany({ _id: benchmarkBatch._id });
+    }
+    if (testBatch) {
+      await DraftRow.deleteMany({ batchId: testBatch._id });
+      await BatchImport.deleteMany({ batchId: testBatch._id });
+      await Batch.deleteMany({ _id: testBatch._id });
+    }
+    if (template) {
+      await TemplateVersion.deleteMany({ templateId: template._id });
+      await Template.deleteMany({ _id: template._id });
+    }
+    await mongoose.disconnect();
+  }
 }
 
 runAcceptanceCriteriaMatrix().catch((err) => {

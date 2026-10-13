@@ -97,7 +97,8 @@ function InfinityTrack({
               animation:
                 "loading-ui-infinity-track var(--duration, 3.2s) linear infinite",
               animationDelay: `calc(var(--delay, 0.1s) * ${index})`,
-              backgroundColor: "var(--mask-color, hsl(var(--background, 0 0% 100%)))",
+              backgroundColor:
+                "var(--mask-color, hsl(var(--background, 0 0% 100%)))",
             }}
           >
             {glyph}

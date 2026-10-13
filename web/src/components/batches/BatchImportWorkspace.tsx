@@ -1,27 +1,36 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from '@tanstack/react-router';
-import { ArrowRight, WarningCircle, Check, FileCsv, FileXls } from '@phosphor-icons/react';
-import { PageShell } from '@/components/layout/PageShell';
-import { Badge } from '@/components/ui/Badge';
-import { Alert } from '@/components/ui/Alert';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { BatchImportSkeleton } from '@/components/skeletons/BatchImportSkeleton';
-import { DataFilePicker } from './DataFilePicker';
-import { WorksheetSelector } from './WorksheetSelector';
-import { ImportSchemaSummary } from './ImportSchemaSummary';
-import { ColumnMappingTable } from './ColumnMappingTable';
-import { ImportProgress } from './ImportProgress';
-import { ImportValidationSummary } from './ImportValidationSummary';
-import { DuplicateWarning } from './DuplicateWarning';
-import { RowErrorTable, type DisplayDraftRow } from './RowErrorTable';
-import { type ParsedSpreadsheetResult, parseXlsxBuffer } from '@/lib/spreadsheet/spreadsheet-parser';
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  ArrowRight,
+  WarningCircle,
+  Check,
+  FileCsv,
+  FileXls,
+} from "@phosphor-icons/react";
+import { PageShell } from "@/components/layout/PageShell";
+import { Badge } from "@/components/ui/Badge";
+import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BatchImportSkeleton } from "@/components/skeletons/BatchImportSkeleton";
+import { DataFilePicker } from "./DataFilePicker";
+import { WorksheetSelector } from "./WorksheetSelector";
+import { ImportSchemaSummary } from "./ImportSchemaSummary";
+import { ColumnMappingTable } from "./ColumnMappingTable";
+import { ImportProgress } from "./ImportProgress";
+import { ImportValidationSummary } from "./ImportValidationSummary";
+import { DuplicateWarning } from "./DuplicateWarning";
+import { RowErrorTable, type DisplayDraftRow } from "./RowErrorTable";
+import {
+  type ParsedSpreadsheetResult,
+  parseXlsxBuffer,
+} from "@/lib/spreadsheet/spreadsheet-parser";
 
 interface BatchImportWorkspaceProps {
   batchId: string;
 }
 
 function formatFileSize(bytes?: number): string {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
@@ -42,7 +51,8 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
 
   // In-flight File & Import State
   const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null);
-  const [parsedResult, setParsedResult] = useState<ParsedSpreadsheetResult | null>(null);
+  const [parsedResult, setParsedResult] =
+    useState<ParsedSpreadsheetResult | null>(null);
   const [activeImportId, setActiveImportId] = useState<string | null>(null);
   const [isInitializingImport, setIsInitializingImport] = useState(false);
   const [uploadedFileMeta, setUploadedFileMeta] = useState<{
@@ -53,7 +63,9 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     worksheet?: string;
   } | null>(null);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
-  const [dateHints, setDateHints] = useState<Record<string, 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'>>({});
+  const [dateHints, setDateHints] = useState<
+    Record<string, "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD">
+  >({});
 
   // Ingestion Progress State
   const [uploadProgress, setUploadProgress] = useState({
@@ -61,7 +73,8 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     totalChunks: 0,
     uploadedRows: 0,
     totalRows: 0,
-    status: 'idle' as 'idle' | 'uploading' | 'validating' | 'completed' | 'error',
+    status: "idle" as
+      "idle" | "uploading" | "validating" | "completed" | "error",
     errorMessage: null as string | null,
   });
 
@@ -77,7 +90,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
   const loadRows = useCallback(async () => {
     try {
       const res = await fetch(`/api/batches/${batchId}/rows?limit=100`, {
-        credentials: 'include',
+        credentials: "include",
       });
       if (res.ok) {
         const data = await res.json();
@@ -93,17 +106,22 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     async function loadBatch() {
       try {
         setIsLoadingBatch(true);
-        const res = await fetch(`/api/batches/${batchId}`, { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed to load batch');
+        const res = await fetch(`/api/batches/${batchId}`, {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to load batch");
         const data = await res.json();
         setBatch(data.batch);
         setTemplate(data.template);
         setTemplateVersion(data.templateVersion);
 
         // If batch already has completed import, load draft rows and jump to Step 4
-        if (data.currentImport && data.currentImport.status === 'completed') {
+        if (data.currentImport && data.currentImport.status === "completed") {
           setActiveImportId(data.currentImport._id);
           setColumnMap(data.currentImport.columnMap || {});
+          if (data.currentImport.dateFormatHints) {
+            setDateHints(data.currentImport.dateFormatHints);
+          }
           setValidationSummary({
             totalRows: data.currentImport.rowCount || 0,
             validRows: data.currentImport.validCount || 0,
@@ -116,18 +134,18 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
 
         if (data.currentImport) {
           const isXlsx =
-            data.currentImport.sourceFileName?.endsWith('.xlsx') ||
-            data.currentImport.sourceFileName?.endsWith('.xls');
+            data.currentImport.sourceFileName?.endsWith(".xlsx") ||
+            data.currentImport.sourceFileName?.endsWith(".xls");
           setUploadedFileMeta({
-            name: data.currentImport.sourceFileName || 'Uploaded Spreadsheet',
+            name: data.currentImport.sourceFileName || "Uploaded Spreadsheet",
             size: data.currentImport.sourceFileSize || 0,
-            type: isXlsx ? 'xlsx' : 'csv',
+            type: isXlsx ? "xlsx" : "csv",
             rowCount: data.currentImport.rowCount || 0,
             worksheet: data.currentImport.worksheetName,
           });
         }
       } catch (err: any) {
-        setApiError(err.message || 'Error loading batch');
+        setApiError(err.message || "Error loading batch");
       } finally {
         setIsLoadingBatch(false);
       }
@@ -139,7 +157,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
   const handleFileParsed = async (
     result: ParsedSpreadsheetResult,
     fileMeta: { name: string; size: number; type: string },
-    buffer?: ArrayBuffer
+    buffer?: ArrayBuffer,
   ) => {
     setParsedResult(result);
     if (buffer) setFileBuffer(buffer);
@@ -157,9 +175,9 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     try {
       // Initialize BatchImport record (AC8 - bumps revision if re-importing)
       const res = await fetch(`/api/batches/${batchId}/imports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           sourceFileName: fileMeta.name,
           sourceFileSize: fileMeta.size,
@@ -167,20 +185,21 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
           availableWorksheets: result.availableWorksheets,
           rawHeaders: result.rawHeaders,
           disambiguatedHeaders: result.disambiguatedHeaders,
-          columnMap: {},
+          columnMap,
+          dateFormatHints: dateHints,
         }),
       });
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || 'Failed to initialize import');
+        throw new Error(err.error || "Failed to initialize import");
       }
 
       const data = await res.json();
       setActiveImportId(data.batchImport._id);
       setCurrentStep(2); // advance to mapping
     } catch (err: any) {
-      setApiError(err.message || 'Error initializing import');
+      setApiError(err.message || "Error initializing import");
     } finally {
       setIsInitializingImport(false);
     }
@@ -190,7 +209,9 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
   const handleSelectWorksheet = (sheetName: string) => {
     if (!fileBuffer || !parsedResult) return;
     try {
-      const reParsed = parseXlsxBuffer(fileBuffer, { worksheetName: sheetName });
+      const reParsed = parseXlsxBuffer(fileBuffer, {
+        worksheetName: sheetName,
+      });
       setParsedResult(reParsed);
       setUploadedFileMeta((prev) =>
         prev
@@ -199,33 +220,92 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
               worksheet: sheetName,
               rowCount: reParsed.rows.length,
             }
-          : null
+          : null,
       );
     } catch (err: any) {
-      setApiError(err.message || 'Failed to switch worksheet');
+      setApiError(err.message || "Failed to switch worksheet");
     }
   };
 
-  // Handle mapping change with auto-persistence (AC2)
+  // Handle mapping change with auto-persistence and failure reporting (AC2)
   const handleMappingChange = async (newMap: Record<string, string>) => {
     setColumnMap(newMap);
     if (!activeImportId) return;
 
     try {
-      await fetch(`/api/batches/${batchId}/imports/${activeImportId}/mapping`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ columnMap: newMap }),
-      });
-    } catch {
-      // Silent retry on background save
+      const res = await fetch(
+        `/api/batches/${batchId}/imports/${activeImportId}/mapping`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            columnMap: newMap,
+            dateFormatHints: dateHints,
+          }),
+        },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setApiError(err.error || "Failed to update mapping");
+      }
+    } catch (err: any) {
+      setApiError(err.message || "Failed to update mapping");
+    }
+  };
+
+  // Handle date format hint change with auto-persistence
+  const handleDateHintChange = async (key: string, hint: any) => {
+    const newHints = { ...dateHints, [key]: hint };
+    setDateHints(newHints);
+    if (!activeImportId) return;
+
+    try {
+      const res = await fetch(
+        `/api/batches/${batchId}/imports/${activeImportId}/mapping`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ columnMap, dateFormatHints: newHints }),
+        },
+      );
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setApiError(err.error || "Failed to update date format hints");
+      }
+    } catch (err: any) {
+      setApiError(err.message || "Failed to update date format hints");
     }
   };
 
   // Handle Chunked Upload Execution (AC6, AC7)
   const startChunkedUpload = async () => {
     if (!parsedResult || !activeImportId) return;
+
+    // Persist latest mapping and date hints before streaming chunks
+    try {
+      const mapRes = await fetch(
+        `/api/batches/${batchId}/imports/${activeImportId}/mapping`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ columnMap, dateFormatHints: dateHints }),
+        },
+      );
+      if (!mapRes.ok) {
+        const err = await mapRes.json().catch(() => ({}));
+        throw new Error(
+          err.error || "Failed to save mapping before starting upload",
+        );
+      }
+    } catch (err: any) {
+      setApiError(
+        err.message || "Failed to save mapping before starting upload",
+      );
+      return;
+    }
 
     const rows = parsedResult.rows;
     const CHUNK_SIZE = 500;
@@ -237,7 +317,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       totalChunks,
       uploadedRows: 0,
       totalRows: rows.length,
-      status: 'uploading',
+      status: "uploading",
       errorMessage: null,
     });
 
@@ -261,17 +341,20 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
           uploadedRows: end,
         }));
 
-        const res = await fetch(`/api/batches/${batchId}/imports/${activeImportId}/rows`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            chunkId,
-            chunkIndex,
-            totalChunks,
-            rows: chunkRows,
-          }),
-        });
+        const res = await fetch(
+          `/api/batches/${batchId}/imports/${activeImportId}/rows`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              chunkId,
+              chunkIndex,
+              totalChunks,
+              rows: chunkRows,
+            }),
+          },
+        );
 
         if (!res.ok) {
           const err = await res.json();
@@ -280,30 +363,33 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       }
 
       // Finalize import with server count verification (AC7)
-      setUploadProgress((prev) => ({ ...prev, status: 'validating' }));
+      setUploadProgress((prev) => ({ ...prev, status: "validating" }));
 
       const finalizeRes = await fetch(
         `/api/batches/${batchId}/imports/${activeImportId}/finalize`,
         {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             totalExpectedRows: rows.length,
             totalExpectedChunks: totalChunks,
             columnMap,
+            dateFormatHints: dateHints,
           }),
-        }
+        },
       );
 
       if (!finalizeRes.ok) {
         const err = await finalizeRes.json();
-        throw new Error(err.error?.message || err.error || 'Finalization count mismatch');
+        throw new Error(
+          err.error?.message || err.error || "Finalization count mismatch",
+        );
       }
 
       const finalizeData = await finalizeRes.json();
       setValidationSummary(finalizeData.summary);
-      setUploadProgress((prev) => ({ ...prev, status: 'completed' }));
+      setUploadProgress((prev) => ({ ...prev, status: "completed" }));
 
       // Fetch persisted draft rows
       await loadRows();
@@ -311,10 +397,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     } catch (err: any) {
       setUploadProgress((prev) => ({
         ...prev,
-        status: 'error',
-        errorMessage: err.message || 'Upload failed',
+        status: "error",
+        errorMessage: err.message || "Upload failed",
       }));
-      setApiError(err.message || 'Upload pipeline failed');
+      setApiError(err.message || "Upload pipeline failed");
     }
   };
 
@@ -331,14 +417,18 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
             </Badge>
           </span>
         ) : (
-          'Batch Import'
+          "Batch Import"
         )
       }
       subtitle={
         batch ? (
           <span>
-            Template: <span className="text-slate-700 font-semibold">{template?.name}</span>{' '}
-            (v{templateVersion?.version}) · Revision {batch.currentImportRevision || 0}
+            Template:{" "}
+            <span className="text-slate-700 font-semibold">
+              {template?.name}
+            </span>{" "}
+            (v{templateVersion?.version}) · Revision{" "}
+            {batch.currentImportRevision || 0}
           </span>
         ) : undefined
       }
@@ -354,10 +444,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
           <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold">
             {(
               [
-                { step: 1, label: '1. File' },
-                { step: 2, label: '2. Map' },
-                { step: 3, label: '3. Ingest' },
-                { step: 4, label: '4. Review' },
+                { step: 1, label: "1. File" },
+                { step: 2, label: "2. Map" },
+                { step: 3, label: "3. Ingest" },
+                { step: 4, label: "4. Review" },
               ] as const
             ).map(({ step, label }, idx) => {
               const isActive = currentStep === step;
@@ -373,19 +463,24 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                     }}
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all text-xs font-semibold ${
                       isActive
-                        ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/25'
+                        ? "bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/25"
                         : isDone
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200/80 hover:bg-blue-100 hover:border-blue-300 cursor-pointer shadow-2xs'
-                        : 'bg-slate-100 text-slate-400 border border-slate-200/60 cursor-default'
+                          ? "bg-blue-50 text-blue-700 border border-blue-200/80 hover:bg-blue-100 hover:border-blue-300 cursor-pointer shadow-2xs"
+                          : "bg-slate-100 text-slate-400 border border-slate-200/60 cursor-default"
                     }`}
                   >
-                    {isDone && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" weight="bold" />}
+                    {isDone && (
+                      <Check
+                        className="w-3.5 h-3.5 text-blue-600 stroke-[3]"
+                        weight="bold"
+                      />
+                    )}
                     {label}
                   </button>
                   {idx < 3 && (
                     <span
                       className={`text-xs font-bold transition-colors ${
-                        currentStep > step ? 'text-blue-400' : 'text-slate-300'
+                        currentStep > step ? "text-blue-400" : "text-slate-300"
                       }`}
                     >
                       →
@@ -413,8 +508,15 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
               <span className="text-xs font-semibold text-blue-900">
-                Step {currentStep} of 4:{' '}
-                {['File Upload', 'Column Mapping', 'Chunk Ingest', 'Validation Review'][currentStep - 1]}
+                Step {currentStep} of 4:{" "}
+                {
+                  [
+                    "File Upload",
+                    "Column Mapping",
+                    "Chunk Ingest",
+                    "Validation Review",
+                  ][currentStep - 1]
+                }
               </span>
             </div>
             <div className="w-20 bg-blue-200/60 rounded-full h-1.5 overflow-hidden">
@@ -425,11 +527,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
             </div>
           </div>
 
-          {apiError && (
-            <Alert variant="error">
-              {apiError}
-            </Alert>
-          )}
+          {apiError && <Alert variant="error">{apiError}</Alert>}
 
           {/* Step 1: Upload File */}
           {currentStep === 1 && (
@@ -444,7 +542,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
-                      {uploadedFileMeta.type === 'xlsx' ? (
+                      {uploadedFileMeta.type === "xlsx" ? (
                         <FileXls className="w-5 h-5 text-white" />
                       ) : (
                         <FileCsv className="w-5 h-5 text-white" />
@@ -500,7 +598,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 <div className="p-4 rounded-2xl border border-blue-200/90 bg-linear-to-r from-blue-50/80 via-white to-blue-50/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25">
-                      {uploadedFileMeta.type === 'xlsx' ? (
+                      {uploadedFileMeta.type === "xlsx" ? (
                         <FileXls className="w-6 h-6 text-white" />
                       ) : (
                         <FileCsv className="w-6 h-6 text-white" />
@@ -524,10 +622,17 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                         <span>{formatFileSize(uploadedFileMeta.size)}</span>
                         <span className="text-slate-300">•</span>
                         <span className="text-blue-700 font-semibold">
-                          {(uploadedFileMeta.rowCount || parsedResult.rows.length).toLocaleString()} records detected
+                          {(
+                            uploadedFileMeta.rowCount ||
+                            parsedResult.rows.length
+                          ).toLocaleString()}{" "}
+                          records detected
                         </span>
                         <span className="text-slate-300">•</span>
-                        <span>{parsedResult.disambiguatedHeaders.length} headers parsed</span>
+                        <span>
+                          {parsedResult.disambiguatedHeaders.length} headers
+                          parsed
+                        </span>
                       </p>
                     </div>
                   </div>
@@ -556,9 +661,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 columnMap={columnMap}
                 onChangeMapping={handleMappingChange}
                 dateHints={dateHints}
-                onChangeDateHint={(key, hint) =>
-                  setDateHints((prev) => ({ ...prev, [key]: hint }))
-                }
+                onChangeDateHint={handleDateHintChange}
               />
 
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -575,7 +678,8 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                   onClick={startChunkedUpload}
                   className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.98] text-xs font-bold text-white shadow-sm shadow-blue-500/20 transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
-                  Upload & Validate {parsedResult.rows.length.toLocaleString()} Records
+                  Upload & Validate {parsedResult.rows.length.toLocaleString()}{" "}
+                  Records
                   <ArrowRight className="w-4 h-4" weight="bold" />
                 </button>
               </div>
@@ -588,7 +692,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
               {uploadedFileMeta && (
                 <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/70 flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                    {uploadedFileMeta.type === 'xlsx' ? (
+                    {uploadedFileMeta.type === "xlsx" ? (
                       <FileXls className="w-5 h-5 text-white" />
                     ) : (
                       <FileCsv className="w-5 h-5 text-white" />
@@ -599,7 +703,8 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                       {uploadedFileMeta.name}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {formatFileSize(uploadedFileMeta.size)} · {uploadProgress.totalRows.toLocaleString()} rows
+                      {formatFileSize(uploadedFileMeta.size)} ·{" "}
+                      {uploadProgress.totalRows.toLocaleString()} rows
                     </p>
                   </div>
                   <Badge variant="primary" size="sm" shape="pill" dot>
@@ -626,16 +731,21 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 summary={validationSummary}
                 onProceed={() =>
                   navigate({
-                    to: '/app/batches/$batchId/review',
+                    to: "/app/batches/$batchId/review",
                     params: { batchId },
                   })
                 }
                 onReimport={() => setCurrentStep(1)}
               />
 
-              <DuplicateWarning duplicateCount={validationSummary.duplicateRows} />
+              <DuplicateWarning
+                duplicateCount={validationSummary.duplicateRows}
+              />
 
-              <RowErrorTable rows={draftRows} totalRows={validationSummary.totalRows} />
+              <RowErrorTable
+                rows={draftRows}
+                totalRows={validationSummary.totalRows}
+              />
             </div>
           )}
         </>

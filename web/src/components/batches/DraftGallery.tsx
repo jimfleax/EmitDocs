@@ -1,17 +1,21 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import {
   MagnifyingGlass,
   CheckCircle,
   X,
   CaretLeft,
   CaretRight,
-} from '@phosphor-icons/react';
-import { FilterByIssue, type FilterFacet, type FilterCounts } from './FilterByIssue';
-import { Badge } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { DraftGallerySkeleton } from '@/components/skeletons/DraftGallerySkeleton';
-import { cn } from '@/lib/utils';
-import type { DraftRowItem } from './RowEditor';
+} from "@phosphor-icons/react";
+import {
+  FilterByIssue,
+  type FilterFacet,
+  type FilterCounts,
+} from "./FilterByIssue";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { DraftGallerySkeleton } from "@/components/skeletons/DraftGallerySkeleton";
+import { cn } from "@/lib/utils";
+import type { DraftRowItem } from "./RowEditor";
 
 export interface DraftGalleryProps {
   batchId: string;
@@ -26,9 +30,9 @@ export function DraftGallery({
   onSelectRow,
   refreshTrigger,
 }: DraftGalleryProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterFacet>('all');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<FilterFacet>("all");
   const [page, setPage] = useState(1);
   const [limit] = useState(50);
 
@@ -47,6 +51,10 @@ export function DraftGallery({
   const [isLoading, setIsLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const isFirstLoadRef = useRef(true);
+  const selectedRowIdRef = useRef(selectedRowId);
+  useEffect(() => {
+    selectedRowIdRef.current = selectedRowId;
+  }, [selectedRowId]);
 
   // 300ms Debounce search input
   useEffect(() => {
@@ -69,16 +77,19 @@ export function DraftGallery({
           filter: activeFilter,
         });
         if (debouncedQuery.trim().length > 0) {
-          params.set('query', debouncedQuery.trim());
+          params.set("query", debouncedQuery.trim());
         }
         if (refreshTrigger) {
-          params.set('_r', String(refreshTrigger));
+          params.set("_r", String(refreshTrigger));
         }
 
-        const res = await fetch(`/api/batches/${batchId}/rows?${params.toString()}`, {
-          credentials: 'include',
-        });
-        if (!res.ok) throw new Error('Failed to fetch draft rows');
+        const res = await fetch(
+          `/api/batches/${batchId}/rows?${params.toString()}`,
+          {
+            credentials: "include",
+          },
+        );
+        if (!res.ok) throw new Error("Failed to fetch draft rows");
 
         const data = await res.json();
         if (!isMounted) return;
@@ -90,15 +101,20 @@ export function DraftGallery({
         if (data.summary) {
           setCounts(data.summary);
         }
+        setApiError(null);
 
         // Auto-select first row on initial load if none selected
-        if (isFirstLoadRef.current && (data.rows || []).length > 0 && !selectedRowId) {
+        if (
+          isFirstLoadRef.current &&
+          (data.rows || []).length > 0 &&
+          !selectedRowIdRef.current
+        ) {
           isFirstLoadRef.current = false;
           onSelectRow(data.rows[0]);
         }
       } catch (err: any) {
         if (isMounted) {
-          setApiError(err.message || 'Error loading draft gallery');
+          setApiError(err.message || "Error loading draft gallery");
         }
       } finally {
         if (isMounted) {
@@ -112,7 +128,15 @@ export function DraftGallery({
     return () => {
       isMounted = false;
     };
-  }, [batchId, page, limit, activeFilter, debouncedQuery, selectedRowId, onSelectRow, refreshTrigger]);
+  }, [
+    batchId,
+    page,
+    limit,
+    activeFilter,
+    debouncedQuery,
+    onSelectRow,
+    refreshTrigger,
+  ]);
 
   const handleFilterChange = (newFilter: FilterFacet) => {
     setActiveFilter(newFilter);
@@ -149,7 +173,7 @@ export function DraftGallery({
           {searchQuery && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
+              onClick={() => setSearchQuery("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
@@ -170,7 +194,9 @@ export function DraftGallery({
         {isLoading && rows.length === 0 ? (
           <DraftGallerySkeleton count={6} />
         ) : apiError ? (
-          <div className="p-8 text-center text-rose-500 text-xs">{apiError}</div>
+          <div className="p-8 text-center text-rose-500 text-xs">
+            {apiError}
+          </div>
         ) : rows.length === 0 ? (
           <div className="p-12">
             <EmptyState
@@ -190,10 +216,10 @@ export function DraftGallery({
                 key={row._id}
                 onClick={() => onSelectRow(row)}
                 className={cn(
-                  'group flex items-center justify-between p-3.5 text-xs transition-all cursor-pointer select-none',
+                  "group flex items-center justify-between p-3.5 text-xs transition-all cursor-pointer select-none",
                   isSelected
-                    ? 'bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-l-blue-600'
-                    : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                    ? "bg-blue-50/70 dark:bg-blue-950/40 border-l-4 border-l-blue-600"
+                    : "hover:bg-slate-50/80 dark:hover:bg-slate-800/40",
                 )}
               >
                 {/* Left: Indicator, Row Number & Name */}
@@ -201,12 +227,12 @@ export function DraftGallery({
                   {/* Status Dot */}
                   <div
                     className={cn(
-                      'w-2 h-2 rounded-full shrink-0',
-                      row.status === 'invalid'
-                        ? 'bg-rose-500'
+                      "w-2 h-2 rounded-full shrink-0",
+                      row.status === "invalid"
+                        ? "bg-rose-500"
                         : row.isDuplicate
-                        ? 'bg-amber-500'
-                        : 'bg-emerald-500'
+                          ? "bg-amber-500"
+                          : "bg-emerald-500",
                     )}
                   />
 
@@ -219,19 +245,20 @@ export function DraftGallery({
                   <div className="min-w-0">
                     <p
                       className={cn(
-                        'font-bold truncate',
+                        "font-bold truncate",
                         isSelected
-                          ? 'text-blue-900 dark:text-blue-200'
-                          : 'text-slate-900 dark:text-slate-100'
+                          ? "text-blue-900 dark:text-blue-200"
+                          : "text-slate-900 dark:text-slate-100",
                       )}
                     >
                       {primaryName}
                     </p>
-                    {row.effectiveData?.email && row.effectiveData.email !== primaryName && (
-                      <p className="text-[11px] text-slate-400 truncate">
-                        {row.effectiveData.email}
-                      </p>
-                    )}
+                    {row.effectiveData?.email &&
+                      row.effectiveData.email !== primaryName && (
+                        <p className="text-[11px] text-slate-400 truncate">
+                          {row.effectiveData.email}
+                        </p>
+                      )}
                   </div>
                 </div>
 
@@ -249,9 +276,9 @@ export function DraftGallery({
                     </Badge>
                   )}
 
-                  {row.status === 'invalid' ? (
+                  {row.status === "invalid" ? (
                     <Badge variant="error" size="sm">
-                      {row.errors[0]?.message || 'Invalid'}
+                      {row.errors[0]?.message || "Invalid"}
                     </Badge>
                   ) : (
                     <Badge variant="success" size="sm">

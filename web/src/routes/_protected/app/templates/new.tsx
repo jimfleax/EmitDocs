@@ -1,10 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { PageShell } from '@/components/layout/PageShell'
-import { PdfUploadDropzone } from '@/components/templates/PdfUploadDropzone'
+import { createFileRoute } from "@tanstack/react-router";
+import { PageShell } from "@/components/layout/PageShell";
+import { PdfUploadDropzone } from "@/components/templates/PdfUploadDropzone";
 
-export const Route = createFileRoute('/_protected/app/templates/new')({
+export const Route = createFileRoute("/_protected/app/templates/new")({
   component: NewTemplateRoute,
-})
+});
 
 function NewTemplateRoute() {
   return (
@@ -17,5 +17,5 @@ function NewTemplateRoute() {
     >
       <PdfUploadDropzone />
     </PageShell>
-  )
+  );
 }

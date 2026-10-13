@@ -1,68 +1,86 @@
-import { useState } from 'react'
-import { Database, Cloud, Image, ShieldCheck, Cpu, MagnifyingGlass, X } from '@phosphor-icons/react'
-import { Input } from '@/components/ui/input'
+import { useState } from "react";
+import {
+  Database,
+  Cloud,
+  Image,
+  ShieldCheck,
+  Cpu,
+  MagnifyingGlass,
+  X,
+} from "@phosphor-icons/react";
+import { Input } from "@/components/ui/input";
 
 interface Subprocessor {
-  name: string
-  role: string
-  icon: typeof Database
-  dataTransferred: string
-  location: string
-  safeguards: string
+  name: string;
+  role: string;
+  icon: typeof Database;
+  dataTransferred: string;
+  location: string;
+  safeguards: string;
 }
 
 const SUBPROCESSORS: Subprocessor[] = [
   {
-    name: 'MongoDB Atlas',
-    role: 'Database & Metadata Management',
+    name: "MongoDB Atlas",
+    role: "Database & Metadata Management",
     icon: Database,
-    dataTransferred: 'User account profiles, hashed session tokens, template mappings, and batch metadata.',
-    location: 'AWS / GCP (US / EU regions)',
-    safeguards: 'Encrypted at rest (AES-256) and in transit (TLS 1.3), SOC 2 Type II, ISO 27001.',
+    dataTransferred:
+      "User account profiles, hashed session tokens, template mappings, and batch metadata.",
+    location: "AWS / GCP (US / EU regions)",
+    safeguards:
+      "Encrypted at rest (AES-256) and in transit (TLS 1.3), SOC 2 Type II, ISO 27001.",
   },
   {
-    name: 'Cloudflare (R2)',
-    role: 'Object Storage & Document Bundles',
+    name: "Cloudflare (R2)",
+    role: "Object Storage & Document Bundles",
     icon: Cloud,
-    dataTransferred: 'Private PDF template files, temporary recipient spreadsheets, compiled batch PDFs, and ZIP archives.',
-    location: 'Global Edge Network',
-    safeguards: 'AES-256 encryption at rest, short-lived scoped pre-signed URLs, strict TTL lifecycle rules.',
+    dataTransferred:
+      "Private PDF template files, temporary recipient spreadsheets, compiled batch PDFs, and ZIP archives.",
+    location: "Global Edge Network",
+    safeguards:
+      "AES-256 encryption at rest, short-lived scoped pre-signed URLs, strict TTL lifecycle rules.",
   },
   {
-    name: 'Cloudinary',
-    role: 'Media & Template Thumbnail Rendering',
+    name: "Cloudinary",
+    role: "Media & Template Thumbnail Rendering",
     icon: Image,
-    dataTransferred: 'PDF template page previews and visual thumbnail images for template libraries.',
-    location: 'United States / EU (Cloud CDN)',
-    safeguards: 'HTTPS/TLS 1.3, authenticated URL access, strict API key isolation.',
+    dataTransferred:
+      "PDF template page previews and visual thumbnail images for template libraries.",
+    location: "United States / EU (Cloud CDN)",
+    safeguards:
+      "HTTPS/TLS 1.3, authenticated URL access, strict API key isolation.",
   },
   {
-    name: 'Google Identity Services',
-    role: 'Authentication & Single Sign-On (SSO)',
+    name: "Google Identity Services",
+    role: "Authentication & Single Sign-On (SSO)",
     icon: ShieldCheck,
-    dataTransferred: 'OAuth 2.0 Subject ID (`sub`), registered email address, full name, and avatar URL.',
-    location: 'Global (Google Cloud)',
-    safeguards: 'OpenID Connect, zero password handling, token signature validation.',
+    dataTransferred:
+      "OAuth 2.0 Subject ID (`sub`), registered email address, full name, and avatar URL.",
+    location: "Global (Google Cloud)",
+    safeguards:
+      "OpenID Connect, zero password handling, token signature validation.",
   },
   {
-    name: 'Vercel',
-    role: 'Application Hosting & Edge Routing',
+    name: "Vercel",
+    role: "Application Hosting & Edge Routing",
     icon: Cpu,
-    dataTransferred: 'Stateless HTTP requests, Web Vitals performance metrics (via Speed Insights).',
-    location: 'Global Edge Infrastructure',
-    safeguards: 'DDoS mitigation, TLS 1.3, SOC 2 Type II certified infrastructure.',
+    dataTransferred:
+      "Stateless HTTP requests, Web Vitals performance metrics (via Speed Insights).",
+    location: "Global Edge Infrastructure",
+    safeguards:
+      "DDoS mitigation, TLS 1.3, SOC 2 Type II certified infrastructure.",
   },
-]
+];
 
 export function LegalSubprocessorTable() {
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState("");
 
   const filtered = SUBPROCESSORS.filter(
     (item) =>
       item.name.toLowerCase().includes(query.toLowerCase()) ||
       item.role.toLowerCase().includes(query.toLowerCase()) ||
-      item.dataTransferred.toLowerCase().includes(query.toLowerCase())
-  )
+      item.dataTransferred.toLowerCase().includes(query.toLowerCase()),
+  );
 
   return (
     <div className="my-6 space-y-3">
@@ -87,7 +105,7 @@ export function LegalSubprocessorTable() {
         {query && (
           <button
             type="button"
-            onClick={() => setQuery('')}
+            onClick={() => setQuery("")}
             className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-md transition-colors"
             aria-label="Clear filter"
           >
@@ -109,9 +127,12 @@ export function LegalSubprocessorTable() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {filtered.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
-                <tr key={item.name} className="hover:bg-slate-50/60 transition-colors">
+                <tr
+                  key={item.name}
+                  className="hover:bg-slate-50/60 transition-colors"
+                >
                   <td className="py-3.5 px-4 font-semibold text-slate-900 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <div className="p-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100/60">
@@ -127,11 +148,15 @@ export function LegalSubprocessorTable() {
                     {item.dataTransferred}
                   </td>
                   <td className="py-3.5 px-4 text-slate-600">
-                    <div className="font-medium text-slate-700">{item.location}</div>
-                    <div className="text-[11px] text-slate-400 mt-0.5">{item.safeguards}</div>
+                    <div className="font-medium text-slate-700">
+                      {item.location}
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      {item.safeguards}
+                    </div>
                   </td>
                 </tr>
-              )
+              );
             })}
             {filtered.length === 0 && (
               <tr>
@@ -144,8 +169,9 @@ export function LegalSubprocessorTable() {
         </table>
       </div>
       <p className="text-[11px] text-slate-400 italic">
-        * Sub-processors are bound by strict Data Processing Agreements (DPAs) requiring adherence to equivalent data protection standards.
+        * Sub-processors are bound by strict Data Processing Agreements (DPAs)
+        requiring adherence to equivalent data protection standards.
       </p>
     </div>
-  )
+  );
 }

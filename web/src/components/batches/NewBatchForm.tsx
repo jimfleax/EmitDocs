@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from '@tanstack/react-router';
-import { FilePdf, ArrowRight, Clock } from '@phosphor-icons/react';
-import { PageShell } from '@/components/layout/PageShell';
-import { Alert } from '@/components/ui/Alert';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Spinner } from '@/components/ui/Spinner';
-import { Badge } from '@/components/ui/Badge';
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "@tanstack/react-router";
+import { FilePdf, ArrowRight, Clock } from "@phosphor-icons/react";
+import { PageShell } from "@/components/layout/PageShell";
+import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
+import { Badge } from "@/components/ui/Badge";
 import {
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-} from '@/components/ui/select';
-import { NewBatchFormSkeleton } from '@/components/skeletons/NewBatchFormSkeleton';
+} from "@/components/ui/select";
+import { NewBatchFormSkeleton } from "@/components/skeletons/NewBatchFormSkeleton";
 
 interface TemplateVersion {
   _id: string;
@@ -40,36 +40,37 @@ interface NewBatchFormProps {
 }
 
 function formatDefaultBatchName(templateName: string): string {
-  const dateStr = new Date().toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
+  const dateStr = new Date().toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
   });
   return `${templateName} — ${dateStr}`;
 }
 
 function formatReadableTimestamp(isoString?: string): string {
-  if (!isoString) return 'Recently modified';
+  if (!isoString) return "Recently modified";
   try {
     const date = new Date(isoString);
-    if (isNaN(date.getTime())) return 'Recently modified';
-    const datePart = date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    if (isNaN(date.getTime())) return "Recently modified";
+    const datePart = date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
-    const timePart = date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
+    const timePart = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
       hour12: true,
     });
     return `Modified ${datePart} at ${timePart}`;
   } catch {
-    return 'Recently modified';
+    return "Recently modified";
   }
 }
 
 function getMappedFieldsCount(tmpl: Template): number {
-  if (!tmpl.currentVersionId || typeof tmpl.currentVersionId !== 'object') return 0;
+  if (!tmpl.currentVersionId || typeof tmpl.currentVersionId !== "object")
+    return 0;
   return Array.isArray(tmpl.currentVersionId.fieldMappings)
     ? tmpl.currentVersionId.fieldMappings.length
     : 0;
@@ -100,19 +101,20 @@ function BatchTemplateThumbnail({ url }: { url?: string }) {
 export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>('');
-  const [batchName, setBatchName] = useState<string>('');
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [batchName, setBatchName] = useState<string>("");
   const [isLoadingTemplates, setIsLoadingTemplates] = useState<boolean>(true);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const isPreselected = Boolean(
     initialTemplateId ||
-      (typeof window !== 'undefined' &&
-        new URLSearchParams(window.location.search).get('templateId'))
+    (typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("templateId")),
   );
   const [isChangingTemplate, setIsChangingTemplate] = useState<boolean>(false);
-  const selectedTemplate = templates.find((t) => t._id === selectedTemplateId) || null;
+  const selectedTemplate =
+    templates.find((t) => t._id === selectedTemplateId) || null;
 
   useEffect(() => {
     let isCancelled = false;
@@ -120,8 +122,10 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
     async function fetchTemplates() {
       try {
         setIsLoadingTemplates(true);
-        const res = await fetch('/api/templates?mappedOnly=true', { credentials: 'include' });
-        if (!res.ok) throw new Error('Failed to load templates');
+        const res = await fetch("/api/templates?mappedOnly=true", {
+          credentials: "include",
+        });
+        if (!res.ok) throw new Error("Failed to load templates");
         const data = await res.json();
         const rawList: Template[] = data.templates || [];
 
@@ -133,31 +137,32 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
 
         if (mappedList.length > 0) {
           const urlParam =
-            typeof window !== 'undefined'
-              ? new URLSearchParams(window.location.search).get('templateId')
+            typeof window !== "undefined"
+              ? new URLSearchParams(window.location.search).get("templateId")
               : null;
           const storedId =
-            typeof window !== 'undefined'
-              ? localStorage.getItem('emitdocs_active_template_id')
+            typeof window !== "undefined"
+              ? localStorage.getItem("emitdocs_active_template_id")
               : null;
 
           // Target template priority: route initialTemplateId -> URL param -> stored active template -> first mapped template
           const targetId =
             [initialTemplateId, urlParam, storedId].find(
-              (id) => id && mappedList.some((t) => t._id === id)
+              (id) => id && mappedList.some((t) => t._id === id),
             ) || mappedList[0]._id;
 
-          const chosen = mappedList.find((t) => t._id === targetId) || mappedList[0];
+          const chosen =
+            mappedList.find((t) => t._id === targetId) || mappedList[0];
           setSelectedTemplateId(chosen._id);
           setBatchName(formatDefaultBatchName(chosen.name));
 
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('emitdocs_active_template_id', chosen._id);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("emitdocs_active_template_id", chosen._id);
           }
         }
       } catch (err: any) {
         if (!isCancelled) {
-          setError(err.message || 'Error fetching templates');
+          setError(err.message || "Error fetching templates");
         }
       } finally {
         if (!isCancelled) {
@@ -178,8 +183,8 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
     const tmpl = templates.find((t) => t._id === id);
     if (tmpl) {
       setBatchName(formatDefaultBatchName(tmpl.name));
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('emitdocs_active_template_id', id);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("emitdocs_active_template_id", id);
       }
     }
   };
@@ -187,7 +192,7 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTemplateId || !batchName.trim()) {
-      setError('Please choose a template and specify a batch name.');
+      setError("Please choose a template and specify a batch name.");
       return;
     }
 
@@ -195,10 +200,10 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
     setError(null);
 
     try {
-      const res = await fetch('/api/batches', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const res = await fetch("/api/batches", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           name: batchName.trim(),
           templateId: selectedTemplateId,
@@ -207,13 +212,16 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || 'Failed to create batch');
+        throw new Error(data.error || "Failed to create batch");
       }
 
       const { batch } = await res.json();
-      navigate({ to: '/app/batches/$batchId/import', params: { batchId: batch._id } });
+      navigate({
+        to: "/app/batches/$batchId/import",
+        params: { batchId: batch._id },
+      });
     } catch (err: any) {
-      setError(err.message || 'Error creating batch');
+      setError(err.message || "Error creating batch");
       setIsSubmitting(false);
     }
   };
@@ -224,7 +232,7 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
       subtitle={
         isPreselected && selectedTemplate && !isChangingTemplate
           ? `Configure batch name for ${selectedTemplate.name} to begin spreadsheet data import.`
-          : 'Select a mapped template and configure batch settings to begin spreadsheet data import.'
+          : "Select a mapped template and configure batch settings to begin spreadsheet data import."
       }
       backTo="/app"
       backLabel="Back to Dashboard"
@@ -271,12 +279,18 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
                 1
               </div>
               <div>
-                <p className="text-xs font-bold text-slate-800">Batch Configuration</p>
-                <p className="text-[11px] text-slate-400">Step 1 of 4 · Setup details before spreadsheet upload</p>
+                <p className="text-xs font-bold text-slate-800">
+                  Batch Configuration
+                </p>
+                <p className="text-[11px] text-slate-400">
+                  Step 1 of 4 · Setup details before spreadsheet upload
+                </p>
               </div>
             </div>
             <div className="hidden sm:flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-              <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">1. Setup</span>
+              <span className="text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                1. Setup
+              </span>
               <span className="text-slate-300">→</span>
               <span>2. Upload</span>
               <span className="text-slate-300">→</span>
@@ -304,34 +318,44 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
               <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/60 shadow-xs flex items-center justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0">
                   <div className="w-10 h-12 rounded-lg bg-white flex items-center justify-center shrink-0 overflow-hidden border border-slate-200 shadow-2xs">
-                    <BatchTemplateThumbnail url={selectedTemplate.thumbnailUrl} />
+                    <BatchTemplateThumbnail
+                      url={selectedTemplate.thumbnailUrl}
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold text-slate-900 truncate">
                       {selectedTemplate.name}
                     </p>
                     <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1 font-medium">
-                      <Clock size={12} weight="bold" className="text-slate-400 shrink-0" />
+                      <Clock
+                        size={12}
+                        weight="bold"
+                        className="text-slate-400 shrink-0"
+                      />
                       <span className="truncate">
                         {formatReadableTimestamp(
                           selectedTemplate.updatedAt ||
                             selectedTemplate.createdAt ||
-                            (typeof selectedTemplate.currentVersionId === 'object'
+                            (typeof selectedTemplate.currentVersionId ===
+                            "object"
                               ? selectedTemplate.currentVersionId?.updatedAt
-                              : undefined)
+                              : undefined),
                         )}
                       </span>
                     </p>
                     <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                       <Badge variant="primary" size="sm" shape="pill" mono>
                         v
-                        {typeof selectedTemplate.currentVersionId === 'object'
+                        {typeof selectedTemplate.currentVersionId === "object"
                           ? selectedTemplate.currentVersionId?.version
                           : 1}
                       </Badge>
                       <Badge variant="success" size="sm" shape="pill">
-                        {getMappedFieldsCount(selectedTemplate)}{' '}
-                        {getMappedFieldsCount(selectedTemplate) === 1 ? 'field' : 'fields'} mapped
+                        {getMappedFieldsCount(selectedTemplate)}{" "}
+                        {getMappedFieldsCount(selectedTemplate) === 1
+                          ? "field"
+                          : "fields"}{" "}
+                        mapped
                       </Badge>
                     </div>
                   </div>
@@ -364,7 +388,11 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
                     </button>
                   )}
                   <span className="text-[11px] text-slate-400 font-medium">
-                    {templates.length} {templates.length === 1 ? 'mapped template' : 'mapped templates'} available
+                    {templates.length}{" "}
+                    {templates.length === 1
+                      ? "mapped template"
+                      : "mapped templates"}{" "}
+                    available
                   </span>
                 </div>
               </div>
@@ -386,21 +414,34 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
                   {templates.map((tmpl) => {
                     const fieldCount = getMappedFieldsCount(tmpl);
                     const ver =
-                      typeof tmpl.currentVersionId === 'object'
+                      typeof tmpl.currentVersionId === "object"
                         ? tmpl.currentVersionId?.version
                         : 1;
                     const timestampStr = formatReadableTimestamp(
-                      tmpl.updatedAt || tmpl.createdAt || (typeof tmpl.currentVersionId === 'object' ? tmpl.currentVersionId?.updatedAt : undefined)
+                      tmpl.updatedAt ||
+                        tmpl.createdAt ||
+                        (typeof tmpl.currentVersionId === "object"
+                          ? tmpl.currentVersionId?.updatedAt
+                          : undefined),
                     );
                     return (
-                      <SelectItem key={tmpl._id} value={tmpl._id} textValue={tmpl.name}>
+                      <SelectItem
+                        key={tmpl._id}
+                        value={tmpl._id}
+                        textValue={tmpl.name}
+                      >
                         <div className="flex items-center justify-between w-full gap-3 py-0.5">
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-slate-900 truncate">{tmpl.name}</p>
-                            <p className="text-[10px] text-slate-400 truncate">{timestampStr}</p>
+                            <p className="font-semibold text-slate-900 truncate">
+                              {tmpl.name}
+                            </p>
+                            <p className="text-[10px] text-slate-400 truncate">
+                              {timestampStr}
+                            </p>
                           </div>
                           <span className="text-[10px] text-blue-600 font-mono font-semibold shrink-0 bg-blue-50 px-1.5 py-0.5 rounded">
-                            v{ver} · {fieldCount} {fieldCount === 1 ? 'field' : 'fields'}
+                            v{ver} · {fieldCount}{" "}
+                            {fieldCount === 1 ? "field" : "fields"}
                           </span>
                         </div>
                       </SelectItem>
@@ -415,11 +456,15 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
                   const isSelected = tmpl._id === selectedTemplateId;
                   const fieldCount = getMappedFieldsCount(tmpl);
                   const ver =
-                    typeof tmpl.currentVersionId === 'object'
+                    typeof tmpl.currentVersionId === "object"
                       ? tmpl.currentVersionId?.version
                       : 1;
                   const timestampStr = formatReadableTimestamp(
-                    tmpl.updatedAt || tmpl.createdAt || (typeof tmpl.currentVersionId === 'object' ? tmpl.currentVersionId?.updatedAt : undefined)
+                    tmpl.updatedAt ||
+                      tmpl.createdAt ||
+                      (typeof tmpl.currentVersionId === "object"
+                        ? tmpl.currentVersionId?.updatedAt
+                        : undefined),
                   );
 
                   return (
@@ -431,8 +476,8 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
                       }}
                       className={`p-3.5 rounded-xl border text-left cursor-pointer transition-all ${
                         isSelected
-                          ? 'bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/30 shadow-xs'
-                          : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs'
+                          ? "bg-blue-50/80 border-blue-500 ring-2 ring-blue-500/30 shadow-xs"
+                          : "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/80 shadow-2xs"
                       }`}
                     >
                       <div className="flex items-start gap-3">
@@ -440,17 +485,29 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
                           <BatchTemplateThumbnail url={tmpl.thumbnailUrl} />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-900 truncate">{tmpl.name}</p>
+                          <p className="text-xs font-bold text-slate-900 truncate">
+                            {tmpl.name}
+                          </p>
                           <p className="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                            <Clock size={12} weight="bold" className="text-slate-400 shrink-0" />
+                            <Clock
+                              size={12}
+                              weight="bold"
+                              className="text-slate-400 shrink-0"
+                            />
                             <span className="truncate">{timestampStr}</span>
                           </p>
                           <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                            <Badge variant="primary" size="sm" shape="pill" mono>
+                            <Badge
+                              variant="primary"
+                              size="sm"
+                              shape="pill"
+                              mono
+                            >
                               v{ver}
                             </Badge>
                             <Badge variant="success" size="sm" shape="pill">
-                              {fieldCount} {fieldCount === 1 ? 'field' : 'fields'} mapped
+                              {fieldCount}{" "}
+                              {fieldCount === 1 ? "field" : "fields"} mapped
                             </Badge>
                           </div>
                         </div>

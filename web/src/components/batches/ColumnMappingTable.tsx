@@ -1,6 +1,10 @@
-import { useEffect, useCallback, useRef } from 'react';
-import { ArrowsLeftRight, MagicWand, WarningCircle } from '@phosphor-icons/react';
-import { Badge } from '@/components/ui/Badge';
+import { useEffect, useCallback, useRef } from "react";
+import {
+  ArrowsLeftRight,
+  MagicWand,
+  WarningCircle,
+} from "@phosphor-icons/react";
+import { Badge } from "@/components/ui/Badge";
 
 interface FieldItem {
   key: string;
@@ -14,8 +18,11 @@ interface ColumnMappingTableProps {
   availableHeaders: string[];
   columnMap: Record<string, string>;
   onChangeMapping: (newMap: Record<string, string>) => void;
-  dateHints?: Record<string, 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'>;
-  onChangeDateHint?: (key: string, hint: 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD') => void;
+  dateHints?: Record<string, "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD">;
+  onChangeDateHint?: (
+    key: string,
+    hint: "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD",
+  ) => void;
 }
 
 export function ColumnMappingTable({
@@ -34,11 +41,13 @@ export function ColumnMappingTable({
     for (const field of fields) {
       if (updated[field.key]) continue; // already mapped
 
-      const normalizedKey = field.key.toLowerCase().replace(/[^a-z0-9]/g, '');
-      const normalizedLabel = (field.label || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      const normalizedKey = field.key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const normalizedLabel = (field.label || "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "");
 
       const match = availableHeaders.find((h) => {
-        const normH = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const normH = h.toLowerCase().replace(/[^a-z0-9]/g, "");
         return normH === normalizedKey || normH === normalizedLabel;
       });
 
@@ -51,7 +60,11 @@ export function ColumnMappingTable({
 
   // Run auto-suggest initially if columnMap is empty
   useEffect(() => {
-    if (!hasAutoSuggestedRef.current && Object.keys(columnMap).length === 0 && availableHeaders.length > 0) {
+    if (
+      !hasAutoSuggestedRef.current &&
+      Object.keys(columnMap).length === 0 &&
+      availableHeaders.length > 0
+    ) {
       hasAutoSuggestedRef.current = true;
       runAutoSuggest();
     }
@@ -59,7 +72,7 @@ export function ColumnMappingTable({
 
   const handleSelectHeader = (fieldKey: string, header: string) => {
     const updated = { ...columnMap };
-    if (!header || header === '__UNMAPPED__') {
+    if (!header || header === "__UNMAPPED__") {
       delete updated[fieldKey];
     } else {
       updated[fieldKey] = header;
@@ -72,9 +85,12 @@ export function ColumnMappingTable({
       {/* Header */}
       <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/60">
         <div>
-          <h4 className="text-sm font-bold text-slate-900">Map Columns to Template Fields</h4>
+          <h4 className="text-sm font-bold text-slate-900">
+            Map Columns to Template Fields
+          </h4>
           <p className="text-xs text-slate-400 mt-0.5">
-            Select which column in your spreadsheet corresponds to each template field.
+            Select which column in your spreadsheet corresponds to each template
+            field.
           </p>
         </div>
         <button
@@ -102,19 +118,26 @@ export function ColumnMappingTable({
           </thead>
           <tbody className="divide-y divide-slate-100">
             {fields.map((f) => {
-              const mappedColumn = columnMap[f.key] || '';
+              const mappedColumn = columnMap[f.key] || "";
               const isRequired = f.required !== false;
               const isUnmapped = !mappedColumn && isRequired;
 
               return (
-                <tr key={f.key} className="hover:bg-slate-50/60 transition-colors">
+                <tr
+                  key={f.key}
+                  className="hover:bg-slate-50/60 transition-colors"
+                >
                   <td className="py-3.5 px-4 font-medium text-slate-800">
                     <div className="flex items-center gap-2">
                       <span>{f.label || f.key}</span>
                       {isRequired ? (
-                        <span className="text-[10px] text-amber-500 font-bold">*</span>
+                        <span className="text-[10px] text-amber-500 font-bold">
+                          *
+                        </span>
                       ) : (
-                        <span className="text-[10px] text-slate-400">(opt)</span>
+                        <span className="text-[10px] text-slate-400">
+                          (opt)
+                        </span>
                       )}
                     </div>
                     <span className="text-[10px] font-mono text-slate-400">{`{{${f.key}}}`}</span>
@@ -122,7 +145,7 @@ export function ColumnMappingTable({
 
                   <td className="py-3.5 px-4">
                     <Badge variant="neutral" size="sm" shape="rounded" mono>
-                      {f.type || 'text'}
+                      {f.type || "text"}
                     </Badge>
                   </td>
 
@@ -131,14 +154,16 @@ export function ColumnMappingTable({
                   <td className="py-3.5 px-4">
                     <div className="relative">
                       <select
-                        value={mappedColumn || '__UNMAPPED__'}
-                        onChange={(e) => handleSelectHeader(f.key, e.target.value)}
+                        value={mappedColumn || "__UNMAPPED__"}
+                        onChange={(e) =>
+                          handleSelectHeader(f.key, e.target.value)
+                        }
                         className={`w-full max-w-xs px-3 py-1.5 rounded-lg text-xs font-medium bg-white border transition-all ${
                           isUnmapped
-                            ? 'border-amber-300 text-amber-700 bg-amber-50'
+                            ? "border-amber-300 text-amber-700 bg-amber-50"
                             : mappedColumn
-                            ? 'border-blue-300 text-slate-800 bg-blue-50/30'
-                            : 'border-slate-200 text-slate-400'
+                              ? "border-blue-300 text-slate-800 bg-blue-50/30"
+                              : "border-slate-200 text-slate-400"
                         } focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400`}
                       >
                         <option value="__UNMAPPED__">-- Do Not Map --</option>
@@ -150,20 +175,22 @@ export function ColumnMappingTable({
                       </select>
                       {isUnmapped && (
                         <span className="flex items-center gap-1 text-[10px] text-amber-600 mt-1 font-medium">
-                          <WarningCircle className="w-3 h-3" /> Required field is unmapped
+                          <WarningCircle className="w-3 h-3" /> Required field
+                          is unmapped
                         </span>
                       )}
                     </div>
                   </td>
 
                   <td className="py-3.5 px-4 text-slate-400">
-                    {f.type === 'date' && onChangeDateHint ? (
+                    {f.type === "date" && onChangeDateHint ? (
                       <select
-                        value={dateHints[f.key] || 'YYYY-MM-DD'}
+                        value={dateHints[f.key] || "YYYY-MM-DD"}
                         onChange={(e) =>
                           onChangeDateHint(
                             f.key,
-                            e.target.value as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'
+                            e.target.value as
+                              "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD",
                           )
                         }
                         className="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[11px] text-slate-600 focus:outline-none focus:ring-1 focus:ring-blue-400"

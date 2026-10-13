@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { Link, useNavigate } from '@tanstack/react-router'
+import { useEffect, useState, useMemo } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   MagnifyingGlass,
   Plus,
@@ -11,188 +11,195 @@ import {
   Eye,
   ArrowRight,
   CircleNotch,
-} from '@phosphor-icons/react'
-import { PageShell } from '@/components/layout/PageShell'
-import { Badge } from '@/components/ui/Badge'
-import { Alert } from '@/components/ui/Alert'
-import { EmptyState } from '@/components/ui/EmptyState'
+} from "@phosphor-icons/react";
+import { PageShell } from "@/components/layout/PageShell";
+import { Badge } from "@/components/ui/Badge";
+import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-} from '@/components/ui/popover'
-import { toast } from '@/components/ui/toast'
-import { BatchListSkeleton } from '@/components/skeletons/BatchListSkeleton'
+} from "@/components/ui/popover";
+import { toast } from "@/components/ui/toast";
+import { BatchListSkeleton } from "@/components/skeletons/BatchListSkeleton";
 
 interface TemplateRef {
-  _id?: string
-  name?: string
-  thumbnailUrl?: string
+  _id?: string;
+  name?: string;
+  thumbnailUrl?: string;
 }
 
 interface BatchItem {
-  _id: string
-  name: string
-  status: string
-  templateId?: string | TemplateRef
-  templateVersionId?: string
-  totalRows?: number
-  validRows?: number
-  invalidRows?: number
-  duplicateRows?: number
-  createdAt: string
-  updatedAt?: string
+  _id: string;
+  name: string;
+  status: string;
+  templateId?: string | TemplateRef;
+  templateVersionId?: string;
+  totalRows?: number;
+  validRows?: number;
+  invalidRows?: number;
+  duplicateRows?: number;
+  createdAt: string;
+  updatedAt?: string;
 }
 
 function formatDate(isoString: string): string {
   try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+    const d = new Date(isoString);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   } catch {
-    return isoString
+    return isoString;
   }
 }
 
 function getBatchStatusBadge(status: string) {
   switch (status) {
-    case 'ready_for_download':
-    case 'approved':
-      return { label: 'Ready', variant: 'success' as const }
-    case 'review':
-    case 'awaiting_approval':
-      return { label: 'In Review', variant: 'primary' as const }
-    case 'draft':
-      return { label: 'Draft', variant: 'neutral' as const }
-    case 'importing':
-      return { label: 'Importing', variant: 'warning' as const }
-    case 'generating':
-      return { label: 'Generating', variant: 'warning' as const }
-    case 'failed':
-    case 'cancelled':
-      return { label: 'Failed', variant: 'error' as const }
+    case "ready_for_download":
+    case "approved":
+      return { label: "Ready", variant: "success" as const };
+    case "review":
+    case "awaiting_approval":
+      return { label: "In Review", variant: "primary" as const };
+    case "draft":
+      return { label: "Draft", variant: "neutral" as const };
+    case "importing":
+      return { label: "Importing", variant: "warning" as const };
+    case "generating":
+      return { label: "Generating", variant: "warning" as const };
+    case "failed":
+    case "cancelled":
+      return { label: "Failed", variant: "error" as const };
     default:
-      return { label: status, variant: 'neutral' as const }
+      return { label: status, variant: "neutral" as const };
   }
 }
 
-type StatusFilterType = 'all' | 'ready_for_download' | 'review' | 'draft'
+type StatusFilterType = "all" | "ready_for_download" | "review" | "draft";
 
 export function BatchList() {
-  const navigate = useNavigate()
-  const [batches, setBatches] = useState<BatchItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-  const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>('all')
-  const [deleteTarget, setDeleteTarget] = useState<BatchItem | null>(null)
-  const [isDeleting, setIsDeleting] = useState(false)
-  const [retryCount, setRetryCount] = useState(0)
+  const navigate = useNavigate();
+  const [batches, setBatches] = useState<BatchItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
+  const [deleteTarget, setDeleteTarget] = useState<BatchItem | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    let isCancelled = false
+    let isCancelled = false;
 
     async function fetchBatches() {
       try {
-        setLoading(true)
-        setError('')
-        const url = retryCount > 0 ? `/api/batches?_r=${retryCount}` : '/api/batches'
+        setLoading(true);
+        setError("");
+        const url =
+          retryCount > 0 ? `/api/batches?_r=${retryCount}` : "/api/batches";
         const res = await fetch(url, {
-          credentials: 'include',
-        })
+          credentials: "include",
+        });
         if (!res.ok) {
-          throw new Error(`Failed to fetch batches (${res.status})`)
+          throw new Error(`Failed to fetch batches (${res.status})`);
         }
-        const data = await res.json()
+        const data = await res.json();
         if (!isCancelled) {
           const list: BatchItem[] = Array.isArray(data)
             ? data
             : Array.isArray(data?.batches)
               ? data.batches
-              : []
-          setBatches(list)
+              : [];
+          setBatches(list);
         }
       } catch (err: unknown) {
         if (!isCancelled) {
-          const message = err instanceof Error ? err.message : 'Failed to fetch batches'
-          setError(message)
-          toast.error('Failed to load batches', message)
+          const message =
+            err instanceof Error ? err.message : "Failed to fetch batches";
+          setError(message);
+          toast.error("Failed to load batches", message);
         }
       } finally {
         if (!isCancelled) {
-          setLoading(false)
+          setLoading(false);
         }
       }
     }
 
-    fetchBatches()
+    fetchBatches();
 
     return () => {
-      isCancelled = true
-    }
-  }, [retryCount])
+      isCancelled = true;
+    };
+  }, [retryCount]);
 
   // Keyboard escape listener for delete confirmation modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && deleteTarget && !isDeleting) {
-        setDeleteTarget(null)
+      if (e.key === "Escape" && deleteTarget && !isDeleting) {
+        setDeleteTarget(null);
       }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteTarget, isDeleting])
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deleteTarget, isDeleting]);
 
   const filteredBatches = useMemo(() => {
     return batches.filter((b) => {
       // Status filter
-      if (statusFilter !== 'all' && b.status !== statusFilter) {
-        return false
+      if (statusFilter !== "all" && b.status !== statusFilter) {
+        return false;
       }
 
       // Search filter
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim()
-        const matchesName = b.name.toLowerCase().includes(q)
+        const q = searchQuery.toLowerCase().trim();
+        const matchesName = b.name.toLowerCase().includes(q);
         const templateName =
-          typeof b.templateId === 'object' && b.templateId?.name
+          typeof b.templateId === "object" && b.templateId?.name
             ? b.templateId.name.toLowerCase()
-            : ''
-        const matchesTemplate = templateName.includes(q)
-        const matchesStatus = b.status.toLowerCase().includes(q)
-        return matchesName || matchesTemplate || matchesStatus
+            : "";
+        const matchesTemplate = templateName.includes(q);
+        const matchesStatus = b.status.toLowerCase().includes(q);
+        return matchesName || matchesTemplate || matchesStatus;
       }
 
-      return true
-    })
-  }, [batches, searchQuery, statusFilter])
+      return true;
+    });
+  }, [batches, searchQuery, statusFilter]);
 
   const confirmDelete = async (id: string) => {
-    if (!deleteTarget) return
+    if (!deleteTarget) return;
 
     try {
-      setIsDeleting(true)
+      setIsDeleting(true);
       const res = await fetch(`/api/batches/${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
+        method: "DELETE",
+        credentials: "include",
+      });
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        throw new Error(errData.error || errData.message || 'Failed to delete batch')
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(
+          errData.error || errData.message || "Failed to delete batch",
+        );
       }
-      setBatches((prev) => prev.filter((b) => b._id !== id))
-      toast.success('Batch deleted', `"${deleteTarget.name}" and associated records were deleted.`)
-      setDeleteTarget(null)
+      setBatches((prev) => prev.filter((b) => b._id !== id));
+      toast.success(
+        "Batch deleted",
+        `"${deleteTarget.name}" and associated records were deleted.`,
+      );
+      setDeleteTarget(null);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Delete failed'
-      toast.error('Deletion failed', message)
+      const message = err instanceof Error ? err.message : "Delete failed";
+      toast.error("Deletion failed", message);
     } finally {
-      setIsDeleting(false)
+      setIsDeleting(false);
     }
-  }
+  };
 
   return (
     <PageShell
@@ -247,47 +254,67 @@ export function BatchList() {
           </span>
           <button
             type="button"
-            onClick={() => setStatusFilter('all')}
+            onClick={() => setStatusFilter("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none shrink-0 ${
-              statusFilter === 'all'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+              statusFilter === "all"
+                ? "bg-blue-600 text-white shadow-2xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
             }`}
           >
             All ({batches.length})
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter('ready_for_download')}
+            onClick={() => setStatusFilter("ready_for_download")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none shrink-0 ${
-              statusFilter === 'ready_for_download'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+              statusFilter === "ready_for_download"
+                ? "bg-blue-600 text-white shadow-2xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
             }`}
           >
-            Ready ({batches.filter((b) => b.status === 'ready_for_download' || b.status === 'approved').length})
+            Ready (
+            {
+              batches.filter(
+                (b) =>
+                  b.status === "ready_for_download" || b.status === "approved",
+              ).length
+            }
+            )
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter('review')}
+            onClick={() => setStatusFilter("review")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none shrink-0 ${
-              statusFilter === 'review'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+              statusFilter === "review"
+                ? "bg-blue-600 text-white shadow-2xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
             }`}
           >
-            In Review ({batches.filter((b) => b.status === 'review' || b.status === 'awaiting_approval').length})
+            In Review (
+            {
+              batches.filter(
+                (b) =>
+                  b.status === "review" || b.status === "awaiting_approval",
+              ).length
+            }
+            )
           </button>
           <button
             type="button"
-            onClick={() => setStatusFilter('draft')}
+            onClick={() => setStatusFilter("draft")}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer select-none shrink-0 ${
-              statusFilter === 'draft'
-                ? 'bg-blue-600 text-white shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900'
+              statusFilter === "draft"
+                ? "bg-blue-600 text-white shadow-2xs"
+                : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 hover:text-slate-900"
             }`}
           >
-            Draft ({batches.filter((b) => b.status === 'draft' || b.status === 'importing').length})
+            Draft (
+            {
+              batches.filter(
+                (b) => b.status === "draft" || b.status === "importing",
+              ).length
+            }
+            )
           </button>
         </div>
       )}
@@ -296,20 +323,26 @@ export function BatchList() {
       {!error && filteredBatches.length === 0 && (
         <EmptyState
           icon={<Stack size={28} weight="duotone" />}
-          title={searchQuery.trim() || statusFilter !== 'all' ? 'No matching batches' : 'No batches yet'}
-          description={
-            searchQuery.trim() || statusFilter !== 'all'
-              ? `No batches matched your current filter. Try searching for something else or clearing filters.`
-              : 'Import data from a spreadsheet or CSV and issue your first batch of documents.'
+          title={
+            searchQuery.trim() || statusFilter !== "all"
+              ? "No matching batches"
+              : "No batches yet"
           }
-          variant={searchQuery.trim() || statusFilter !== 'all' ? 'solid' : 'dashed'}
+          description={
+            searchQuery.trim() || statusFilter !== "all"
+              ? `No batches matched your current filter. Try searching for something else or clearing filters.`
+              : "Import data from a spreadsheet or CSV and issue your first batch of documents."
+          }
+          variant={
+            searchQuery.trim() || statusFilter !== "all" ? "solid" : "dashed"
+          }
           action={
-            searchQuery.trim() || statusFilter !== 'all' ? (
+            searchQuery.trim() || statusFilter !== "all" ? (
               <button
                 type="button"
                 onClick={() => {
-                  setSearchQuery('')
-                  setStatusFilter('all')
+                  setSearchQuery("");
+                  setStatusFilter("all");
                 }}
                 className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
               >
@@ -333,13 +366,13 @@ export function BatchList() {
         <div className="space-y-3">
           {filteredBatches.map((batch) => {
             const isImportStage =
-              batch.status === 'draft' || batch.status === 'importing'
-            const docsCount = batch.validRows || batch.totalRows || 0
-            const statusBadge = getBatchStatusBadge(batch.status)
+              batch.status === "draft" || batch.status === "importing";
+            const docsCount = batch.validRows || batch.totalRows || 0;
+            const statusBadge = getBatchStatusBadge(batch.status);
             const templateName =
-              typeof batch.templateId === 'object' && batch.templateId?.name
+              typeof batch.templateId === "object" && batch.templateId?.name
                 ? batch.templateId.name
-                : null
+                : null;
 
             return (
               <div
@@ -355,7 +388,11 @@ export function BatchList() {
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <Link
-                        to={isImportStage ? '/app/batches/$batchId/import' : '/app/batches/$batchId/review'}
+                        to={
+                          isImportStage
+                            ? "/app/batches/$batchId/import"
+                            : "/app/batches/$batchId/review"
+                        }
                         params={{ batchId: batch._id }}
                         className="text-base font-bold text-slate-900 hover:text-blue-600 transition-colors truncate max-w-md cursor-pointer"
                         title={batch.name}
@@ -376,22 +413,33 @@ export function BatchList() {
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 font-normal">
                       {templateName && (
                         <div className="flex items-center gap-1.5 text-slate-600 font-medium truncate max-w-xs">
-                          <Certificate size={14} weight="bold" className="text-blue-500 shrink-0" />
+                          <Certificate
+                            size={14}
+                            weight="bold"
+                            className="text-blue-500 shrink-0"
+                          />
                           <span className="truncate">{templateName}</span>
                         </div>
                       )}
 
-                      {templateName && <span className="text-slate-300">·</span>}
+                      {templateName && (
+                        <span className="text-slate-300">·</span>
+                      )}
 
                       <div className="flex items-center gap-1.5 text-slate-400">
-                        <CalendarBlank size={14} weight="bold" className="shrink-0" />
+                        <CalendarBlank
+                          size={14}
+                          weight="bold"
+                          className="shrink-0"
+                        />
                         <span>{formatDate(batch.createdAt)}</span>
                       </div>
 
                       <span className="text-slate-300">·</span>
 
                       <span className="text-slate-500 font-medium">
-                        {docsCount.toLocaleString()} {docsCount === 1 ? 'document' : 'documents'}
+                        {docsCount.toLocaleString()}{" "}
+                        {docsCount === 1 ? "document" : "documents"}
                       </span>
                     </div>
                   </div>
@@ -400,11 +448,17 @@ export function BatchList() {
                 {/* Right section: Action Buttons + Popover Menu */}
                 <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                   <Link
-                    to={isImportStage ? '/app/batches/$batchId/import' : '/app/batches/$batchId/review'}
+                    to={
+                      isImportStage
+                        ? "/app/batches/$batchId/import"
+                        : "/app/batches/$batchId/review"
+                    }
                     params={{ batchId: batch._id }}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-600 border border-slate-200/80 transition-colors select-none cursor-pointer"
                   >
-                    <span>{isImportStage ? 'Continue Import' : 'View Documents'}</span>
+                    <span>
+                      {isImportStage ? "Continue Import" : "View Documents"}
+                    </span>
                     <ArrowRight size={13} weight="bold" />
                   </Link>
 
@@ -424,9 +478,11 @@ export function BatchList() {
                         type="button"
                         onClick={() => {
                           navigate({
-                            to: isImportStage ? '/app/batches/$batchId/import' : '/app/batches/$batchId/review',
+                            to: isImportStage
+                              ? "/app/batches/$batchId/import"
+                              : "/app/batches/$batchId/review",
                             params: { batchId: batch._id },
-                          })
+                          });
                         }}
                         className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer select-none"
                       >
@@ -445,7 +501,7 @@ export function BatchList() {
                   </Popover>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -463,15 +519,26 @@ export function BatchList() {
                 <Trash size={20} weight="bold" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-900">Delete Batch</h3>
+                <h3 className="text-base font-bold text-slate-900">
+                  Delete Batch
+                </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Are you sure you want to delete{' '}
-                  <span className="font-semibold text-slate-800">"{deleteTarget.name}"</span>?
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold text-slate-800">
+                    "{deleteTarget.name}"
+                  </span>
+                  ?
                 </p>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  This will permanently remove the batch and all of its associated draft rows (
+                  This will permanently remove the batch and all of its
+                  associated draft rows (
                   <span className="font-medium text-slate-700">
-                    {(deleteTarget.validRows || deleteTarget.totalRows || 0).toLocaleString()} documents
+                    {(
+                      deleteTarget.validRows ||
+                      deleteTarget.totalRows ||
+                      0
+                    ).toLocaleString()}{" "}
+                    documents
                   </span>
                   ). This action cannot be undone.
                 </p>
@@ -507,5 +574,5 @@ export function BatchList() {
         </div>
       )}
     </PageShell>
-  )
+  );
 }

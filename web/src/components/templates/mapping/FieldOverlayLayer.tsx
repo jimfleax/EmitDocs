@@ -1,10 +1,19 @@
-import React, { useRef, useState, useEffect } from 'react';
-import type { IFieldMapping } from './types';
-import { pdfToDomRect, domToPdfRect, type ViewportConfig, type DomRect } from '@/lib/pdf-engine/coordinate-transforms';
-import type { DetectedToken } from '@/lib/pdf-engine/token-detector';
-import { calculateSnapping, type AlignmentGuide, type HandleType } from '@/lib/pdf-engine/alignment-snapper';
-import { FloatingFieldToolbar } from './FloatingFieldToolbar';
-import { Tooltip } from '@/components/ui/tooltip';
+import React, { useRef, useState, useEffect } from "react";
+import type { IFieldMapping } from "./types";
+import {
+  pdfToDomRect,
+  domToPdfRect,
+  type ViewportConfig,
+  type DomRect,
+} from "@/lib/pdf-engine/coordinate-transforms";
+import type { DetectedToken } from "@/lib/pdf-engine/token-detector";
+import {
+  calculateSnapping,
+  type AlignmentGuide,
+  type HandleType,
+} from "@/lib/pdf-engine/alignment-snapper";
+import { FloatingFieldToolbar } from "./FloatingFieldToolbar";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface FieldOverlayLayerProps {
   viewport: ViewportConfig;
@@ -47,9 +56,15 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
     initialDom: DomRect;
   } | null>(null);
 
-  const currentPageMappings = fieldMappings.filter((m) => m.pageIndex === activePageIndex);
+  const currentPageMappings = fieldMappings.filter(
+    (m) => m.pageIndex === activePageIndex,
+  );
   const currentPageTokens = detectedTokens.filter(
-    (t) => t.pageIndex === activePageIndex && !fieldMappings.some((m) => m.key === t.key && m.pageIndex === activePageIndex)
+    (t) =>
+      t.pageIndex === activePageIndex &&
+      !fieldMappings.some(
+        (m) => m.key === t.key && m.pageIndex === activePageIndex,
+      ),
   );
 
   // Drag & 8-Point Resize with Magnetic Snapping
@@ -63,50 +78,56 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
       const candidate: DomRect = { ...dragState.initialDom };
 
       switch (dragState.type) {
-        case 'move':
-          candidate.x = Math.max(0, Math.min(viewport.width - candidate.width, candidate.x + dx));
-          candidate.y = Math.max(0, Math.min(viewport.height - candidate.height, candidate.y + dy));
+        case "move":
+          candidate.x = Math.max(
+            0,
+            Math.min(viewport.width - candidate.width, candidate.x + dx),
+          );
+          candidate.y = Math.max(
+            0,
+            Math.min(viewport.height - candidate.height, candidate.y + dy),
+          );
           break;
-        case 'n': {
+        case "n": {
           const newH = Math.max(12, candidate.height - dy);
           candidate.y += candidate.height - newH;
           candidate.height = newH;
           break;
         }
-        case 's': {
+        case "s": {
           candidate.height = Math.max(12, candidate.height + dy);
           break;
         }
-        case 'w': {
+        case "w": {
           const newW = Math.max(20, candidate.width - dx);
           candidate.x += candidate.width - newW;
           candidate.width = newW;
           break;
         }
-        case 'e': {
+        case "e": {
           candidate.width = Math.max(20, candidate.width + dx);
           break;
         }
-        case 'se': {
+        case "se": {
           candidate.width = Math.max(20, candidate.width + dx);
           candidate.height = Math.max(12, candidate.height + dy);
           break;
         }
-        case 'sw': {
+        case "sw": {
           const newWSw = Math.max(20, candidate.width - dx);
           candidate.x += candidate.width - newWSw;
           candidate.width = newWSw;
           candidate.height = Math.max(12, candidate.height + dy);
           break;
         }
-        case 'ne': {
+        case "ne": {
           candidate.width = Math.max(20, candidate.width + dx);
           const newHNe = Math.max(12, candidate.height - dy);
           candidate.y += candidate.height - newHNe;
           candidate.height = newHNe;
           break;
         }
-        case 'nw': {
+        case "nw": {
           const newWNw = Math.max(20, candidate.width - dx);
           const newHNw = Math.max(12, candidate.height - dy);
           candidate.x += candidate.width - newWNw;
@@ -124,11 +145,16 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
           .filter((m) => m.id !== dragState.fieldId)
           .map((m) => pdfToDomRect(m.rect, viewport));
 
-        const snapResult = calculateSnapping(candidate, siblingDomRects, viewport, {
-          thresholdPx: snapThresholdPx,
-          isAltPressed: e.altKey,
-          handleType: dragState.type,
-        });
+        const snapResult = calculateSnapping(
+          candidate,
+          siblingDomRects,
+          viewport,
+          {
+            thresholdPx: snapThresholdPx,
+            isAltPressed: e.altKey,
+            handleType: dragState.type,
+          },
+        );
 
         finalDom = snapResult.rect;
         setActiveGuides(snapResult.guides);
@@ -157,13 +183,21 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
       setActiveGuides([]);
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [dragState, viewport, fieldMappings, onUpdateField, isSnapEnabled, snapThresholdPx, currentPageMappings]);
+  }, [
+    dragState,
+    viewport,
+    fieldMappings,
+    onUpdateField,
+    isSnapEnabled,
+    snapThresholdPx,
+    currentPageMappings,
+  ]);
 
   return (
     <div
@@ -173,7 +207,7 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
     >
       {/* Magnetic Alignment Guides (Magenta Snapping Lines) */}
       {activeGuides.map((guide, idx) => {
-        if (guide.type === 'vertical') {
+        if (guide.type === "vertical") {
           return (
             <div
               key={`guide-v-${idx}`}
@@ -182,9 +216,9 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
                 left: `${guide.position}px`,
                 top: 0,
                 bottom: 0,
-                width: '1.5px',
-                backgroundColor: '#ec4899',
-                boxShadow: '0 0 4px rgba(236, 72, 153, 0.7)',
+                width: "1.5px",
+                backgroundColor: "#ec4899",
+                boxShadow: "0 0 4px rgba(236, 72, 153, 0.7)",
               }}
             >
               {guide.label && (
@@ -203,9 +237,9 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
                 top: `${guide.position}px`,
                 left: 0,
                 right: 0,
-                height: '1.5px',
-                backgroundColor: '#ec4899',
-                boxShadow: '0 0 4px rgba(236, 72, 153, 0.7)',
+                height: "1.5px",
+                backgroundColor: "#ec4899",
+                boxShadow: "0 0 4px rgba(236, 72, 153, 0.7)",
               }}
             >
               {guide.label && (
@@ -263,8 +297,8 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
             }}
             className={`absolute pointer-events-auto border-2 rounded transition-shadow ${
               isSelected
-                ? 'border-blue-600 bg-blue-500/15 shadow-md z-20 cursor-move'
-                : 'border-blue-400 bg-blue-400/10 hover:bg-blue-400/20 cursor-pointer z-10'
+                ? "border-blue-600 bg-blue-500/15 shadow-md z-20 cursor-move"
+                : "border-blue-400 bg-blue-400/10 hover:bg-blue-400/20 cursor-pointer z-10"
             }`}
             style={{
               left: `${domRect.x}px`,
@@ -277,7 +311,7 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
               if (!isSelected) onSelectField(field.id);
               setDragState({
                 fieldId: field.id,
-                type: 'move',
+                type: "move",
                 startX: e.clientX,
                 startY: e.clientY,
                 initialDom: domRect,
@@ -289,20 +323,20 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
               className="w-full h-full flex items-center px-1 overflow-hidden pointer-events-none select-none"
               style={{
                 justifyContent:
-                  field.alignment === 'center'
-                    ? 'center'
-                    : field.alignment === 'right'
-                    ? 'flex-end'
-                    : 'flex-start',
-                color: field.color || '#000000',
-                fontFamily: field.fontFamily || 'Helvetica, sans-serif',
+                  field.alignment === "center"
+                    ? "center"
+                    : field.alignment === "right"
+                      ? "flex-end"
+                      : "flex-start",
+                color: field.color || "#000000",
+                fontFamily: field.fontFamily || "Helvetica, sans-serif",
                 fontSize: `${Math.max(9, Math.round((field.fontSize || 14) * (viewport.scale || 1)))}px`,
                 backgroundColor:
-                  field.maskMode === 'solid-white'
-                    ? '#FFFFFF'
-                    : field.maskMode === 'custom-color'
-                    ? field.maskColor || '#FFFFFF'
-                    : 'transparent',
+                  field.maskMode === "solid-white"
+                    ? "#FFFFFF"
+                    : field.maskMode === "custom-color"
+                      ? field.maskColor || "#FFFFFF"
+                      : "transparent",
               }}
             >
               <span className="truncate leading-none">
@@ -312,7 +346,9 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
             {/* Field Label Badge */}
             <div
               className={`absolute -top-5 left-0 px-1.5 py-0.5 text-[10px] font-medium rounded truncate max-w-[150px] shadow-xs ${
-                isSelected ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-100 opacity-80'
+                isSelected
+                  ? "bg-blue-600 text-white"
+                  : "bg-slate-800 text-slate-100 opacity-80"
               }`}
             >
               {field.label || field.key}
@@ -337,28 +373,52 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
                   className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'nw', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "nw",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
                 <div
                   className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-nesw-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'ne', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "ne",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
                 <div
                   className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-nwse-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'se', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "se",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
                 <div
                   className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-nesw-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'sw', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "sw",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
 
@@ -367,28 +427,52 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
                   className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-ns-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'n', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "n",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
                 <div
                   className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-ns-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 's', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "s",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
                 <div
                   className="absolute top-1/2 -translate-y-1/2 -left-1.5 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-ew-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'w', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "w",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
                 <div
                   className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-3 h-3 bg-white border-2 border-blue-600 rounded-full cursor-ew-resize z-30 hover:scale-125 transition-transform"
                   onMouseDown={(e) => {
                     e.stopPropagation();
-                    setDragState({ fieldId: field.id, type: 'e', startX: e.clientX, startY: e.clientY, initialDom: domRect });
+                    setDragState({
+                      fieldId: field.id,
+                      type: "e",
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      initialDom: domRect,
+                    });
                   }}
                 />
               </>

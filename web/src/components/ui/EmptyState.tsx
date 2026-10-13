@@ -1,13 +1,13 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cn } from "@/lib/utils";
 
 export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
-  icon: React.ReactNode
-  title: string
-  description?: string
-  action?: React.ReactNode
-  variant?: "dashed" | "solid"
-  size?: "default" | "compact"
+  icon: React.ReactNode;
+  title: string;
+  description?: string;
+  action?: React.ReactNode;
+  variant?: "dashed" | "solid";
+  size?: "default" | "compact";
 }
 
 function EmptyState({
@@ -24,11 +24,12 @@ function EmptyState({
     <div
       className={cn(
         "rounded-2xl flex flex-col items-center justify-center text-center select-none transition-all",
-        variant === "dashed" && "border border-dashed border-slate-200 bg-slate-50/50",
+        variant === "dashed" &&
+          "border border-dashed border-slate-200 bg-slate-50/50",
         variant === "solid" && "border border-slate-200 bg-slate-50/80",
         size === "default" && "p-10 sm:p-12 space-y-3.5",
         size === "compact" && "p-6 sm:p-8 space-y-2.5",
-        className
+        className,
       )}
       {...props}
     >
@@ -48,12 +49,10 @@ function EmptyState({
       </div>
 
       {action && (
-        <div className="pt-1.5 flex items-center justify-center">
-          {action}
-        </div>
+        <div className="pt-1.5 flex items-center justify-center">{action}</div>
       )}
     </div>
-  )
+  );
 }
 
-export { EmptyState }
+export { EmptyState };

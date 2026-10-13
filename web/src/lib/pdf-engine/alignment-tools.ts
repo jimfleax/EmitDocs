@@ -1,18 +1,18 @@
-import type { DomRect, ViewportConfig } from './coordinate-transforms';
-import { domToPdfRect, pdfToDomRect } from './coordinate-transforms';
-import type { IFieldMapping } from '@/components/templates/mapping/types';
+import type { DomRect, ViewportConfig } from "./coordinate-transforms";
+import { domToPdfRect, pdfToDomRect } from "./coordinate-transforms";
+import type { IFieldMapping } from "@/components/templates/mapping/types";
 
 export type AlignmentAction =
-  | 'alignLeft'
-  | 'alignCenterH'
-  | 'alignRight'
-  | 'alignTop'
-  | 'alignMiddleV'
-  | 'alignBottom'
-  | 'distributeH'
-  | 'distributeV'
-  | 'centerOnPageH'
-  | 'centerOnPageV';
+  | "alignLeft"
+  | "alignCenterH"
+  | "alignRight"
+  | "alignTop"
+  | "alignMiddleV"
+  | "alignBottom"
+  | "distributeH"
+  | "distributeV"
+  | "centerOnPageH"
+  | "centerOnPageV";
 
 interface FieldWithDom {
   field: IFieldMapping;
@@ -24,17 +24,17 @@ export function applyAlignmentToFields(
   allFields: IFieldMapping[],
   action: AlignmentAction,
   viewport: ViewportConfig,
-  pageSize: { width: number; height: number }
+  pageSize: { width: number; height: number },
 ): IFieldMapping[] {
   if (selectedIds.length === 0) return allFields;
 
   const targetFields = allFields.filter((f) => selectedIds.includes(f.id));
   if (targetFields.length === 0) return allFields;
 
-  if (targetFields.length < 2 && !action.startsWith('centerOnPage')) {
+  if (targetFields.length < 2 && !action.startsWith("centerOnPage")) {
     return allFields;
   }
-  if (targetFields.length < 3 && action.startsWith('distribute')) {
+  if (targetFields.length < 3 && action.startsWith("distribute")) {
     return allFields;
   }
 
@@ -55,46 +55,49 @@ export function applyAlignmentToFields(
   const updatedItems = items.map((item) => ({ ...item, dom: { ...item.dom } }));
 
   switch (action) {
-    case 'alignLeft':
+    case "alignLeft":
       updatedItems.forEach((i) => (i.dom.x = minX));
       break;
 
-    case 'alignCenterH':
+    case "alignCenterH":
       updatedItems.forEach((i) => (i.dom.x = bboxCenterX - i.dom.width / 2));
       break;
 
-    case 'alignRight':
+    case "alignRight":
       updatedItems.forEach((i) => (i.dom.x = maxX - i.dom.width));
       break;
 
-    case 'alignTop':
+    case "alignTop":
       updatedItems.forEach((i) => (i.dom.y = minY));
       break;
 
-    case 'alignMiddleV':
+    case "alignMiddleV":
       updatedItems.forEach((i) => (i.dom.y = bboxCenterY - i.dom.height / 2));
       break;
 
-    case 'alignBottom':
+    case "alignBottom":
       updatedItems.forEach((i) => (i.dom.y = maxY - i.dom.height));
       break;
 
-    case 'centerOnPageH': {
+    case "centerOnPageH": {
       const deltaX = pageSize.width / 2 - bboxCenterX;
       updatedItems.forEach((i) => (i.dom.x += deltaX));
       break;
     }
 
-    case 'centerOnPageV': {
+    case "centerOnPageV": {
       const deltaY = pageSize.height / 2 - bboxCenterY;
       updatedItems.forEach((i) => (i.dom.y += deltaY));
       break;
     }
 
-    case 'distributeH': {
+    case "distributeH": {
       const sorted = [...updatedItems].sort((a, b) => a.dom.x - b.dom.x);
       const totalWidth = sorted.reduce((sum, item) => sum + item.dom.width, 0);
-      const totalSpan = sorted[sorted.length - 1].dom.x + sorted[sorted.length - 1].dom.width - sorted[0].dom.x;
+      const totalSpan =
+        sorted[sorted.length - 1].dom.x +
+        sorted[sorted.length - 1].dom.width -
+        sorted[0].dom.x;
       const totalGap = totalSpan - totalWidth;
 
       if (totalGap >= 0) {
@@ -106,19 +109,28 @@ export function applyAlignmentToFields(
         }
       } else {
         const firstCenter = sorted[0].dom.x + sorted[0].dom.width / 2;
-        const lastCenter = sorted[sorted.length - 1].dom.x + sorted[sorted.length - 1].dom.width / 2;
+        const lastCenter =
+          sorted[sorted.length - 1].dom.x +
+          sorted[sorted.length - 1].dom.width / 2;
         const pitch = (lastCenter - firstCenter) / (sorted.length - 1);
         for (let idx = 0; idx < sorted.length; idx++) {
-          sorted[idx].dom.x = firstCenter + idx * pitch - sorted[idx].dom.width / 2;
+          sorted[idx].dom.x =
+            firstCenter + idx * pitch - sorted[idx].dom.width / 2;
         }
       }
       break;
     }
 
-    case 'distributeV': {
+    case "distributeV": {
       const sorted = [...updatedItems].sort((a, b) => a.dom.y - b.dom.y);
-      const totalHeight = sorted.reduce((sum, item) => sum + item.dom.height, 0);
-      const totalSpan = sorted[sorted.length - 1].dom.y + sorted[sorted.length - 1].dom.height - sorted[0].dom.y;
+      const totalHeight = sorted.reduce(
+        (sum, item) => sum + item.dom.height,
+        0,
+      );
+      const totalSpan =
+        sorted[sorted.length - 1].dom.y +
+        sorted[sorted.length - 1].dom.height -
+        sorted[0].dom.y;
       const totalGap = totalSpan - totalHeight;
 
       if (totalGap >= 0) {
@@ -130,10 +142,13 @@ export function applyAlignmentToFields(
         }
       } else {
         const firstCenter = sorted[0].dom.y + sorted[0].dom.height / 2;
-        const lastCenter = sorted[sorted.length - 1].dom.y + sorted[sorted.length - 1].dom.height / 2;
+        const lastCenter =
+          sorted[sorted.length - 1].dom.y +
+          sorted[sorted.length - 1].dom.height / 2;
         const pitch = (lastCenter - firstCenter) / (sorted.length - 1);
         for (let idx = 0; idx < sorted.length; idx++) {
-          sorted[idx].dom.y = firstCenter + idx * pitch - sorted[idx].dom.height / 2;
+          sorted[idx].dom.y =
+            firstCenter + idx * pitch - sorted[idx].dom.height / 2;
         }
       }
       break;
@@ -154,5 +169,7 @@ export function applyAlignmentToFields(
     });
   }
 
-  return allFields.map((f) => (updatedMap.has(f.id) ? updatedMap.get(f.id)! : f));
+  return allFields.map((f) =>
+    updatedMap.has(f.id) ? updatedMap.get(f.id)! : f,
+  );
 }

@@ -1,5 +1,9 @@
-import React, { useState, useRef } from 'react';
-import { domToPdfRect, type ViewportConfig, type PdfRect } from '@/lib/pdf-engine/coordinate-transforms';
+import React, { useState, useRef } from "react";
+import {
+  domToPdfRect,
+  type ViewportConfig,
+  type PdfRect,
+} from "@/lib/pdf-engine/coordinate-transforms";
 
 interface FieldSelectionToolProps {
   viewport: ViewportConfig;
@@ -15,8 +19,13 @@ export const FieldSelectionTool: React.FC<FieldSelectionToolProps> = ({
   children,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
-  const [currentPoint, setCurrentPoint] = useState<{ x: number; y: number } | null>(null);
+  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(
+    null,
+  );
+  const [currentPoint, setCurrentPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!isActive) return;
@@ -62,7 +71,10 @@ export const FieldSelectionTool: React.FC<FieldSelectionToolProps> = ({
     setCurrentPoint(null);
 
     if (width >= 15 && height >= 10) {
-      const pdfRect = domToPdfRect({ x: minX, y: minY, width, height }, viewport);
+      const pdfRect = domToPdfRect(
+        { x: minX, y: minY, width, height },
+        viewport,
+      );
       onAreaSelected({
         x: Math.round(pdfRect.x * 10) / 10,
         y: Math.round(pdfRect.y * 10) / 10,
@@ -85,7 +97,7 @@ export const FieldSelectionTool: React.FC<FieldSelectionToolProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`absolute inset-0 select-none ${isActive ? 'cursor-crosshair pointer-events-auto' : 'pointer-events-none'}`}
+      className={`absolute inset-0 select-none ${isActive ? "cursor-crosshair pointer-events-auto" : "pointer-events-none"}`}
       style={{ width: `${viewport.width}px`, height: `${viewport.height}px` }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

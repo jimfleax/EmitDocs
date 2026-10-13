@@ -1,4 +1,4 @@
-import type { CSSProperties, FC } from 'react';
+import type { CSSProperties, FC } from "react";
 
 export interface TechTextProps {
   /** The wordmark to render. Default: 'React Bits' */
@@ -28,9 +28,9 @@ export interface TechTextProps {
   /** Thickness of the outline, in px. Default: 1.5 */
   strokeWidth?: number;
   /** How the outlines under the pointer are drawn. Default: 'dashed' */
-  lineStyle?: 'dashed' | 'solid';
+  lineStyle?: "dashed" | "solid";
   /** Area fades the letters into outlines inside a circle around the pointer. Letter turns only the active letter into its outline. Off keeps every letter solid. Default: 'letter' */
-  reveal?: 'area' | 'letter' | 'off';
+  reveal?: "area" | "letter" | "off";
   /** Tiny squares that blink and respawn around the active letter, seeded per letter. 0 turns them off. Default: 15 */
   specks?: number;
   /** Frame the letter under the pointer. The frame glides from letter to letter. Default: true */

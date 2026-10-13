@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
 import {
   CaretLeft,
   CaretRight,
@@ -6,20 +6,20 @@ import {
   MagnifyingGlassMinus,
   ArrowsIn,
   FilePdf,
-} from '@phosphor-icons/react';
-import { PreviewDocumentPane } from '@/components/templates/mapping/PreviewDocumentPane';
-import { OverflowBadge } from './OverflowBadge';
-import { Alert } from '@/components/ui/Alert';
-import { EmptyState } from '@/components/ui/EmptyState';
-import type { EngineWarning } from '@/lib/pdf-engine/pdf-preview-engine';
-import type { DraftRowItem } from './RowEditor';
+} from "@phosphor-icons/react";
+import { PreviewDocumentPane } from "@/components/templates/mapping/PreviewDocumentPane";
+import { OverflowBadge } from "./OverflowBadge";
+import { Alert } from "@/components/ui/Alert";
+import { EmptyState } from "@/components/ui/EmptyState";
+import type { EngineWarning } from "@/lib/pdf-engine/pdf-preview-engine";
+import type { DraftRowItem } from "./RowEditor";
 
 export interface RecipientPreviewPanelProps {
   batch: any;
   templateVersion: any;
   sourcePdfBytes: Uint8Array | null;
   selectedRow: DraftRowItem | null;
-  onNavigateRow?: (direction: 'prev' | 'next') => void;
+  onNavigateRow?: (direction: "prev" | "next") => void;
   onJumpToRow?: (sourceRowNumber: number) => void;
   hasPrev?: boolean;
   hasNext?: boolean;
@@ -38,24 +38,24 @@ export function RecipientPreviewPanel({
   const [scale, setScale] = useState<number>(0.85);
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
   const [warnings, setWarnings] = useState<EngineWarning[]>([]);
-  const [jumpInput, setJumpInput] = useState<string>('');
+  const [jumpInput, setJumpInput] = useState<string>("");
 
   const pageCount = templateVersion?.pageCount || 1;
   const fieldMappings = useMemo(
     () => templateVersion?.fieldMappings || [],
-    [templateVersion]
+    [templateVersion],
   );
 
   const hasOverflow = useMemo(
-    () => warnings.some((w) => w.type === 'overflow'),
-    [warnings]
+    () => warnings.some((w) => w.type === "overflow"),
+    [warnings],
   );
 
   const sampleData: Record<string, string> = useMemo(() => {
     if (!selectedRow?.effectiveData) return {};
     const out: Record<string, string> = {};
     for (const [k, v] of Object.entries(selectedRow.effectiveData)) {
-      out[k] = v !== null && v !== undefined ? String(v) : '';
+      out[k] = v !== null && v !== undefined ? String(v) : "";
     }
     return out;
   }, [selectedRow]);
@@ -65,7 +65,7 @@ export function RecipientPreviewPanel({
     const target = parseInt(jumpInput, 10);
     if (!isNaN(target) && target > 0 && onJumpToRow) {
       onJumpToRow(target);
-      setJumpInput('');
+      setJumpInput("");
     }
   };
 
@@ -89,7 +89,7 @@ export function RecipientPreviewPanel({
         <div className="flex items-center gap-1.5">
           <button
             type="button"
-            onClick={() => onNavigateRow && onNavigateRow('prev')}
+            onClick={() => onNavigateRow && onNavigateRow("prev")}
             disabled={!hasPrev}
             className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             title="Previous recipient"
@@ -103,7 +103,7 @@ export function RecipientPreviewPanel({
 
           <button
             type="button"
-            onClick={() => onNavigateRow && onNavigateRow('next')}
+            onClick={() => onNavigateRow && onNavigateRow("next")}
             disabled={!hasNext}
             className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
             title="Next recipient"
@@ -113,7 +113,10 @@ export function RecipientPreviewPanel({
 
           {/* Jump to Row input */}
           {onJumpToRow && (
-            <form onSubmit={handleJumpSubmit} className="flex items-center gap-1 ml-2">
+            <form
+              onSubmit={handleJumpSubmit}
+              className="flex items-center gap-1 ml-2"
+            >
               <input
                 type="text"
                 placeholder="Jump #"
@@ -146,7 +149,9 @@ export function RecipientPreviewPanel({
               <button
                 type="button"
                 disabled={activePageIndex >= pageCount - 1}
-                onClick={() => setActivePageIndex((p) => Math.min(pageCount - 1, p + 1))}
+                onClick={() =>
+                  setActivePageIndex((p) => Math.min(pageCount - 1, p + 1))
+                }
                 className="p-1 rounded hover:bg-slate-100 disabled:opacity-30 cursor-pointer"
               >
                 <CaretRight className="w-3.5 h-3.5" />
@@ -158,7 +163,9 @@ export function RecipientPreviewPanel({
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-lg text-xs">
             <button
               type="button"
-              onClick={() => setScale((s) => Math.max(0.4, Number((s - 0.15).toFixed(2))))}
+              onClick={() =>
+                setScale((s) => Math.max(0.4, Number((s - 0.15).toFixed(2))))
+              }
               className="p-1 rounded hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
               title="Zoom out"
             >
@@ -169,7 +176,9 @@ export function RecipientPreviewPanel({
             </span>
             <button
               type="button"
-              onClick={() => setScale((s) => Math.min(2.0, Number((s + 0.15).toFixed(2))))}
+              onClick={() =>
+                setScale((s) => Math.min(2.0, Number((s + 0.15).toFixed(2))))
+              }
               className="p-1 rounded hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors cursor-pointer"
               title="Zoom in"
             >
@@ -192,7 +201,8 @@ export function RecipientPreviewPanel({
         <div className="px-4 pt-3 shrink-0">
           <Alert variant="warning" title="Layout Bounds Overflow">
             One or more text fields exceed the bounding box on this certificate.
-            Values will be shrunk down or visually clipped. Review field size in template editor or shorten row data.
+            Values will be shrunk down or visually clipped. Review field size in
+            template editor or shorten row data.
           </Alert>
         </div>
       )}
@@ -211,7 +221,9 @@ export function RecipientPreviewPanel({
             />
           </div>
         ) : (
-          <div className="m-auto text-xs text-slate-400">Loading document canvas...</div>
+          <div className="m-auto text-xs text-slate-400">
+            Loading document canvas...
+          </div>
         )}
       </div>
     </div>

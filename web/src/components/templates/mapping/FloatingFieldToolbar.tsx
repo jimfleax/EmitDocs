@@ -1,8 +1,8 @@
-import React from 'react';
-import type { IFieldMapping } from './types';
-import type { DomRect } from '@/lib/pdf-engine/coordinate-transforms';
-import { Tooltip } from '@/components/ui/tooltip';
-import { Copy, Trash, Eye, EyeSlash } from '@phosphor-icons/react';
+import React from "react";
+import type { IFieldMapping } from "./types";
+import type { DomRect } from "@/lib/pdf-engine/coordinate-transforms";
+import { Tooltip } from "@/components/ui/tooltip";
+import { Copy, Trash, Eye, EyeSlash } from "@phosphor-icons/react";
 
 interface FloatingFieldToolbarProps {
   field: IFieldMapping;
@@ -19,15 +19,19 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
   onDuplicateField,
   onDeleteField,
 }) => {
-  const isTransparent = field.maskMode === 'none';
+  const isTransparent = field.maskMode === "none";
   const showBelow = boxDomRect.y < 46;
 
   const toggleTransparency = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (isTransparent) {
-      onUpdateField({ ...field, maskMode: 'solid-white', maskColor: '#ffffff' });
+      onUpdateField({
+        ...field,
+        maskMode: "solid-white",
+        maskColor: "#ffffff",
+      });
     } else {
-      onUpdateField({ ...field, maskMode: 'none' });
+      onUpdateField({ ...field, maskMode: "none" });
     }
   };
 
@@ -36,7 +40,7 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
   };
 
   const handleMaskColorChange = (color: string) => {
-    onUpdateField({ ...field, maskMode: 'custom-color', maskColor: color });
+    onUpdateField({ ...field, maskMode: "custom-color", maskColor: color });
   };
 
   return (
@@ -44,12 +48,16 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
       className={`absolute z-40 flex items-center gap-1.5 px-2 py-1 bg-slate-900/95 text-white rounded-md shadow-lg border border-slate-700/80 backdrop-blur-xs text-xs select-none transition-all ${
-        showBelow ? 'top-[calc(100%+8px)]' : '-top-10'
+        showBelow ? "top-[calc(100%+8px)]" : "-top-10"
       } left-1/2 -translate-x-1/2`}
     >
       {/* 1-Click Transparent Background Toggle */}
       <Tooltip
-        content={isTransparent ? 'Background is Transparent (Click to add fill)' : 'Background has Fill (Click to make Transparent)'}
+        content={
+          isTransparent
+            ? "Background is Transparent (Click to add fill)"
+            : "Background has Fill (Click to make Transparent)"
+        }
         side="top"
       >
         <button
@@ -57,12 +65,16 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
           onClick={toggleTransparency}
           className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium transition-colors ${
             isTransparent
-              ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-600/40'
-              : 'bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700'
+              ? "bg-emerald-600/30 text-emerald-300 border border-emerald-500/50 hover:bg-emerald-600/40"
+              : "bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700"
           }`}
         >
-          {isTransparent ? <Eye size={12} weight="bold" className="text-emerald-400" /> : <EyeSlash size={12} weight="bold" className="text-slate-400" />}
-          <span>{isTransparent ? 'Transparent' : 'Filled'}</span>
+          {isTransparent ? (
+            <Eye size={12} weight="bold" className="text-emerald-400" />
+          ) : (
+            <EyeSlash size={12} weight="bold" className="text-slate-400" />
+          )}
+          <span>{isTransparent ? "Transparent" : "Filled"}</span>
         </button>
       </Tooltip>
 
@@ -71,15 +83,20 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
         title="Text Color"
         className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
       >
-        <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">T</label>
+        <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">
+          T
+        </label>
         <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
           <input
             type="color"
-            value={field.color || '#000000'}
+            value={field.color || "#000000"}
             onChange={(e) => handleTextColorChange(e.target.value)}
             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
           />
-          <div className="w-full h-full" style={{ backgroundColor: field.color || '#000000' }} />
+          <div
+            className="w-full h-full"
+            style={{ backgroundColor: field.color || "#000000" }}
+          />
         </div>
       </div>
 
@@ -89,15 +106,20 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
           title="Background Fill Color"
           className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
         >
-          <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">BG</label>
+          <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">
+            BG
+          </label>
           <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
             <input
               type="color"
-              value={field.maskColor || '#ffffff'}
+              value={field.maskColor || "#ffffff"}
               onChange={(e) => handleMaskColorChange(e.target.value)}
               className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
             />
-            <div className="w-full h-full" style={{ backgroundColor: field.maskColor || '#ffffff' }} />
+            <div
+              className="w-full h-full"
+              style={{ backgroundColor: field.maskColor || "#ffffff" }}
+            />
           </div>
         </div>
       )}

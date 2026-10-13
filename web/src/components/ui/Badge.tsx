@@ -1,6 +1,6 @@
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
   "inline-flex items-center gap-1.5 font-semibold border transition-colors select-none",
@@ -12,7 +12,8 @@ const badgeVariants = cva(
         success: "bg-emerald-50 text-emerald-700 border-emerald-200/60",
         error: "bg-rose-50 text-rose-700 border-rose-200",
         warning: "bg-amber-50 text-amber-700 border-amber-200",
-        glass: "bg-white/90 backdrop-blur-xs text-slate-700 border-slate-200/60 shadow-xs",
+        glass:
+          "bg-white/90 backdrop-blur-xs text-slate-700 border-slate-200/60 shadow-xs",
       },
       shape: {
         pill: "rounded-full",
@@ -28,8 +29,8 @@ const badgeVariants = cva(
       shape: "rounded",
       size: "sm",
     },
-  }
-)
+  },
+);
 
 const dotColorMap = {
   neutral: "bg-slate-400",
@@ -38,13 +39,14 @@ const dotColorMap = {
   error: "bg-rose-500",
   warning: "bg-amber-500",
   glass: "bg-slate-500",
-} as const
+} as const;
 
 export interface BadgeProps
-  extends React.HTMLAttributes<HTMLSpanElement>,
+  extends
+    React.HTMLAttributes<HTMLSpanElement>,
     VariantProps<typeof badgeVariants> {
-  dot?: boolean
-  mono?: boolean
+  dot?: boolean;
+  mono?: boolean;
 }
 
 function Badge({
@@ -57,14 +59,14 @@ function Badge({
   children,
   ...props
 }: BadgeProps) {
-  const safeVariant = variant || "neutral"
+  const safeVariant = variant || "neutral";
 
   return (
     <span
       className={cn(
         badgeVariants({ variant: safeVariant, shape, size }),
         mono && "font-mono uppercase",
-        className
+        className,
       )}
       {...props}
     >
@@ -72,15 +74,15 @@ function Badge({
         <span
           className={cn(
             "w-1.5 h-1.5 rounded-full shrink-0",
-            dotColorMap[safeVariant]
+            dotColorMap[safeVariant],
           )}
           aria-hidden="true"
         />
       )}
       {children}
     </span>
-  )
+  );
 }
 
 // oxlint-disable-next-line react/only-export-components
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };

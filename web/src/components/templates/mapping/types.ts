@@ -1,10 +1,11 @@
-export type TextTransformMode = 'none' | 'uppercase' | 'lowercase' | 'capitalize';
+export type TextTransformMode =
+  "none" | "uppercase" | "lowercase" | "capitalize";
 
 export interface IFieldMapping {
   id: string;
   key: string;
   label?: string;
-  type: 'text' | 'date' | 'number';
+  type: "text" | "date" | "number";
   pageIndex: number;
   rect: {
     x: number;
@@ -12,14 +13,14 @@ export interface IFieldMapping {
     width: number;
     height: number;
   };
-  alignment: 'left' | 'center' | 'right';
+  alignment: "left" | "center" | "right";
   fontFamily: string;
   fontSize: number;
   minFontSize: number;
   maxFontSize: number;
   color: string;
-  fitMode: 'shrink-to-fit' | 'fixed' | 'multi-line';
-  maskMode: 'none' | 'solid-white' | 'custom-color' | 'acroform-field';
+  fitMode: "shrink-to-fit" | "fixed" | "multi-line";
+  maskMode: "none" | "solid-white" | "custom-color" | "acroform-field";
   maskColor?: string;
   customFontBytes?: string;
   customFontUrl?: string;
@@ -36,7 +37,7 @@ export interface TemplateVersionData {
   sourceObjectKey: string;
   bytes: number;
   pageCount: number;
-  status: 'draft' | 'active' | 'superseded';
+  status: "draft" | "active" | "superseded";
   fieldMappings: IFieldMapping[];
   mappingHash: string | null;
   createdAt: string;

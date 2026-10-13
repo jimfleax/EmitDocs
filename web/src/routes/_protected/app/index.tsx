@@ -1,5 +1,5 @@
-import { useEffect, useState, useMemo } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useEffect, useState, useMemo } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Plus,
   FileText,
@@ -13,75 +13,99 @@ import {
   Eye,
   Trash,
   CircleNotch,
-} from '@phosphor-icons/react'
-import { authClient } from '@/lib/auth-client'
-import { Badge } from '@/components/ui/Badge'
-import { Skeleton } from '@/components/ui/Skeleton'
-import { EmptyState } from '@/components/ui/EmptyState'
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
-import { toast } from '@/components/ui/toast'
+} from "@phosphor-icons/react";
+import { authClient } from "@/lib/auth-client";
+import { Badge } from "@/components/ui/Badge";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import { toast } from "@/components/ui/toast";
 
-export const Route = createFileRoute('/_protected/app/')({
+export const Route = createFileRoute("/_protected/app/")({
   component: AppIndexRoute,
-})
-
-
+});
 
 interface ActivityDay {
-  date: string
-  label: string
-  fullDate: string
-  docs: number
-  batches: number
-  height: number
-  isHighlight: boolean
+  date: string;
+  label: string;
+  fullDate: string;
+  docs: number;
+  batches: number;
+  height: number;
+  isHighlight: boolean;
 }
 
-function buildFallbackActivity(batches: BatchItem[], numDays = 30): ActivityDay[] {
-  const now = new Date()
-  const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (numDays - 1), 0, 0, 0, 0)
-  const dateMap = new Map<string, { docs: number; batches: number }>()
+function buildFallbackActivity(
+  batches: BatchItem[],
+  numDays = 30,
+): ActivityDay[] {
+  const now = new Date();
+  const startDate = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate() - (numDays - 1),
+    0,
+    0,
+    0,
+    0,
+  );
+  const dateMap = new Map<string, { docs: number; batches: number }>();
 
   for (const batch of batches) {
-    if (!batch.createdAt) continue
-    const d = new Date(batch.createdAt)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const entry = dateMap.get(key) || { docs: 0, batches: 0 }
-    entry.docs += batch.validRows || batch.totalRows || 0
-    entry.batches += 1
-    dateMap.set(key, entry)
+    if (!batch.createdAt) continue;
+    const d = new Date(batch.createdAt);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const entry = dateMap.get(key) || { docs: 0, batches: 0 };
+    entry.docs += batch.validRows || batch.totalRows || 0;
+    entry.batches += 1;
+    dateMap.set(key, entry);
   }
 
-  let maxDocs = 0
-  let peakKey = ''
+  let maxDocs = 0;
+  let peakKey = "";
   for (let i = 0; i < numDays; i++) {
-    const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const entry = dateMap.get(key) || { docs: 0, batches: 0 }
+    const d = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate() + i,
+    );
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const entry = dateMap.get(key) || { docs: 0, batches: 0 };
     if (entry.docs > maxDocs) {
-      maxDocs = entry.docs
-      peakKey = key
+      maxDocs = entry.docs;
+      peakKey = key;
     }
   }
 
-  const buckets: ActivityDay[] = []
+  const buckets: ActivityDay[] = [];
   for (let i = 0; i < numDays; i++) {
-    const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i)
-    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-    const entry = dateMap.get(key) || { docs: 0, batches: 0 }
-    const dayLabel = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' })
-    const fullDate = d.toLocaleDateString('en-US', {
-      weekday: 'short',
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
+    const d = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate() + i,
+    );
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const entry = dateMap.get(key) || { docs: 0, batches: 0 };
+    const dayLabel = d.toLocaleDateString("en-US", {
+      day: "numeric",
+      month: "short",
+    });
+    const fullDate = d.toLocaleDateString("en-US", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
 
-    let height = 0
+    let height = 0;
     if (maxDocs > 0 && entry.docs > 0) {
-      height = Math.max(14, Math.round((entry.docs / maxDocs) * 100))
+      height = Math.max(14, Math.round((entry.docs / maxDocs) * 100));
     } else if (entry.batches > 0) {
-      height = 8
+      height = 8;
     }
 
     buckets.push({
@@ -92,267 +116,282 @@ function buildFallbackActivity(batches: BatchItem[], numDays = 30): ActivityDay[
       batches: entry.batches,
       height,
       isHighlight: maxDocs > 0 ? key === peakKey : i === numDays - 1,
-    })
+    });
   }
 
-  return buckets
+  return buckets;
 }
 
 interface BatchItem {
-  _id: string
-  name: string
-  status: string
-  totalRows?: number
-  validRows?: number
-  invalidRows?: number
-  duplicateRows?: number
-  createdAt?: string
-  updatedAt?: string
+  _id: string;
+  name: string;
+  status: string;
+  totalRows?: number;
+  validRows?: number;
+  invalidRows?: number;
+  duplicateRows?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface TemplateItem {
-  _id: string
-  name: string
-  thumbnailUrl?: string | null
-  createdAt?: string
-  updatedAt?: string
+  _id: string;
+  name: string;
+  thumbnailUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 interface StorageData {
-  totalBytes: number
-  formattedTotal: string
-  documentCount: number
-  source: 'cloudinary' | 'database'
+  totalBytes: number;
+  formattedTotal: string;
+  documentCount: number;
+  source: "cloudinary" | "database";
   documents?: Array<{
-    id: string
-    name: string
-    bytes: number
-    formattedSize: string
-    format?: string
-    resourceType?: string
-    createdAt?: string
-    isSoftDeleted?: boolean
-  }>
+    id: string;
+    name: string;
+    bytes: number;
+    formattedSize: string;
+    format?: string;
+    resourceType?: string;
+    createdAt?: string;
+    isSoftDeleted?: boolean;
+  }>;
 }
 
 function formatDate(isoString?: string): string {
-  if (!isoString) return ''
+  if (!isoString) return "";
   try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    })
+    const d = new Date(isoString);
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
   } catch {
-    return isoString
+    return isoString;
   }
 }
 
 function formatDateTime(): string {
-  const now = new Date()
-  const time = new Intl.DateTimeFormat('en-US', {
-    hour: 'numeric',
-    minute: '2-digit',
+  const now = new Date();
+  const time = new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
     hour12: true,
-  }).format(now)
-  const date = new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  }).format(now)
-  return `${time} · ${date}`
+  }).format(now);
+  const date = new Intl.DateTimeFormat("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(now);
+  return `${time} · ${date}`;
 }
 
 function AppIndexRoute() {
-  const navigate = useNavigate()
-  const { data: session } = authClient.useSession()
-  const firstName = session?.user?.name ? session.user.name.trim().split(' ')[0] : 'there'
+  const navigate = useNavigate();
+  const { data: session } = authClient.useSession();
+  const firstName = session?.user?.name
+    ? session.user.name.trim().split(" ")[0]
+    : "there";
 
-  const [deleteTargetBatch, setDeleteTargetBatch] = useState<BatchItem | null>(null)
-  const [isDeletingBatch, setIsDeletingBatch] = useState(false)
-  const [formattedDate, setFormattedDate] = useState(formatDateTime)
+  const [deleteTargetBatch, setDeleteTargetBatch] = useState<BatchItem | null>(
+    null,
+  );
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+  const [formattedDate, setFormattedDate] = useState(formatDateTime);
 
-  const [batches, setBatches] = useState<BatchItem[]>([])
-  const [loadingBatches, setLoadingBatches] = useState(true)
+  const [batches, setBatches] = useState<BatchItem[]>([]);
+  const [loadingBatches, setLoadingBatches] = useState(true);
 
-  const [templates, setTemplates] = useState<TemplateItem[]>([])
-  const [loadingTemplates, setLoadingTemplates] = useState(true)
+  const [templates, setTemplates] = useState<TemplateItem[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
 
-  const [activity, setActivity] = useState<ActivityDay[]>([])
-  const [loadingActivity, setLoadingActivity] = useState(true)
-  const [hoveredDay, setHoveredDay] = useState<ActivityDay | null>(null)
+  const [activity, setActivity] = useState<ActivityDay[]>([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
+  const [hoveredDay, setHoveredDay] = useState<ActivityDay | null>(null);
 
-  const [storage, setStorage] = useState<StorageData | null>(null)
-  const [loadingStorage, setLoadingStorage] = useState(true)
+  const [storage, setStorage] = useState<StorageData | null>(null);
+  const [loadingStorage, setLoadingStorage] = useState(true);
 
   // Escape key listener to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && deleteTargetBatch && !isDeletingBatch) {
-        setDeleteTargetBatch(null)
+      if (e.key === "Escape" && deleteTargetBatch && !isDeletingBatch) {
+        setDeleteTargetBatch(null);
       }
-    }
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [deleteTargetBatch, isDeletingBatch])
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [deleteTargetBatch, isDeletingBatch]);
 
   const confirmDeleteBatch = async (batchId: string) => {
-    if (!deleteTargetBatch) return
+    if (!deleteTargetBatch) return;
 
     try {
-      setIsDeletingBatch(true)
+      setIsDeletingBatch(true);
       const res = await fetch(`/api/batches/${batchId}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      })
+        method: "DELETE",
+        credentials: "include",
+      });
       if (res.ok) {
-        setBatches((prev) => prev.filter((b) => b._id !== batchId))
-        toast.success('Batch deleted', `"${deleteTargetBatch.name}" was permanently removed.`)
-        setDeleteTargetBatch(null)
+        setBatches((prev) => prev.filter((b) => b._id !== batchId));
+        toast.success(
+          "Batch deleted",
+          `"${deleteTargetBatch.name}" was permanently removed.`,
+        );
+        setDeleteTargetBatch(null);
       } else {
-        const data = await res.json().catch(() => ({}))
-        const errorMsg = data?.error || data?.message || 'Failed to delete batch'
-        toast.error('Deletion failed', errorMsg)
+        const data = await res.json().catch(() => ({}));
+        const errorMsg =
+          data?.error || data?.message || "Failed to delete batch";
+        toast.error("Deletion failed", errorMsg);
       }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'Failed to delete batch'
-      toast.error('Deletion failed', errorMsg)
+      const errorMsg =
+        err instanceof Error ? err.message : "Failed to delete batch";
+      toast.error("Deletion failed", errorMsg);
     } finally {
-      setIsDeletingBatch(false)
+      setIsDeletingBatch(false);
     }
-  }
+  };
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setFormattedDate(formatDateTime())
-    }, 1000 * 30)
-    return () => clearInterval(timer)
-  }, [])
+      setFormattedDate(formatDateTime());
+    }, 1000 * 30);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
-    let isCancelled = false
+    let isCancelled = false;
 
     async function fetchBatches() {
       try {
-        setLoadingBatches(true)
-        const res = await fetch('/api/batches', { credentials: 'include' })
+        setLoadingBatches(true);
+        const res = await fetch("/api/batches", { credentials: "include" });
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           if (!isCancelled) {
             const list: BatchItem[] = Array.isArray(data)
               ? data
               : Array.isArray(data?.batches)
                 ? data.batches
-                : []
-            setBatches(list)
+                : [];
+            setBatches(list);
           }
         }
       } catch (err) {
-        console.error('Failed to fetch batches:', err)
+        console.error("Failed to fetch batches:", err);
       } finally {
         if (!isCancelled) {
-          setLoadingBatches(false)
+          setLoadingBatches(false);
         }
       }
     }
 
     async function fetchTemplates() {
       try {
-        setLoadingTemplates(true)
-        const res = await fetch('/api/templates', { credentials: 'include' })
+        setLoadingTemplates(true);
+        const res = await fetch("/api/templates", { credentials: "include" });
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           if (!isCancelled) {
             const list: TemplateItem[] = Array.isArray(data)
               ? data
               : Array.isArray(data?.templates)
                 ? data.templates
-                : []
-            setTemplates(list)
+                : [];
+            setTemplates(list);
           }
         }
       } catch (err) {
-        console.error('Failed to fetch templates:', err)
+        console.error("Failed to fetch templates:", err);
       } finally {
         if (!isCancelled) {
-          setLoadingTemplates(false)
+          setLoadingTemplates(false);
         }
       }
     }
 
     async function fetchActivity() {
       try {
-        setLoadingActivity(true)
-        const res = await fetch('/api/batches/activity?days=30', { credentials: 'include' })
+        setLoadingActivity(true);
+        const res = await fetch("/api/batches/activity?days=30", {
+          credentials: "include",
+        });
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           if (!isCancelled && Array.isArray(data?.activity)) {
-            setActivity(data.activity)
-            return
+            setActivity(data.activity);
+            return;
           }
         }
       } catch (err) {
-        console.error('Failed to fetch activity:', err)
+        console.error("Failed to fetch activity:", err);
       } finally {
         if (!isCancelled) {
-          setLoadingActivity(false)
+          setLoadingActivity(false);
         }
       }
     }
 
     async function fetchStorage() {
       try {
-        setLoadingStorage(true)
-        const res = await fetch('/api/storage', { credentials: 'include' })
+        setLoadingStorage(true);
+        const res = await fetch("/api/storage", { credentials: "include" });
         if (res.ok) {
-          const data = await res.json()
+          const data = await res.json();
           if (!isCancelled && data?.success) {
-            setStorage(data)
+            setStorage(data);
           }
         }
       } catch (err) {
-        console.error('Failed to fetch storage consumption:', err)
+        console.error("Failed to fetch storage consumption:", err);
       } finally {
         if (!isCancelled) {
-          setLoadingStorage(false)
+          setLoadingStorage(false);
         }
       }
     }
 
-    fetchBatches()
-    fetchTemplates()
-    fetchActivity()
-    fetchStorage()
+    fetchBatches();
+    fetchTemplates();
+    fetchActivity();
+    fetchStorage();
 
     return () => {
-      isCancelled = true
-    }
-  }, [])
+      isCancelled = true;
+    };
+  }, []);
 
   // Use server activity if available, or compute fallback from real batches
   const effectiveActivity = useMemo(() => {
-    if (activity.length > 0) return activity
-    return buildFallbackActivity(batches, 30)
-  }, [activity, batches])
+    if (activity.length > 0) return activity;
+    return buildFallbackActivity(batches, 30);
+  }, [activity, batches]);
 
-  const DEFAULT_VISIBLE_ITEMS = 4
+  const DEFAULT_VISIBLE_ITEMS = 4;
 
-  const [isBatchesExpanded, setIsBatchesExpanded] = useState(false)
-  const [isTemplatesExpanded, setIsTemplatesExpanded] = useState(false)
+  const [isBatchesExpanded, setIsBatchesExpanded] = useState(false);
+  const [isTemplatesExpanded, setIsTemplatesExpanded] = useState(false);
 
   const visibleBatches = useMemo(() => {
-    return isBatchesExpanded ? batches : batches.slice(0, DEFAULT_VISIBLE_ITEMS)
-  }, [batches, isBatchesExpanded])
+    return isBatchesExpanded
+      ? batches
+      : batches.slice(0, DEFAULT_VISIBLE_ITEMS);
+  }, [batches, isBatchesExpanded]);
 
   const visibleTemplates = useMemo(() => {
-    return isTemplatesExpanded ? templates : templates.slice(0, DEFAULT_VISIBLE_ITEMS)
-  }, [templates, isTemplatesExpanded])
+    return isTemplatesExpanded
+      ? templates
+      : templates.slice(0, DEFAULT_VISIBLE_ITEMS);
+  }, [templates, isTemplatesExpanded]);
 
   const totalDocsIssued = useMemo(() => {
-    return batches.reduce((sum, b) => sum + (b.validRows || 0), 0)
-  }, [batches])
+    return batches.reduce((sum, b) => sum + (b.validRows || 0), 0);
+  }, [batches]);
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 lg:gap-12 xl:gap-14 w-full min-w-0">
@@ -436,8 +475,8 @@ function AppIndexRoute() {
                 <div className="space-y-2.5">
                   {visibleBatches.map((batch) => {
                     const isImportStage =
-                      batch.status === 'draft' || batch.status === 'importing'
-                    const docsCount = batch.validRows || batch.totalRows || 0
+                      batch.status === "draft" || batch.status === "importing";
+                    const docsCount = batch.validRows || batch.totalRows || 0;
 
                     return (
                       <div
@@ -445,7 +484,11 @@ function AppIndexRoute() {
                         className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50/80 transition-colors group"
                       >
                         <Link
-                          to={isImportStage ? '/app/batches/$batchId/import' : '/app/batches/$batchId/review'}
+                          to={
+                            isImportStage
+                              ? "/app/batches/$batchId/import"
+                              : "/app/batches/$batchId/review"
+                          }
                           params={{ batchId: batch._id }}
                           className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
                         >
@@ -460,7 +503,8 @@ function AppIndexRoute() {
                               {batch.name}
                             </p>
                             <p className="text-xs text-slate-400 mt-0.5 truncate">
-                              {formatDate(batch.createdAt)} · {docsCount.toLocaleString()} docs
+                              {formatDate(batch.createdAt)} ·{" "}
+                              {docsCount.toLocaleString()} docs
                             </p>
                           </div>
                         </Link>
@@ -482,9 +526,11 @@ function AppIndexRoute() {
                                 type="button"
                                 onClick={() => {
                                   navigate({
-                                    to: isImportStage ? '/app/batches/$batchId/import' : '/app/batches/$batchId/review',
+                                    to: isImportStage
+                                      ? "/app/batches/$batchId/import"
+                                      : "/app/batches/$batchId/review",
                                     params: { batchId: batch._id },
-                                  })
+                                  });
                                 }}
                                 className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer select-none"
                               >
@@ -503,7 +549,7 @@ function AppIndexRoute() {
                           </Popover>
                         </div>
                       </div>
-                    )
+                    );
                   })}
                 </div>
 
@@ -520,7 +566,10 @@ function AppIndexRoute() {
                       </>
                     ) : (
                       <>
-                        <span>View more ({batches.length - DEFAULT_VISIBLE_ITEMS} more)</span>
+                        <span>
+                          View more ({batches.length - DEFAULT_VISIBLE_ITEMS}{" "}
+                          more)
+                        </span>
                         <CaretDown size={13} weight="bold" />
                       </>
                     )}
@@ -596,11 +645,11 @@ function AppIndexRoute() {
                       to="/app/templates/$templateId"
                       params={{ templateId: template._id }}
                       onClick={() => {
-                        if (typeof window !== 'undefined') {
+                        if (typeof window !== "undefined") {
                           localStorage.setItem(
-                            'emitdocs_active_template_id',
-                            template._id
-                          )
+                            "emitdocs_active_template_id",
+                            template._id,
+                          );
                         }
                       }}
                       className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50/80 transition-colors cursor-pointer group"
@@ -625,7 +674,10 @@ function AppIndexRoute() {
                             {template.name}
                           </p>
                           <p className="text-xs text-slate-400 mt-0.5 truncate">
-                            Updated {formatDate(template.updatedAt || template.createdAt)}
+                            Updated{" "}
+                            {formatDate(
+                              template.updatedAt || template.createdAt,
+                            )}
                           </p>
                         </div>
                       </div>
@@ -654,7 +706,10 @@ function AppIndexRoute() {
                       </>
                     ) : (
                       <>
-                        <span>View more ({templates.length - DEFAULT_VISIBLE_ITEMS} more)</span>
+                        <span>
+                          View more ({templates.length - DEFAULT_VISIBLE_ITEMS}{" "}
+                          more)
+                        </span>
                         <CaretDown size={13} weight="bold" />
                       </>
                     )}
@@ -681,9 +736,11 @@ function AppIndexRoute() {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Total Templates</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Total Templates
+                </p>
                 <p className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
-                  {loadingTemplates ? '-' : templates.length}
+                  {loadingTemplates ? "-" : templates.length}
                 </p>
               </div>
             </div>
@@ -696,9 +753,11 @@ function AppIndexRoute() {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Total Docs Issued</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Total Docs Issued
+                </p>
                 <p className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
-                  {loadingBatches ? '-' : totalDocsIssued.toLocaleString()}
+                  {loadingBatches ? "-" : totalDocsIssued.toLocaleString()}
                 </p>
               </div>
             </div>
@@ -714,7 +773,9 @@ function AppIndexRoute() {
                 </span>
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Emails Sent</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Emails Sent
+                </p>
                 <p className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
                   0
                 </p>
@@ -729,17 +790,20 @@ function AppIndexRoute() {
                 </div>
               </div>
               <div>
-                <p className="text-xs text-slate-500 font-medium">Storage Consumed</p>
+                <p className="text-xs text-slate-500 font-medium">
+                  Storage Consumed
+                </p>
                 {loadingStorage ? (
                   <Skeleton className="h-6 w-20 rounded-md mt-1" />
                 ) : (
                   <>
                     <p className="text-xl font-bold text-slate-900 tracking-tight mt-0.5">
-                      {storage?.formattedTotal || '0 B'}
+                      {storage?.formattedTotal || "0 B"}
                     </p>
                     <p className="text-[11px] text-slate-400 font-medium mt-0.5">
-                      {storage?.documentCount ?? 0}{' '}
-                      {(storage?.documentCount === 1) ? 'document' : 'documents'} stored
+                      {storage?.documentCount ?? 0}{" "}
+                      {storage?.documentCount === 1 ? "document" : "documents"}{" "}
+                      stored
                     </p>
                   </>
                 )}
@@ -752,14 +816,16 @@ function AppIndexRoute() {
         <div className="rounded-2xl bg-white border border-slate-100 p-5 sm:p-6 shadow-xs space-y-5">
           <div className="flex items-center justify-between">
             <div className="min-w-0 pr-2">
-              <h3 className="text-sm font-bold text-slate-900">Issuance Activity</h3>
+              <h3 className="text-sm font-bold text-slate-900">
+                Issuance Activity
+              </h3>
               <p className="text-xs text-slate-400 mt-0.5 font-medium truncate">
                 {hoveredDay ? (
                   <span className="text-blue-600 font-semibold">
                     {hoveredDay.label}: {hoveredDay.docs.toLocaleString()} docs
                     {hoveredDay.batches > 0
-                      ? ` (${hoveredDay.batches} ${hoveredDay.batches === 1 ? 'batch' : 'batches'})`
-                      : ''}
+                      ? ` (${hoveredDay.batches} ${hoveredDay.batches === 1 ? "batch" : "batches"})`
+                      : ""}
                   </span>
                 ) : (
                   <span>
@@ -776,7 +842,10 @@ function AppIndexRoute() {
           {loadingActivity && effectiveActivity.length === 0 ? (
             <div className="h-20 flex items-end justify-between gap-1 px-1">
               {Array.from({ length: 30 }).map((_, i) => (
-                <div key={i} className="flex-1 flex items-end justify-center h-full">
+                <div
+                  key={i}
+                  className="flex-1 flex items-end justify-center h-full"
+                >
                   <div
                     style={{ height: `${20 + (i % 5) * 15}%` }}
                     className="w-full max-w-[6px] rounded-t-xs bg-slate-100 animate-pulse"
@@ -798,15 +867,17 @@ function AppIndexRoute() {
                     title={`${bar.fullDate}: ${bar.docs.toLocaleString()} docs (${bar.batches} batches)`}
                   >
                     <div
-                      style={{ height: `${bar.docs > 0 ? bar.height : bar.batches > 0 ? 8 : 4}%` }}
+                      style={{
+                        height: `${bar.docs > 0 ? bar.height : bar.batches > 0 ? 8 : 4}%`,
+                      }}
                       className={`w-full max-w-[6px] sm:max-w-[7px] rounded-t-xs transition-all duration-200 ${
                         bar.isHighlight
-                          ? 'bg-blue-600 group-hover:bg-blue-700 shadow-xs ring-1 ring-blue-300'
+                          ? "bg-blue-600 group-hover:bg-blue-700 shadow-xs ring-1 ring-blue-300"
                           : bar.docs > 0
-                            ? 'bg-blue-400 group-hover:bg-blue-600'
+                            ? "bg-blue-400 group-hover:bg-blue-600"
                             : bar.batches > 0
-                              ? 'bg-blue-200 group-hover:bg-blue-400'
-                              : 'bg-slate-200/60 group-hover:bg-slate-300'
+                              ? "bg-blue-200 group-hover:bg-blue-400"
+                              : "bg-slate-200/60 group-hover:bg-slate-300"
                       }`}
                     />
                   </div>
@@ -815,8 +886,11 @@ function AppIndexRoute() {
 
               {/* 30-day Axis Range Indicators */}
               <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium px-1 select-none">
-                <span>{effectiveActivity[0]?.label || '30d ago'}</span>
-                <span>{effectiveActivity[Math.floor(effectiveActivity.length / 2)]?.label || '15d'}</span>
+                <span>{effectiveActivity[0]?.label || "30d ago"}</span>
+                <span>
+                  {effectiveActivity[Math.floor(effectiveActivity.length / 2)]
+                    ?.label || "15d"}
+                </span>
                 <span>Today</span>
               </div>
             </div>
@@ -834,7 +908,8 @@ function AppIndexRoute() {
               Automate Bulk Issuance
             </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Upload recipient data via CSV and generate individualized credentials in minutes.
+              Upload recipient data via CSV and generate individualized
+              credentials in minutes.
             </p>
           </div>
 
@@ -860,15 +935,26 @@ function AppIndexRoute() {
                 <Trash size={20} weight="bold" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-base font-bold text-slate-900">Delete Batch</h3>
+                <h3 className="text-base font-bold text-slate-900">
+                  Delete Batch
+                </h3>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  Are you sure you want to delete{' '}
-                  <span className="font-semibold text-slate-800">"{deleteTargetBatch.name}"</span>?
+                  Are you sure you want to delete{" "}
+                  <span className="font-semibold text-slate-800">
+                    "{deleteTargetBatch.name}"
+                  </span>
+                  ?
                 </p>
                 <p className="text-xs text-slate-500 leading-relaxed">
-                  This will permanently remove the batch and all of its associated draft rows (
+                  This will permanently remove the batch and all of its
+                  associated draft rows (
                   <span className="font-medium text-slate-700">
-                    {(deleteTargetBatch.validRows || deleteTargetBatch.totalRows || 0).toLocaleString()} documents
+                    {(
+                      deleteTargetBatch.validRows ||
+                      deleteTargetBatch.totalRows ||
+                      0
+                    ).toLocaleString()}{" "}
+                    documents
                   </span>
                   ). This action cannot be undone.
                 </p>
@@ -904,5 +990,5 @@ function AppIndexRoute() {
         </div>
       )}
     </div>
-  )
+  );
 }

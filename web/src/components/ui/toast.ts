@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import type { ReactNode } from 'react';
-import type { SwipeToastProps } from './SwipeToast';
+import { useState, useEffect } from "react";
+import type { ReactNode } from "react";
+import type { SwipeToastProps } from "./SwipeToast";
 
-export interface ToastItem extends Omit<SwipeToastProps, 'open' | 'onClose'> {
+export interface ToastItem extends Omit<SwipeToastProps, "open" | "onClose"> {
   id: string;
 }
 
@@ -20,32 +20,55 @@ export function dismissToast(id: string) {
   notify();
 }
 
-export const toast = (options: Omit<ToastItem, 'id'> | string) => {
+export const toast = (options: Omit<ToastItem, "id"> | string) => {
   const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const toastData: ToastItem =
-    typeof options === 'string'
-      ? { id, title: options, variant: 'default' }
-      : { id, variant: 'default', ...options };
+    typeof options === "string"
+      ? { id, title: options, variant: "default" }
+      : { id, variant: "default", ...options };
 
   activeToasts = [...activeToasts, toastData];
   notify();
   return id;
 };
 
-toast.success = (title: ReactNode, description?: ReactNode, options?: Partial<ToastItem>) =>
-  toast({ title, description, variant: 'success', ...options });
+toast.success = (
+  title: ReactNode,
+  description?: ReactNode,
+  options?: Partial<ToastItem>,
+) => toast({ title, description, variant: "success", ...options });
 
-toast.error = (title: ReactNode, description?: ReactNode, options?: Partial<ToastItem>) =>
-  toast({ title, description, variant: 'error', ...options });
+toast.error = (
+  title: ReactNode,
+  description?: ReactNode,
+  options?: Partial<ToastItem>,
+) => toast({ title, description, variant: "error", ...options });
 
-toast.warning = (title: ReactNode, description?: ReactNode, options?: Partial<ToastItem>) =>
-  toast({ title, description, variant: 'warning', ...options });
+toast.warning = (
+  title: ReactNode,
+  description?: ReactNode,
+  options?: Partial<ToastItem>,
+) => toast({ title, description, variant: "warning", ...options });
 
-toast.info = (title: ReactNode, description?: ReactNode, options?: Partial<ToastItem>) =>
-  toast({ title, description, variant: 'info', ...options });
+toast.info = (
+  title: ReactNode,
+  description?: ReactNode,
+  options?: Partial<ToastItem>,
+) => toast({ title, description, variant: "info", ...options });
 
-toast.loading = (title: ReactNode, description?: ReactNode, options?: Partial<ToastItem>) =>
-  toast({ title, description, variant: 'loading', duration: 0, dismissible: false, ...options });
+toast.loading = (
+  title: ReactNode,
+  description?: ReactNode,
+  options?: Partial<ToastItem>,
+) =>
+  toast({
+    title,
+    description,
+    variant: "loading",
+    duration: 0,
+    dismissible: false,
+    ...options,
+  });
 
 toast.dismiss = dismissToast;
 

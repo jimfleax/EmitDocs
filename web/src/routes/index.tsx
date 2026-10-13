@@ -1,19 +1,19 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import TechText from '@/components/ui/TechText'
-import { Button } from '@/components/ui/button'
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import TechText from "@/components/ui/TechText";
+import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   beforeLoad: ({ context }) => {
     if (context.auth.session) {
       throw redirect({
-        to: '/app',
-      })
+        to: "/app",
+      });
     }
   },
   component: Index,
-})
+});
 
-const CURRENT_YEAR = new Date().getFullYear()
+const CURRENT_YEAR = new Date().getFullYear();
 
 function Index() {
   return (
@@ -40,9 +40,7 @@ function Index() {
           size="lg"
           className="h-12 px-8 rounded-[18px] bg-[#18181b] hover:bg-[#27272a] text-[#fafafa] font-medium shadow-[0_10px_24px_-14px_rgba(0,0,0,0.45)] transition-all duration-200 active:scale-[0.98]"
         >
-          <Link to="/sign-in">
-            Get Started
-          </Link>
+          <Link to="/sign-in">Get Started</Link>
         </Button>
       </div>
 
@@ -52,17 +50,20 @@ function Index() {
           <Link to="/terms" className="hover:text-slate-600 transition-colors">
             Terms of Service
           </Link>
-          <Link to="/privacy" className="hover:text-slate-600 transition-colors">
+          <Link
+            to="/privacy"
+            className="hover:text-slate-600 transition-colors"
+          >
             Privacy Policy
           </Link>
-          <Link to="/sign-in" className="hover:text-slate-600 transition-colors">
+          <Link
+            to="/sign-in"
+            className="hover:text-slate-600 transition-colors"
+          >
             Sign In
           </Link>
         </div>
       </footer>
     </div>
-  )
+  );
 }
-
-
-

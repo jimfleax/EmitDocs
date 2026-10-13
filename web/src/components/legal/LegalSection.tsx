@@ -1,12 +1,12 @@
-import React from 'react'
-import { LinkSimple, Info } from '@phosphor-icons/react'
+import React from "react";
+import { LinkSimple, Info } from "@phosphor-icons/react";
 
 export interface LegalSectionProps {
-  id: string
-  sectionNumber?: string | number
-  title: string
-  tldr?: string
-  children: React.ReactNode
+  id: string;
+  sectionNumber?: string | number;
+  title: string;
+  tldr?: string;
+  children: React.ReactNode;
 }
 
 export function LegalSection({
@@ -17,7 +17,10 @@ export function LegalSection({
   children,
 }: LegalSectionProps) {
   return (
-    <section id={id} className="scroll-mt-28 py-8 first:pt-2 border-b border-slate-100 last:border-b-0">
+    <section
+      id={id}
+      className="scroll-mt-28 py-8 first:pt-2 border-b border-slate-100 last:border-b-0"
+    >
       {/* Section Header */}
       <div className="group flex items-baseline gap-2 mb-4">
         <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 flex items-baseline gap-2">
@@ -61,5 +64,5 @@ export function LegalSection({
         {children}
       </div>
     </section>
-  )
+  );
 }

@@ -25,7 +25,10 @@ export function normalizeTextValue(val: any): NormalizationResult<string> {
   return { value: String(val).trim() };
 }
 
-export function normalizeNumberValue(val: any): NormalizationResult<number> {
+export function normalizeNumberValue(
+  val: any,
+  localeOrOptions?: string | { locale?: string }
+): NormalizationResult<number> {
   if (val === null || val === undefined || val === '') {
     return { value: 0 };
   }
@@ -72,6 +75,22 @@ export function normalizeNumberValue(val: any): NormalizationResult<number> {
     };
   }
 
+  const locale = typeof localeOrOptions === 'string' ? localeOrOptions : localeOrOptions?.locale;
+  const isEuLocale = Boolean(
+    locale && ['EU', 'DE', 'FR', 'ES', 'IT'].some((code) => locale.toUpperCase().includes(code))
+  );
+
+  if (dotCount === 1 && commaCount === 0) {
+    if (isEuLocale && /\.\d{3}$/.test(cleaned)) {
+      return {
+        error: {
+          code: 'AMBIGUOUS_NUMBER',
+          message: `Value "${str}" is ambiguous between a thousand separator and decimal point for EU locale.`,
+        },
+      };
+    }
+  }
+
   let parseTarget = cleaned;
   if (dotCount === 1 && commaCount === 1) {
     const dotIndex = cleaned.indexOf('.');
@@ -82,6 +101,14 @@ export function normalizeNumberValue(val: any): NormalizationResult<number> {
       parseTarget = cleaned.replace(/\./g, '').replace(/,/g, '.');
     }
   } else if (commaCount === 1 && dotCount === 0) {
+    if (/,\d{3}$/.test(cleaned)) {
+      return {
+        error: {
+          code: 'AMBIGUOUS_NUMBER',
+          message: `Value "${str}" is ambiguous between a thousand separator and decimal comma.`,
+        },
+      };
+    }
     parseTarget = cleaned.replace(/,/g, '.');
   } else if (dotCount === 1 && commaCount > 1) {
     parseTarget = cleaned.replace(/,/g, '');

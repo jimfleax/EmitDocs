@@ -1,40 +1,40 @@
-import React, { useState } from 'react'
-import { useLocation, Link } from '@tanstack/react-router'
-import { SignOut, House, FileText, Stack } from '@phosphor-icons/react'
-import { authClient } from '../../lib/auth-client'
+import React, { useState } from "react";
+import { useLocation, Link } from "@tanstack/react-router";
+import { SignOut, House, FileText, Stack } from "@phosphor-icons/react";
+import { authClient } from "../../lib/auth-client";
 
 export function AppShell({ children }: { children?: React.ReactNode }) {
-  const { data: session } = authClient.useSession()
-  const [isSigningOut, setIsSigningOut] = useState(false)
-  const location = useLocation()
-  const pathname = location.pathname
+  const { data: session } = authClient.useSession();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const location = useLocation();
+  const pathname = location.pathname;
 
-  const isHomeActive = pathname === '/app'
-  const isTemplatesActive = pathname.startsWith('/app/templates')
-  const isBatchesActive = pathname.startsWith('/app/batches')
-  const isEditorRoute = pathname.includes('/versions/')
+  const isHomeActive = pathname === "/app";
+  const isTemplatesActive = pathname.startsWith("/app/templates");
+  const isBatchesActive = pathname.startsWith("/app/batches");
+  const isEditorRoute = pathname.includes("/versions/");
 
   const handleSignOut = async () => {
     try {
-      setIsSigningOut(true)
+      setIsSigningOut(true);
       await authClient.signOut({
         fetchOptions: {
           onSuccess: () => {
-            window.location.href = '/sign-in'
+            window.location.href = "/sign-in";
           },
         },
-      })
+      });
     } catch (error) {
-      console.error('Sign-out error:', error)
-      window.location.href = '/sign-in'
+      console.error("Sign-out error:", error);
+      window.location.href = "/sign-in";
     } finally {
-      setIsSigningOut(false)
+      setIsSigningOut(false);
     }
-  }
+  };
 
-  const userName = session?.user?.name || 'User'
-  const userEmail = session?.user?.email || ''
-  const userInitial = userName.trim().charAt(0).toUpperCase() || 'U'
+  const userName = session?.user?.name || "User";
+  const userEmail = session?.user?.email || "";
+  const userInitial = userName.trim().charAt(0).toUpperCase() || "U";
 
   return (
     <div className="relative min-h-screen h-screen flex flex-col lg:flex-row p-3 lg:p-4 gap-4 overflow-hidden bg-[rgb(16_60_133)] text-white">
@@ -80,7 +80,9 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                 </div>
               )}
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-semibold text-white truncate max-w-[120px]">{userName}</p>
+                <p className="text-xs font-semibold text-white truncate max-w-[120px]">
+                  {userName}
+                </p>
               </div>
             </div>
             <button
@@ -102,14 +104,14 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             to="/app"
             className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
               isHomeActive
-                ? 'font-black text-white'
-                : 'font-bold text-white/55 hover:text-white'
+                ? "font-black text-white"
+                : "font-bold text-white/55 hover:text-white"
             }`}
           >
             <House
               size={16}
               weight="bold"
-              className={`shrink-0 ${isHomeActive ? 'text-white' : 'text-white/55'}`}
+              className={`shrink-0 ${isHomeActive ? "text-white" : "text-white/55"}`}
             />
             <span className="translate-y-[1px]">Home</span>
           </Link>
@@ -118,14 +120,14 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             to="/app/templates"
             className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
               isTemplatesActive
-                ? 'font-black text-white'
-                : 'font-bold text-white/55 hover:text-white'
+                ? "font-black text-white"
+                : "font-bold text-white/55 hover:text-white"
             }`}
           >
             <FileText
               size={16}
               weight="bold"
-              className={`shrink-0 ${isTemplatesActive ? 'text-white' : 'text-white/55'}`}
+              className={`shrink-0 ${isTemplatesActive ? "text-white" : "text-white/55"}`}
             />
             <span className="translate-y-[1px]">Templates</span>
           </Link>
@@ -134,14 +136,14 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             to="/app/batches"
             className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
               isBatchesActive
-                ? 'font-black text-white'
-                : 'font-bold text-white/55 hover:text-white'
+                ? "font-black text-white"
+                : "font-bold text-white/55 hover:text-white"
             }`}
           >
             <Stack
               size={16}
               weight="bold"
-              className={`shrink-0 ${isBatchesActive ? 'text-white' : 'text-white/55'}`}
+              className={`shrink-0 ${isBatchesActive ? "text-white" : "text-white/55"}`}
             />
             <span className="translate-y-[1px]">Batches</span>
           </Link>
@@ -173,8 +175,8 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
               to="/app"
               className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
                 isHomeActive
-                  ? 'text-xl font-black text-white'
-                  : 'text-base font-bold text-white/50 hover:text-white'
+                  ? "text-xl font-black text-white"
+                  : "text-base font-bold text-white/50 hover:text-white"
               }`}
             >
               <House
@@ -182,11 +184,15 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                 weight="bold"
                 className={`shrink-0 ${
                   isHomeActive
-                    ? 'text-white'
-                    : 'text-white/50 group-hover:text-white transition-colors'
+                    ? "text-white"
+                    : "text-white/50 group-hover:text-white transition-colors"
                 }`}
               />
-              <span className={isHomeActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
+              <span
+                className={
+                  isHomeActive ? "translate-y-[2px]" : "translate-y-[1.5px]"
+                }
+              >
                 Home
               </span>
             </Link>
@@ -196,8 +202,8 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
               to="/app/templates"
               className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
                 isTemplatesActive
-                  ? 'text-xl font-black text-white'
-                  : 'text-base font-bold text-white/50 hover:text-white'
+                  ? "text-xl font-black text-white"
+                  : "text-base font-bold text-white/50 hover:text-white"
               }`}
             >
               <FileText
@@ -205,11 +211,17 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                 weight="bold"
                 className={`shrink-0 ${
                   isTemplatesActive
-                    ? 'text-white'
-                    : 'text-white/50 group-hover:text-white transition-colors'
+                    ? "text-white"
+                    : "text-white/50 group-hover:text-white transition-colors"
                 }`}
               />
-              <span className={isTemplatesActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
+              <span
+                className={
+                  isTemplatesActive
+                    ? "translate-y-[2px]"
+                    : "translate-y-[1.5px]"
+                }
+              >
                 Templates
               </span>
             </Link>
@@ -218,8 +230,8 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
               to="/app/batches"
               className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
                 isBatchesActive
-                  ? 'text-xl font-black text-white'
-                  : 'text-base font-bold text-white/50 hover:text-white'
+                  ? "text-xl font-black text-white"
+                  : "text-base font-bold text-white/50 hover:text-white"
               }`}
             >
               <Stack
@@ -227,11 +239,15 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                 weight="bold"
                 className={`shrink-0 ${
                   isBatchesActive
-                    ? 'text-white'
-                    : 'text-white/50 group-hover:text-white transition-colors'
+                    ? "text-white"
+                    : "text-white/50 group-hover:text-white transition-colors"
                 }`}
               />
-              <span className={isBatchesActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
+              <span
+                className={
+                  isBatchesActive ? "translate-y-[2px]" : "translate-y-[1.5px]"
+                }
+              >
                 Batches
               </span>
             </Link>
@@ -258,7 +274,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                   {userName}
                 </p>
                 <p className="text-xs font-light text-white/60 truncate block leading-tight mt-0.5">
-                  {userEmail || 'Signed in'}
+                  {userEmail || "Signed in"}
                 </p>
               </div>
             </div>
@@ -279,11 +295,11 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
       {/* Right Main Container (Full remaining flex width on lg+) */}
       <main
         className={`flex-1 min-w-0 min-h-0 w-full h-full bg-white/95 backdrop-blur-2xl rounded-3xl lg:rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.25)] text-gray-900 border border-white/40 ring-1 ring-black/5 relative z-10 transition-all ${
-          isEditorRoute ? 'p-0 overflow-hidden' : 'p-6 lg:p-10 overflow-y-auto'
+          isEditorRoute ? "p-0 overflow-hidden" : "p-6 lg:p-10 overflow-y-auto"
         }`}
       >
         {children}
       </main>
     </div>
-  )
+  );
 }

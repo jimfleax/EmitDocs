@@ -1,21 +1,26 @@
-import { useState } from 'react';
-import { CheckCircle, Warning, WarningCircle } from '@phosphor-icons/react';
-import { Badge } from '@/components/ui/Badge';
-import { Alert } from '@/components/ui/Alert';
-import { InlineFieldEditor } from './InlineFieldEditor';
-import { toast } from '@/components/ui/toast';
-import type { IFieldMapping } from '@/components/templates/mapping/types';
+import { useState } from "react";
+import { CheckCircle, Warning, WarningCircle } from "@phosphor-icons/react";
+import { Badge } from "@/components/ui/Badge";
+import { Alert } from "@/components/ui/Alert";
+import { InlineFieldEditor } from "./InlineFieldEditor";
+import { toast } from "@/components/ui/toast";
+import type { IFieldMapping } from "@/components/templates/mapping/types";
 
 export interface DraftRowItem {
   _id: string;
   sourceRowNumber: number;
   rowKey: string;
-  status: 'valid' | 'invalid';
+  status: "valid" | "invalid";
   effectiveData: Record<string, any>;
   importedData?: Record<string, any>;
   overrides?: Record<string, any>;
   errors: Array<{ field: string; code: string; message: string }>;
-  warnings: Array<{ field?: string; code: string; message: string; referenceRowNumbers?: number[] }>;
+  warnings: Array<{
+    field?: string;
+    code: string;
+    message: string;
+    referenceRowNumbers?: number[];
+  }>;
   isDuplicate: boolean;
   duplicateReferences: number[];
   version: number;
@@ -41,15 +46,23 @@ export function RowEditor({
   onRowUpdated,
   onRefreshBatch,
 }: RowEditorProps) {
-  const [concurrencyConflict, setConcurrencyConflict] = useState<string | null>(null);
+  const [concurrencyConflict, setConcurrencyConflict] = useState<string | null>(
+    null,
+  );
 
   const handleSaveField = async (fieldKey: string, newValue: any) => {
     setConcurrencyConflict(null);
 
     // Optimistic mutation
     const previousRow = { ...row };
-    const optimisticOverrides = { ...(row.overrides || {}), [fieldKey]: newValue };
-    const optimisticEffective = { ...(row.effectiveData || {}), [fieldKey]: newValue };
+    const optimisticOverrides = {
+      ...(row.overrides || {}),
+      [fieldKey]: newValue,
+    };
+    const optimisticEffective = {
+      ...(row.effectiveData || {}),
+      [fieldKey]: newValue,
+    };
     const optimisticRow: DraftRowItem = {
       ...row,
       overrides: optimisticOverrides,
@@ -59,9 +72,9 @@ export function RowEditor({
 
     try {
       const res = await fetch(`/api/batches/${batchId}/rows/${row._id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           expectedRevision: batchRevision,
           expectedVersion: row.version,
@@ -71,28 +84,28 @@ export function RowEditor({
 
       if (res.status === 409) {
         const errData = await res.json();
-        const conflictCode = errData.error || 'CONCURRENT_MODIFICATION';
+        const conflictCode = errData.error || "CONCURRENT_MODIFICATION";
         const msg =
-          conflictCode === 'STALE_BATCH_REVISION'
-            ? 'Batch was revised by another process. Please reload to sync.'
-            : 'Row was modified concurrently. Your edit was rolled back.';
+          conflictCode === "STALE_BATCH_REVISION"
+            ? "Batch was revised by another process. Please reload to sync."
+            : "Row was modified concurrently. Your edit was rolled back.";
         setConcurrencyConflict(msg);
-        toast.error('Conflict Detected', msg);
+        toast.error("Conflict Detected", msg);
         onRowUpdated(previousRow);
         return;
       }
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Failed to save field override');
+        throw new Error(errData.error || "Failed to save field override");
       }
 
       const data = await res.json();
       onRowUpdated(data.row, data.batchSummary);
-      toast.success('Field saved', `Updated ${fieldKey}`);
+      toast.success("Field saved", `Updated ${fieldKey}`);
     } catch (err: any) {
       onRowUpdated(previousRow);
-      toast.error('Error saving field', err.message);
+      toast.error("Error saving field", err.message);
     }
   };
 
@@ -102,9 +115,9 @@ export function RowEditor({
 
     try {
       const res = await fetch(`/api/batches/${batchId}/rows/${row._id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           expectedRevision: batchRevision,
           expectedVersion: row.version,
@@ -113,24 +126,24 @@ export function RowEditor({
       });
 
       if (res.status === 409) {
-        const msg = 'Concurrent modification detected. Please refresh.';
+        const msg = "Concurrent modification detected. Please refresh.";
         setConcurrencyConflict(msg);
-        toast.error('Conflict Detected', msg);
+        toast.error("Conflict Detected", msg);
         onRowUpdated(previousRow);
         return;
       }
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || 'Failed to revert field override');
+        throw new Error(errData.error || "Failed to revert field override");
       }
 
       const data = await res.json();
       onRowUpdated(data.row, data.batchSummary);
-      toast.success('Reverted to original', `Reset ${fieldKey}`);
+      toast.success("Reverted to original", `Reset ${fieldKey}`);
     } catch (err: any) {
       onRowUpdated(previousRow);
-      toast.error('Error reverting field', err.message);
+      toast.error("Error reverting field", err.message);
     }
   };
 
@@ -150,7 +163,9 @@ export function RowEditor({
           <div>
             <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
               <span>Row Record</span>
-              <span className="text-xs font-mono font-normal text-slate-400">({row.rowKey})</span>
+              <span className="text-xs font-mono font-normal text-slate-400">
+                ({row.rowKey})
+              </span>
             </h4>
             <p className="text-xs text-slate-400">
               Revision {batchRevision} • Version {row.version}
@@ -159,7 +174,7 @@ export function RowEditor({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {row.status === 'valid' ? (
+          {row.status === "valid" ? (
             <Badge variant="success" size="md">
               <CheckCircle className="w-3.5 h-3.5" />
               Valid
@@ -194,9 +209,13 @@ export function RowEditor({
       {/* Duplicate Row Alert */}
       {row.isDuplicate && (
         <Alert variant="warning" title="Duplicate Record Preserved">
-          This row matches content from row(s):{' '}
-          <strong>{(row.duplicateReferences || []).map((r) => `#${r}`).join(', ') || 'N/A'}</strong>.
-          Identical drafts are preserved to guarantee complete issuance tracking.
+          This row matches content from row(s):{" "}
+          <strong>
+            {(row.duplicateReferences || []).map((r) => `#${r}`).join(", ") ||
+              "N/A"}
+          </strong>
+          . Identical drafts are preserved to guarantee complete issuance
+          tracking.
         </Alert>
       )}
 
@@ -219,7 +238,9 @@ export function RowEditor({
               const currentVal = row.effectiveData?.[f.key];
               const isOverridden = row.overrides?.[f.key] !== undefined;
               const mappedCol = columnMap[f.key];
-              const originalVal = mappedCol ? row.importedData?.[mappedCol] : row.importedData?.[f.key];
+              const originalVal = mappedCol
+                ? row.importedData?.[mappedCol]
+                : row.importedData?.[f.key];
               const err = errorByField.get(f.key);
 
               return (
@@ -227,7 +248,7 @@ export function RowEditor({
                   key={f.id || f.key}
                   fieldKey={f.key}
                   label={f.label || f.key}
-                  type={f.type || 'text'}
+                  type={f.type || "text"}
                   value={currentVal}
                   originalValue={originalVal}
                   isOverridden={isOverridden}

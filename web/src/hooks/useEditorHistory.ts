@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import type { IFieldMapping } from '@/components/templates/mapping/types';
+import { useState, useCallback, useRef, useEffect } from "react";
+import type { IFieldMapping } from "@/components/templates/mapping/types";
 
 export const MAX_HISTORY_DEPTH = 50;
 
@@ -17,7 +17,10 @@ export interface EditorHistoryCore<T> {
  * Pure state machine implementation of an undo/redo stack.
  * Independent of React for unit testing and deterministic transitions.
  */
-export function createEditorHistory<T>(initialPresent: T, maxDepth = MAX_HISTORY_DEPTH): EditorHistoryCore<T> {
+export function createEditorHistory<T>(
+  initialPresent: T,
+  maxDepth = MAX_HISTORY_DEPTH,
+): EditorHistoryCore<T> {
   let past: T[] = [];
   let present: T = initialPresent;
   let future: T[] = [];
@@ -61,7 +64,8 @@ export function createEditorHistory<T>(initialPresent: T, maxDepth = MAX_HISTORY
   };
 }
 
-export type FieldMappingsUpdater = IFieldMapping[] | ((prev: IFieldMapping[]) => IFieldMapping[]);
+export type FieldMappingsUpdater =
+  IFieldMapping[] | ((prev: IFieldMapping[]) => IFieldMapping[]);
 
 export interface UseEditorHistoryReturn {
   fieldMappings: IFieldMapping[];
@@ -77,7 +81,9 @@ export interface UseEditorHistoryReturn {
 /**
  * React hook wrapping the immutable undo/redo history stack for template field mappings.
  */
-export function useEditorHistory(initialMappings: IFieldMapping[] = []): UseEditorHistoryReturn {
+export function useEditorHistory(
+  initialMappings: IFieldMapping[] = [],
+): UseEditorHistoryReturn {
   const [past, setPast] = useState<IFieldMapping[][]>([]);
   const [present, setPresent] = useState<IFieldMapping[]>(initialMappings);
   const [future, setFuture] = useState<IFieldMapping[][]>([]);
@@ -89,11 +95,16 @@ export function useEditorHistory(initialMappings: IFieldMapping[] = []): UseEdit
 
   const pushSnapshot = useCallback((nextOrUpdater: FieldMappingsUpdater) => {
     const current = presentRef.current;
-    const nextMappings = typeof nextOrUpdater === 'function' ? nextOrUpdater(current) : nextOrUpdater;
+    const nextMappings =
+      typeof nextOrUpdater === "function"
+        ? nextOrUpdater(current)
+        : nextOrUpdater;
 
     setPast((prevPast) => {
       const newPast = [...prevPast, current];
-      return newPast.length > MAX_HISTORY_DEPTH ? newPast.slice(newPast.length - MAX_HISTORY_DEPTH) : newPast;
+      return newPast.length > MAX_HISTORY_DEPTH
+        ? newPast.slice(newPast.length - MAX_HISTORY_DEPTH)
+        : newPast;
     });
     presentRef.current = nextMappings;
     setPresent(nextMappings);
@@ -121,7 +132,9 @@ export function useEditorHistory(initialMappings: IFieldMapping[] = []): UseEdit
 
       setPast((prevPast) => {
         const newPast = [...prevPast, presentRef.current];
-        return newPast.length > MAX_HISTORY_DEPTH ? newPast.slice(newPast.length - MAX_HISTORY_DEPTH) : newPast;
+        return newPast.length > MAX_HISTORY_DEPTH
+          ? newPast.slice(newPast.length - MAX_HISTORY_DEPTH)
+          : newPast;
       });
       presentRef.current = next;
       setPresent(next);

@@ -1,5 +1,5 @@
-import { Skeleton } from '@/components/ui/Skeleton';
-import { DraftGallerySkeleton } from './DraftGallerySkeleton';
+import { Skeleton } from "@/components/ui/Skeleton";
+import { DraftGallerySkeleton } from "./DraftGallerySkeleton";
 
 export function DraftReviewSkeleton() {
   return (

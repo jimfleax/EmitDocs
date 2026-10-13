@@ -1,11 +1,11 @@
-import * as React from "react"
-import { InfinityTrack } from "@/components/ui/InfinityTrack"
-import { cn } from "@/lib/utils"
+import * as React from "react";
+import { InfinityTrack } from "@/components/ui/InfinityTrack";
+import { cn } from "@/lib/utils";
 
 export interface LoadingStateProps extends React.HTMLAttributes<HTMLDivElement> {
-  title?: string
-  description?: string
-  size?: "page" | "section" | "fullscreen"
+  title?: string;
+  description?: string;
+  size?: "page" | "section" | "fullscreen";
 }
 
 function LoadingState({
@@ -24,15 +24,13 @@ function LoadingState({
         size === "page" && "py-24 w-full",
         size === "section" && "py-12 w-full",
         size === "fullscreen" && "min-h-screen h-screen w-full bg-slate-50",
-        className
+        className,
       )}
       {...props}
     >
       <InfinityTrack className="text-blue-600" />
       {title && (
-        <span className="text-sm font-medium text-slate-600">
-          {title}
-        </span>
+        <span className="text-sm font-medium text-slate-600">{title}</span>
       )}
       {description && (
         <p className="text-xs text-slate-400 max-w-sm leading-relaxed">
@@ -40,7 +38,7 @@ function LoadingState({
         </p>
       )}
     </div>
-  )
+  );
 }
 
-export { LoadingState }
+export { LoadingState };

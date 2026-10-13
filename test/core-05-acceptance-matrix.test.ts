@@ -56,59 +56,63 @@ async function runAcceptanceCriteriaMatrix() {
   await mongoose.connect(MONGODB_URI, { dbName: 'emitdocs_ac_test' });
   console.log('✓ Connected to MongoDB test database\n');
 
-  const testUserId = `ac_user_core05_${Date.now()}`;
-  const mockUser = { id: testUserId, email: 'reviewer@example.com' };
+  let template: any = null;
+  let batch: any = null;
 
-  // Setup template & template version with standard fields
-  const template = await Template.create({
-    ownerId: testUserId,
-    name: 'Certificate of Excellence',
-    cloudinaryPublicId: 'ac_cert_fixture',
-    sourceUrl: 'https://example.com/ac_cert.pdf',
-    status: 'active',
-  });
+  try {
+    const testUserId = `ac_user_core05_${Date.now()}`;
+    const mockUser = { id: testUserId, email: 'reviewer@example.com' };
 
-  const templateVersion = await TemplateVersion.create({
-    templateId: template._id,
-    ownerId: testUserId,
-    version: 1,
-    sourceObjectKey: 'ac_cert.pdf',
-    bytes: 2048,
-    pageCount: 1,
-    status: 'active',
-    fieldMappings: [
-      {
-        id: 'f_student_id',
-        key: 'studentId',
-        label: 'Student ID',
-        type: 'text',
-        pageIndex: 0,
-        rect: { x: 50, y: 500, width: 200, height: 25 },
-        required: true,
-      },
-      {
-        id: 'f_name',
-        key: 'studentName',
-        label: 'Student Name',
-        type: 'text',
-        pageIndex: 0,
-        rect: { x: 50, y: 450, width: 200, height: 30 },
-        required: true,
-      },
-      {
-        id: 'f_grade',
-        key: 'grade',
-        label: 'Grade',
-        type: 'text',
-        pageIndex: 0,
-        rect: { x: 50, y: 400, width: 100, height: 20 },
-        required: false,
-      },
-    ],
-  });
+    // Setup template & template version with standard fields
+    template = await Template.create({
+      ownerId: testUserId,
+      name: 'Certificate of Excellence',
+      cloudinaryPublicId: 'ac_cert_fixture',
+      sourceUrl: 'https://example.com/ac_cert.pdf',
+      status: 'active',
+    });
 
-  // Setup initial Batch
-  const batch = await Batch.create({
+    const templateVersion = await TemplateVersion.create({
+      templateId: template._id,
+      ownerId: testUserId,
+      version: 1,
+      sourceObjectKey: 'ac_cert.pdf',
+      bytes: 2048,
+      pageCount: 1,
+      status: 'active',
+      fieldMappings: [
+        {
+          id: 'f_student_id',
+          key: 'studentId',
+          label: 'Student ID',
+          type: 'text',
+          pageIndex: 0,
+          rect: { x: 50, y: 500, width: 200, height: 25 },
+          required: true,
+        },
+        {
+          id: 'f_name',
+          key: 'studentName',
+          label: 'Student Name',
+          type: 'text',
+          pageIndex: 0,
+          rect: { x: 50, y: 450, width: 200, height: 30 },
+          required: true,
+        },
+        {
+          id: 'f_grade',
+          key: 'grade',
+          label: 'Grade',
+          type: 'text',
+          pageIndex: 0,
+          rect: { x: 50, y: 400, width: 100, height: 20 },
+          required: false,
+        },
+      ],
+    });
+
+    // Setup initial Batch
+    batch = await Batch.create({
     ownerId: testUserId,
     name: 'Class of 2026 Batch',
     templateId: template._id,
@@ -601,19 +605,22 @@ async function runAcceptanceCriteriaMatrix() {
   assert.strictEqual(cAttackerReconcile._getResponse().status, 404);
   console.log('   ✓ AC8 Passed: Cross-user batch mutation and inspection rejected with 404.\n');
 
-  // ---------------------------------------------------------------------------
-  // Cleanup test database
-  // ---------------------------------------------------------------------------
-  await DraftRow.deleteMany({ batchId: batch._id });
-  await BatchImport.deleteMany({ batchId: batch._id });
-  await Batch.deleteMany({ _id: batch._id });
-  await TemplateVersion.deleteMany({ templateId: template._id });
-  await Template.deleteMany({ _id: template._id });
-  await mongoose.disconnect();
-
   console.log('===========================================================');
   console.log('🎉 ALL PRD-CORE-05 ACCEPTANCE CRITERIA (AC1 - AC8) PASSED!');
   console.log('===========================================================');
+  } finally {
+    // Guaranteed cleanup runs on both success and failure
+    if (batch) {
+      await DraftRow.deleteMany({ batchId: batch._id });
+      await BatchImport.deleteMany({ batchId: batch._id });
+      await Batch.deleteMany({ _id: batch._id });
+    }
+    if (template) {
+      await TemplateVersion.deleteMany({ templateId: template._id });
+      await Template.deleteMany({ _id: template._id });
+    }
+    await mongoose.disconnect();
+  }
 }
 
 runAcceptanceCriteriaMatrix().catch((err) => {

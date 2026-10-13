@@ -1,36 +1,36 @@
-import { Clock, ShieldSlash, Trash, ChartBar } from '@phosphor-icons/react'
+import { Clock, ShieldSlash, Trash, ChartBar } from "@phosphor-icons/react";
 
 export function LegalRetentionDiagram() {
   const steps = [
     {
-      step: '01',
-      title: 'Batch Completion',
-      desc: 'Issuance job reaches terminal state (completed/canceled). Organizers choose retention: 24h, 7d (default), or 30d max.',
+      step: "01",
+      title: "Batch Completion",
+      desc: "Issuance job reaches terminal state (completed/canceled). Organizers choose retention: 24h, 7d (default), or 30d max.",
       icon: Clock,
-      color: 'bg-blue-50 text-blue-600 border-blue-200/80',
+      color: "bg-blue-50 text-blue-600 border-blue-200/80",
     },
     {
-      step: '02',
-      title: 'Logical Expiry',
-      desc: 'At exact deadline timestamp, download URLs are instantly blocked and recipient PII is masked from UI views.',
+      step: "02",
+      title: "Logical Expiry",
+      desc: "At exact deadline timestamp, download URLs are instantly blocked and recipient PII is masked from UI views.",
       icon: ShieldSlash,
-      color: 'bg-amber-50 text-amber-600 border-amber-200/80',
+      color: "bg-amber-50 text-amber-600 border-amber-200/80",
     },
     {
-      step: '03',
-      title: 'Physical Deletion Sweep',
-      desc: 'Automated cleanup sweep permanently purges Cloudflare R2 files and MongoDB recipient rows from storage.',
+      step: "03",
+      title: "Physical Deletion Sweep",
+      desc: "Automated cleanup sweep permanently purges Cloudflare R2 files and MongoDB recipient rows from storage.",
       icon: Trash,
-      color: 'bg-rose-50 text-rose-600 border-rose-200/80',
+      color: "bg-rose-50 text-rose-600 border-rose-200/80",
     },
     {
-      step: '04',
-      title: 'Aggregate Stats Only',
-      desc: 'Only non-identifying counts (e.g. 500 documents issued) remain for historical usage quotas. Zero PII persists.',
+      step: "04",
+      title: "Aggregate Stats Only",
+      desc: "Only non-identifying counts (e.g. 500 documents issued) remain for historical usage quotas. Zero PII persists.",
       icon: ChartBar,
-      color: 'bg-emerald-50 text-emerald-600 border-emerald-200/80',
+      color: "bg-emerald-50 text-emerald-600 border-emerald-200/80",
     },
-  ]
+  ];
 
   return (
     <div className="my-6 p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80 shadow-sm">
@@ -40,7 +40,8 @@ export function LegalRetentionDiagram() {
             Data Retention &amp; Automated Deletion Lifecycle (PRD-CORE-09)
           </h4>
           <p className="text-xs text-slate-500 mt-0.5">
-            Deterministic lifecycle guarantees for uploaded spreadsheets and compiled documents
+            Deterministic lifecycle guarantees for uploaded spreadsheets and
+            compiled documents
           </p>
         </div>
         <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-blue-100/70 text-blue-700 font-medium">
@@ -50,7 +51,7 @@ export function LegalRetentionDiagram() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {steps.map((item) => {
-          const Icon = item.icon
+          const Icon = item.icon;
           return (
             <div
               key={item.step}
@@ -73,9 +74,9 @@ export function LegalRetentionDiagram() {
                 </p>
               </div>
             </div>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }

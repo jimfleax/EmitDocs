@@ -1,6 +1,6 @@
-import React from 'react';
-import { ViewportPortal } from '@xyflow/react';
-import type { AlignmentGuide } from '@/lib/pdf-engine/alignment-snapper';
+import React from "react";
+import { ViewportPortal } from "@xyflow/react";
+import type { AlignmentGuide } from "@/lib/pdf-engine/alignment-snapper";
 
 export interface AlignmentGuidesOverlayProps {
   guides: AlignmentGuide[];
@@ -28,12 +28,24 @@ export const AlignmentGuidesOverlay: React.FC<AlignmentGuidesOverlayProps> = ({
           style={{ width: `${width}px`, height: `${height}px` }}
         >
           <defs>
-            <filter id="guides-glow-pink" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="0" stdDeviation="2" floodColor="#ec4899" floodOpacity="0.8" />
+            <filter
+              id="guides-glow-pink"
+              x="-20%"
+              y="-20%"
+              width="140%"
+              height="140%"
+            >
+              <feDropShadow
+                dx="0"
+                dy="0"
+                stdDeviation="2"
+                floodColor="#ec4899"
+                floodOpacity="0.8"
+              />
             </filter>
           </defs>
           {guides.map((guide, idx) => {
-            if (guide.type === 'vertical') {
+            if (guide.type === "vertical") {
               return (
                 <g key={`guide-v-${idx}`}>
                   <line

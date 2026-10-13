@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { Link, useRouter, useLocation } from '@tanstack/react-router'
+import { useState, useEffect } from "react";
+import { Link, useRouter, useLocation } from "@tanstack/react-router";
 import {
   House,
   ArrowLeft,
@@ -11,142 +11,144 @@ import {
   Copy,
   Check,
   TerminalWindow,
-} from '@phosphor-icons/react'
-import { Button } from '@/components/ui/button'
+} from "@phosphor-icons/react";
+import { Button } from "@/components/ui/button";
 
-export type ErrorType = '404' | '500' | '403' | 'offline' | 'generic'
-export type ErrorVariant = 'standalone' | 'embedded'
+export type ErrorType = "404" | "500" | "403" | "offline" | "generic";
+export type ErrorVariant = "standalone" | "embedded";
 
 export interface ErrorViewProps {
-  type?: ErrorType
-  variant?: ErrorVariant
-  title?: string
-  message?: string
-  error?: unknown
-  reset?: () => void
+  type?: ErrorType;
+  variant?: ErrorVariant;
+  title?: string;
+  message?: string;
+  error?: unknown;
+  reset?: () => void;
 }
 
-const CURRENT_YEAR = new Date().getFullYear()
+const CURRENT_YEAR = new Date().getFullYear();
 
 export function ErrorView({
-  type = '404',
+  type = "404",
   variant,
   title,
   message,
   error,
   reset,
 }: ErrorViewProps) {
-  const router = useRouter()
-  let locationPath = ''
+  const router = useRouter();
+  let locationPath = "";
   try {
     // eslint-disable-next-line react-hooks/rules-of-hooks
-    const location = useLocation()
-    locationPath = location.pathname
+    const location = useLocation();
+    locationPath = location.pathname;
   } catch {
-    locationPath = typeof window !== 'undefined' ? window.location.pathname : ''
+    locationPath =
+      typeof window !== "undefined" ? window.location.pathname : "";
   }
 
   // When embedded inside the app workspace (/app) or explicitly requested, do not render external header/footer
   const effectiveVariant: ErrorVariant =
-    variant || (locationPath.startsWith('/app') ? 'embedded' : 'standalone')
+    variant || (locationPath.startsWith("/app") ? "embedded" : "standalone");
 
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState(false);
   const [, setIsOnline] = useState(
-    typeof navigator !== 'undefined' ? navigator.onLine : true
-  )
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
 
   // Listen to network changes when in offline state
   useEffect(() => {
     const handleOnline = () => {
-      setIsOnline(true)
-      if (type === 'offline' && reset) {
-        reset()
+      setIsOnline(true);
+      if (type === "offline" && reset) {
+        reset();
       }
-    }
-    const handleOffline = () => setIsOnline(false)
+    };
+    const handleOffline = () => setIsOnline(false);
 
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
     return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [type, reset])
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [type, reset]);
 
   // Extract error details
-  const errorDetails = error instanceof Error ? error : null
-  const errorMessage = errorDetails?.message || (typeof error === 'string' ? error : '')
-  const errorStack = errorDetails?.stack || ''
-  const isDev = Boolean(import.meta.env.DEV)
+  const errorDetails = error instanceof Error ? error : null;
+  const errorMessage =
+    errorDetails?.message || (typeof error === "string" ? error : "");
+  const errorStack = errorDetails?.stack || "";
+  const isDev = Boolean(import.meta.env.DEV);
 
   const copyDiagnostics = () => {
     const textToCopy = [
       `Error Type: ${type}`,
       `URL: ${window.location.href}`,
       `Timestamp: ${new Date().toISOString()}`,
-      errorMessage ? `Message: ${errorMessage}` : '',
-      errorStack ? `Stack Trace:\n${errorStack}` : '',
+      errorMessage ? `Message: ${errorMessage}` : "",
+      errorStack ? `Stack Trace:\n${errorStack}` : "",
     ]
       .filter(Boolean)
-      .join('\n\n')
+      .join("\n\n");
 
     navigator.clipboard.writeText(textToCopy).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
-  }
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   // Configuration map per error type (Full White Canvas + Blue Theme, No Tag Bubbles)
   const configs = {
-    '404': {
-      code: '404',
-      defaultTitle: 'Lost in the Document Vault?',
+    "404": {
+      code: "404",
+      defaultTitle: "Lost in the Document Vault?",
       defaultMessage:
         "The page or credential template you're looking for doesn't exist, has been archived, or was moved to another location.",
       icon: FileDashed,
-      iconBg: 'bg-blue-600 text-white shadow-lg shadow-blue-600/25',
+      iconBg: "bg-blue-600 text-white shadow-lg shadow-blue-600/25",
     },
-    '500': {
-      code: '500',
-      defaultTitle: 'Something Went Sideways',
+    "500": {
+      code: "500",
+      defaultTitle: "Something Went Sideways",
       defaultMessage:
-        'An unexpected error occurred while processing this request. Our systems have logged the anomaly.',
+        "An unexpected error occurred while processing this request. Our systems have logged the anomaly.",
       icon: WarningOctagon,
-      iconBg: 'bg-rose-600 text-white shadow-lg shadow-rose-600/25',
+      iconBg: "bg-rose-600 text-white shadow-lg shadow-rose-600/25",
     },
-    '403': {
-      code: '403',
-      defaultTitle: 'Permission Required',
+    "403": {
+      code: "403",
+      defaultTitle: "Permission Required",
       defaultMessage:
         "You don't have authorization to view this workspace or resource. Please check your credentials or switch accounts.",
       icon: ShieldWarning,
-      iconBg: 'bg-amber-500 text-white shadow-lg shadow-amber-500/25',
+      iconBg: "bg-amber-500 text-white shadow-lg shadow-amber-500/25",
     },
     offline: {
-      code: 'OFFLINE',
-      defaultTitle: 'Connection Interrupted',
+      code: "OFFLINE",
+      defaultTitle: "Connection Interrupted",
       defaultMessage:
-        'It looks like you are currently offline. Check your network connection. We will automatically reconnect once available.',
+        "It looks like you are currently offline. Check your network connection. We will automatically reconnect once available.",
       icon: WifiSlash,
-      iconBg: 'bg-slate-900 text-white shadow-lg shadow-slate-900/20',
+      iconBg: "bg-slate-900 text-white shadow-lg shadow-slate-900/20",
     },
     generic: {
-      code: 'ERROR',
-      defaultTitle: 'Unable to Load Page',
+      code: "ERROR",
+      defaultTitle: "Unable to Load Page",
       defaultMessage:
-        'We encountered an issue loading this section. Please try again or return to the main dashboard.',
+        "We encountered an issue loading this section. Please try again or return to the main dashboard.",
       icon: WarningOctagon,
-      iconBg: 'bg-blue-600 text-white shadow-lg shadow-blue-600/25',
+      iconBg: "bg-blue-600 text-white shadow-lg shadow-blue-600/25",
     },
-  }
+  };
 
-  const currentConfig = configs[type] || configs.generic
-  const finalTitle = title || currentConfig.defaultTitle
-  const finalMessage = message || currentConfig.defaultMessage
-  const IconComponent = currentConfig.icon
+  const currentConfig = configs[type] || configs.generic;
+  const finalTitle = title || currentConfig.defaultTitle;
+  const finalMessage = message || currentConfig.defaultMessage;
+  const IconComponent = currentConfig.icon;
 
   // Embedded Layout (Clean solid card inside AppShell's workspace - NO separate header)
-  if (effectiveVariant === 'embedded') {
+  if (effectiveVariant === "embedded") {
     return (
       <div className="w-full max-w-2xl mx-auto my-6 p-8 sm:p-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex flex-col items-center text-center">
         {/* Solid Icon (No tag bubbles) */}
@@ -205,7 +207,11 @@ export function ErrorView({
             <details className="group rounded-xl border border-slate-800 bg-slate-950 p-3.5 text-xs overflow-hidden">
               <summary className="flex items-center justify-between cursor-pointer font-bold text-slate-200 select-none">
                 <span className="flex items-center gap-2">
-                  <TerminalWindow size={16} weight="bold" className="text-blue-400" />
+                  <TerminalWindow
+                    size={16}
+                    weight="bold"
+                    className="text-blue-400"
+                  />
                   <span>Developer Diagnostics</span>
                 </span>
                 <span className="text-[10px] font-mono uppercase bg-slate-800 px-2 py-0.5 rounded text-slate-300">
@@ -215,7 +221,9 @@ export function ErrorView({
               <div className="mt-3.5 space-y-3">
                 {errorMessage && (
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400">Message:</span>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      Message:
+                    </span>
                     <p className="font-mono text-[11px] text-rose-300 bg-rose-950/60 border border-rose-900/60 p-2 rounded-lg mt-1 break-all">
                       {errorMessage}
                     </p>
@@ -223,7 +231,9 @@ export function ErrorView({
                 )}
                 {errorStack && (
                   <div>
-                    <span className="text-[11px] font-bold text-slate-400">Stack Trace:</span>
+                    <span className="text-[11px] font-bold text-slate-400">
+                      Stack Trace:
+                    </span>
                     <pre className="font-mono text-[10px] text-slate-300 bg-slate-900 border border-slate-800 p-2.5 rounded-lg overflow-x-auto max-h-48 mt-1 whitespace-pre-wrap">
                       {errorStack}
                     </pre>
@@ -237,7 +247,11 @@ export function ErrorView({
                   >
                     {copied ? (
                       <>
-                        <Check size={14} weight="bold" className="text-emerald-400" />
+                        <Check
+                          size={14}
+                          weight="bold"
+                          className="text-emerald-400"
+                        />
                         <span>Copied</span>
                       </>
                     ) : (
@@ -253,7 +267,7 @@ export function ErrorView({
           </div>
         )}
       </div>
-    )
+    );
   }
 
   // Standalone Full-Screen Layout (Full White Canvas + Blue Theme, No Tag Bubbles, Only Back & Dashboard)
@@ -263,7 +277,11 @@ export function ErrorView({
       <header className="w-full max-w-5xl mx-auto flex items-center justify-between pb-4">
         <Link to="/" className="inline-flex items-center gap-2.5 group">
           <div className="p-1 rounded-xl bg-white border border-slate-200/80 flex-none group-hover:scale-105 transition-transform shadow-2xs">
-            <img src="/favicon.svg" alt="EmitDocs" className="w-7 h-7 rounded-lg" />
+            <img
+              src="/favicon.svg"
+              alt="EmitDocs"
+              className="w-7 h-7 rounded-lg"
+            />
           </div>
           <span className="font-extrabold text-xl tracking-tight text-slate-900">
             Emit<span className="text-blue-600">Docs</span>
@@ -316,9 +334,9 @@ export function ErrorView({
               <Button
                 onClick={() => {
                   if (window.history.length > 1) {
-                    window.history.back()
+                    window.history.back();
                   } else {
-                    router.navigate({ to: '/' })
+                    router.navigate({ to: "/" });
                   }
                 }}
                 variant="outline"
@@ -336,7 +354,11 @@ export function ErrorView({
               <details className="group rounded-xl border border-slate-800 bg-slate-950 p-3.5 text-xs overflow-hidden">
                 <summary className="flex items-center justify-between cursor-pointer font-bold text-slate-200 hover:text-white select-none">
                   <span className="flex items-center gap-2">
-                    <TerminalWindow size={16} weight="bold" className="text-blue-400" />
+                    <TerminalWindow
+                      size={16}
+                      weight="bold"
+                      className="text-blue-400"
+                    />
                     <span>Developer Diagnostics</span>
                   </span>
                   <span className="text-[10px] font-mono uppercase bg-slate-800 px-2 py-0.5 rounded text-slate-300">
@@ -346,7 +368,9 @@ export function ErrorView({
                 <div className="mt-3.5 space-y-3">
                   {errorMessage && (
                     <div>
-                      <span className="text-[11px] font-bold text-slate-400">Message:</span>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        Message:
+                      </span>
                       <p className="font-mono text-[11px] text-rose-300 bg-rose-950/60 border border-rose-900/60 p-2.5 rounded-lg mt-1 break-all">
                         {errorMessage}
                       </p>
@@ -354,7 +378,9 @@ export function ErrorView({
                   )}
                   {errorStack && (
                     <div>
-                      <span className="text-[11px] font-bold text-slate-400">Stack Trace:</span>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        Stack Trace:
+                      </span>
                       <pre className="font-mono text-[10px] text-slate-300 bg-slate-900 border border-slate-800 p-3 rounded-lg overflow-x-auto max-h-52 mt-1 whitespace-pre-wrap">
                         {errorStack}
                       </pre>
@@ -368,7 +394,11 @@ export function ErrorView({
                     >
                       {copied ? (
                         <>
-                          <Check size={14} weight="bold" className="text-emerald-400" />
+                          <Check
+                            size={14}
+                            weight="bold"
+                            className="text-emerald-400"
+                          />
                           <span>Copied</span>
                         </>
                       ) : (
@@ -391,5 +421,5 @@ export function ErrorView({
         © {CURRENT_YEAR} EmitDocs
       </footer>
     </div>
-  )
+  );
 }

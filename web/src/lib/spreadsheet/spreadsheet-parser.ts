@@ -1,6 +1,6 @@
-import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
-import { extractHeadersAndRows } from './header-extractor.js';
+import Papa from "papaparse";
+import * as XLSX from "xlsx";
+import { extractHeadersAndRows } from "./header-extractor.js";
 
 export interface ParsedSpreadsheetResult {
   availableWorksheets: string[];
@@ -8,11 +8,12 @@ export interface ParsedSpreadsheetResult {
   rawHeaders: string[];
   disambiguatedHeaders: string[];
   rows: Record<string, any>[];
+  headerRowIndex: number;
   dataStartRowIndex: number;
   totalRowCount: number;
 }
 
-export const FORMULA_CACHE_MISSING_TOKEN = '__FORMULA_CACHE_MISSING__';
+export const FORMULA_CACHE_MISSING_TOKEN = "__FORMULA_CACHE_MISSING__";
 
 /**
  * Parses a CSV string or file content into structured headers and records.
@@ -32,17 +33,18 @@ export function parseCsvString(csvContent: string): ParsedSpreadsheetResult {
     for (let c = 0; c < extracted.disambiguatedHeaders.length; c++) {
       const header = extracted.disambiguatedHeaders[c];
       const val = rawRow[c];
-      record[header] = val !== undefined && val !== null ? val : '';
+      record[header] = val !== undefined && val !== null ? val : "";
     }
     rows.push(record);
   }
 
   return {
-    availableWorksheets: ['Sheet1'],
-    selectedWorksheet: 'Sheet1',
+    availableWorksheets: ["Sheet1"],
+    selectedWorksheet: "Sheet1",
     rawHeaders: extracted.rawHeaders,
     disambiguatedHeaders: extracted.disambiguatedHeaders,
     rows,
+    headerRowIndex: extracted.headerRowIndex,
     dataStartRowIndex: extracted.dataStartRowIndex,
     totalRowCount: rows.length,
   };
@@ -53,37 +55,39 @@ export function parseCsvString(csvContent: string): ParsedSpreadsheetResult {
  */
 export function parseXlsxBuffer(
   buffer: ArrayBuffer,
-  options?: { worksheetName?: string }
+  options?: { worksheetName?: string },
 ): ParsedSpreadsheetResult {
   const wb = XLSX.read(buffer, {
-    type: 'array',
+    type: "array",
     cellFormula: true,
   });
 
   const availableWorksheets = wb.SheetNames || [];
   if (availableWorksheets.length === 0) {
-    throw new Error('No worksheets found in workbook');
+    throw new Error("No worksheets found in workbook");
   }
 
   const selectedWorksheet =
-    options?.worksheetName && availableWorksheets.includes(options.worksheetName)
+    options?.worksheetName &&
+    availableWorksheets.includes(options.worksheetName)
       ? options.worksheetName
       : availableWorksheets[0];
 
   const ws = wb.Sheets[selectedWorksheet];
-  if (!ws || !ws['!ref']) {
+  if (!ws || !ws["!ref"]) {
     return {
       availableWorksheets,
       selectedWorksheet,
       rawHeaders: [],
       disambiguatedHeaders: [],
       rows: [],
+      headerRowIndex: -1,
       dataStartRowIndex: -1,
       totalRowCount: 0,
     };
   }
 
-  const range = XLSX.utils.decode_range(ws['!ref']);
+  const range = XLSX.utils.decode_range(ws["!ref"]);
   const grid: any[][] = [];
 
   for (let R = range.s.r; R <= range.e.r; ++R) {
@@ -102,8 +106,8 @@ export function parseXlsxBuffer(
         if (
           cell.v === undefined ||
           cell.v === null ||
-          cell.t === 'e' ||
-          (typeof cell.w === 'string' && cell.w.startsWith('#'))
+          cell.t === "e" ||
+          (typeof cell.w === "string" && cell.w.startsWith("#"))
         ) {
           row.push(FORMULA_CACHE_MISSING_TOKEN);
         } else {
@@ -125,7 +129,7 @@ export function parseXlsxBuffer(
     for (let c = 0; c < extracted.disambiguatedHeaders.length; c++) {
       const header = extracted.disambiguatedHeaders[c];
       const val = rawRow[c];
-      record[header] = val !== undefined && val !== null ? val : '';
+      record[header] = val !== undefined && val !== null ? val : "";
     }
     rows.push(record);
   }
@@ -136,6 +140,7 @@ export function parseXlsxBuffer(
     rawHeaders: extracted.rawHeaders,
     disambiguatedHeaders: extracted.disambiguatedHeaders,
     rows,
+    headerRowIndex: extracted.headerRowIndex,
     dataStartRowIndex: extracted.dataStartRowIndex,
     totalRowCount: rows.length,
   };

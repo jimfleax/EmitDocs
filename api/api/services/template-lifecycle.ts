@@ -214,11 +214,7 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
 
   const mappingHash = computeMappingHash(fieldMappings);
 
-  // Mark previous version superseded
-  latest.status = 'superseded';
-  await latest.save();
-
-  // Create and persist new version
+  // Create and persist new version FIRST to ensure validation and uniqueness succeed
   const newVersion = new TemplateVersion({
     templateId: template._id,
     ownerId,
@@ -230,7 +226,22 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
     fieldMappings,
     mappingHash,
   });
-  await newVersion.save();
+
+  try {
+    await newVersion.save();
+  } catch (err: any) {
+    if (err.code === 11000 || err.name === 'MongoServerError') {
+      throw new VersionConflictError(
+        `Version modified concurrently. Expected version ${expectedVersion}, but latest is ${latest.version}`,
+        latest.version
+      );
+    }
+    throw err;
+  }
+
+  // Mark previous version superseded only after new version is committed
+  latest.status = 'superseded';
+  await latest.save();
 
   // Update current version pointer on template
   template.currentVersionId = newVersion._id as any;
@@ -362,7 +373,11 @@ export function generateThumbnailUrl(publicId: string): string {
  * Converts legacy /image/upload/ URLs to /image/authenticated/.
  * Generates fresh authenticated thumbnail URLs if the URL is missing and publicId is present.
  */
-export function repairThumbnailUrl(url: string | null | undefined, publicId?: string): string | null {
+export function repairThumbnailUrl(
+  url: string | null | undefined,
+  publicId?: string,
+  resourceType?: string
+): string | null {
   if (url && url.includes('/image/upload/') && url.includes('/templates/')) {
     return url.replace('/image/upload/', '/image/authenticated/');
   }
@@ -370,7 +385,9 @@ export function repairThumbnailUrl(url: string | null | undefined, publicId?: st
     return url;
   }
   if (!url && publicId) {
-    return generateThumbnailUrl(publicId);
+    if (resourceType === 'raw') return null;
+    if (!resourceType || resourceType === 'image') return generateThumbnailUrl(publicId);
+    return null;
   }
   return url || null;
 }
@@ -381,26 +398,32 @@ export function repairThumbnailUrl(url: string | null | undefined, publicId?: st
  */
 export function ensureThumbnailHealth(
   inputOrTemplate: any,
-  sourceObjectKeyArg?: string
+  sourceObjectKeyArg?: string,
+  resourceTypeArg?: string
 ): string | null {
   if (!inputOrTemplate) return null;
 
   let template = inputOrTemplate;
   let sourceKey = sourceObjectKeyArg;
+  let resType = resourceTypeArg || template.resourceType;
 
   if (inputOrTemplate.template && !inputOrTemplate._id && !inputOrTemplate.name) {
     template = inputOrTemplate.template;
     sourceKey = sourceKey || inputOrTemplate.sourceObjectKey;
+    resType = resType || inputOrTemplate.resourceType;
   }
 
   const originalUrl = template.thumbnailUrl;
   if (!sourceKey && template.currentVersionId) {
     if (typeof template.currentVersionId === 'object' && 'sourceObjectKey' in template.currentVersionId) {
       sourceKey = template.currentVersionId.sourceObjectKey;
+      if (!resType && 'resourceType' in template.currentVersionId) {
+        resType = template.currentVersionId.resourceType;
+      }
     }
   }
 
-  const repaired = repairThumbnailUrl(originalUrl, sourceKey);
+  const repaired = repairThumbnailUrl(originalUrl, sourceKey, resType);
   if (repaired && repaired !== originalUrl) {
     template.thumbnailUrl = repaired;
     if (template._id) {

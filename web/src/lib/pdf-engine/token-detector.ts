@@ -1,4 +1,4 @@
-import type { PdfRect } from './coordinate-transforms';
+import type { PdfRect } from "./coordinate-transforms";
 
 export interface TextItemLike {
   str: string;
@@ -24,7 +24,7 @@ export interface DetectedToken {
   detectedFontSize: number;
   detectedFontFamily: string;
   baselineY: number;
-  confidence: 'exact' | 'split-span';
+  confidence: "exact" | "split-span";
 }
 
 interface CharRun {
@@ -54,10 +54,10 @@ function getEstimatedCharWeight(char: string): number {
 let measureCanvasCtx: CanvasRenderingContext2D | null = null;
 function getCanvasContext(): CanvasRenderingContext2D | null {
   if (measureCanvasCtx) return measureCanvasCtx;
-  if (typeof document !== 'undefined') {
+  if (typeof document !== "undefined") {
     try {
-      const c = document.createElement('canvas');
-      measureCanvasCtx = c.getContext('2d');
+      const c = document.createElement("canvas");
+      measureCanvasCtx = c.getContext("2d");
     } catch {
       measureCanvasCtx = null;
     }
@@ -69,7 +69,7 @@ function computeCharAdvances(
   str: string,
   totalWidth: number,
   fontSize: number,
-  fontFamily: string
+  fontFamily: string,
 ): number[] {
   const len = str.length;
   if (len === 0) return [];
@@ -82,7 +82,9 @@ function computeCharAdvances(
     try {
       ctx.font = `${fontSize}px ${fontFamily}, sans-serif`;
       for (let i = 0; i < len; i++) {
-        rawAdvances[i] = ctx.measureText(str[i]).width || getEstimatedCharWeight(str[i]) * fontSize;
+        rawAdvances[i] =
+          ctx.measureText(str[i]).width ||
+          getEstimatedCharWeight(str[i]) * fontSize;
       }
     } catch {
       for (let i = 0; i < len; i++) {
@@ -110,17 +112,21 @@ export function detectTokensInTextItems(
   items: TextItemLike[],
   pageIndex: number,
   styles?: Record<string, TextStyleLike>,
-  yTolerance = 2.5
+  yTolerance = 2.5,
 ): DetectedToken[] {
   if (!items || items.length === 0) return [];
 
   // Filter out empty items
-  const validItems = items.filter((item) => typeof item.str === 'string' && item.str.length > 0);
+  const validItems = items.filter(
+    (item) => typeof item.str === "string" && item.str.length > 0,
+  );
   if (validItems.length === 0) return [];
 
   // Group items by baseline Y (transform[5])
   const lines: TextItemLike[][] = [];
-  const sortedByY = [...validItems].sort((a, b) => b.transform[5] - a.transform[5]);
+  const sortedByY = [...validItems].sort(
+    (a, b) => b.transform[5] - a.transform[5],
+  );
 
   for (const item of sortedByY) {
     const itemY = item.transform[5];
@@ -144,7 +150,7 @@ export function detectTokensInTextItems(
 
     // Build character map
     const charRuns: CharRun[] = [];
-    let lineString = '';
+    let lineString = "";
 
     line.forEach((item, itemIdx) => {
       const itemX = item.transform[4];
@@ -153,16 +159,23 @@ export function detectTokensInTextItems(
 
       // Ingest font style metrics from PDF.js if available
       const style = (styles && item.fontName && styles[item.fontName]) || {};
-      const ascentRatio = typeof style.ascent === 'number' ? style.ascent : 0.85;
-      const rawDescent = typeof style.descent === 'number' ? style.descent : -0.25;
+      const ascentRatio =
+        typeof style.ascent === "number" ? style.ascent : 0.85;
+      const rawDescent =
+        typeof style.descent === "number" ? style.descent : -0.25;
       const descentRatio = rawDescent > 0 ? -rawDescent : rawDescent; // ensure negative
-      const fontFamily = style.fontFamily || 'Helvetica';
+      const fontFamily = style.fontFamily || "Helvetica";
 
       const itemBottomY = itemY + descentRatio * fontSize;
       const itemTopY = itemY + ascentRatio * fontSize;
       const itemHeight = (ascentRatio - descentRatio) * fontSize;
 
-      const charAdvances = computeCharAdvances(item.str, item.width, fontSize, fontFamily);
+      const charAdvances = computeCharAdvances(
+        item.str,
+        item.width,
+        fontSize,
+        fontFamily,
+      );
 
       let currentX = itemX;
       for (let i = 0; i < item.str.length; i++) {
@@ -186,7 +199,8 @@ export function detectTokensInTextItems(
     });
 
     // Find multi-pattern placeholder tokens: {{key}}, {key}, [key], <key>, $key
-    const regex = /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}|\{([a-zA-Z0-9_.-]+)\}|\[([a-zA-Z0-9_.-]+)\]|<([a-zA-Z0-9_.-]+)>|\$([a-zA-Z0-9_-]+)/g;
+    const regex =
+      /\{\{\s*([a-zA-Z0-9_.-]+)\s*\}\}|\{([a-zA-Z0-9_.-]+)\}|\[([a-zA-Z0-9_.-]+)\]|<([a-zA-Z0-9_.-]+)>|\$([a-zA-Z0-9_-]+)/g;
     let match: RegExpExecArray | null;
 
     while ((match = regex.exec(lineString)) !== null) {
@@ -207,7 +221,7 @@ export function detectTokensInTextItems(
       const firstRun = matchingRuns[0];
       const baselineY = firstRun.baselineY;
       const detectedFontSize = Math.round(firstRun.fontSize * 10) / 10;
-      const detectedFontFamily = firstRun.fontFamily || 'Helvetica';
+      const detectedFontFamily = firstRun.fontFamily || "Helvetica";
 
       // Unpadded exact typographic boundary
       const rawWidth = Math.max(8, maxX - minX);
@@ -231,7 +245,7 @@ export function detectTokensInTextItems(
 
       // Check if spanned multiple items
       const itemIndices = new Set(matchingRuns.map((r) => r.itemIndex));
-      const confidence = itemIndices.size > 1 ? 'split-span' : 'exact';
+      const confidence = itemIndices.size > 1 ? "split-span" : "exact";
 
       detectedTokens.push({
         key,

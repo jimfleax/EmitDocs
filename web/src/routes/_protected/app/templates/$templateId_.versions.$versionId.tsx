@@ -1,7 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
-import { PdfMappingWorkspace } from '@/components/templates/mapping/PdfMappingWorkspace';
+import { createFileRoute } from "@tanstack/react-router";
+import { PdfMappingWorkspace } from "@/components/templates/mapping/PdfMappingWorkspace";
 
-export const Route = createFileRoute('/_protected/app/templates/$templateId_/versions/$versionId')({
+export const Route = createFileRoute(
+  "/_protected/app/templates/$templateId_/versions/$versionId",
+)({
   component: TemplateVersionMappingRoute,
 });
 

@@ -1,13 +1,16 @@
-import { useState } from 'react';
-import { X, ArrowRight, ArrowLeft, GitMerge } from '@phosphor-icons/react';
-import { DataFilePicker } from './DataFilePicker';
-import { ColumnMappingTable } from './ColumnMappingTable';
-import { ReimportDiffReview } from './ReimportDiffReview';
-import { MatchResolutionTable, type AmbiguousDecision } from './MatchResolutionTable';
-import { Spinner } from '@/components/ui/Spinner';
-import { toast } from '@/components/ui/toast';
-import type { ParsedSpreadsheetResult } from '@/lib/spreadsheet/spreadsheet-parser';
-import type { ReimportDiffResult } from '@/types/diff';
+import { useState } from "react";
+import { X, ArrowRight, ArrowLeft, GitMerge } from "@phosphor-icons/react";
+import { DataFilePicker } from "./DataFilePicker";
+import { ColumnMappingTable } from "./ColumnMappingTable";
+import { ReimportDiffReview } from "./ReimportDiffReview";
+import {
+  MatchResolutionTable,
+  type AmbiguousDecision,
+} from "./MatchResolutionTable";
+import { Spinner } from "@/components/ui/Spinner";
+import { toast } from "@/components/ui/toast";
+import type { ParsedSpreadsheetResult } from "@/lib/spreadsheet/spreadsheet-parser";
+import type { ReimportDiffResult } from "@/types/diff";
 
 export interface ReimportModalProps {
   isOpen: boolean;
@@ -27,11 +30,12 @@ export function ReimportModal({
   onReconciled,
 }: ReimportModalProps) {
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
-  const [parsedResult, setParsedResult] = useState<ParsedSpreadsheetResult | null>(null);
+  const [parsedResult, setParsedResult] =
+    useState<ParsedSpreadsheetResult | null>(null);
   const [newImportId, setNewImportId] = useState<string | null>(null);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [reconciliationKey, setReconciliationKey] = useState<string>(
-    templateVersion?.fieldMappings?.[0]?.key || 'studentId'
+    templateVersion?.fieldMappings?.[0]?.key || "studentId",
   );
 
   const [diffResult, setDiffResult] = useState<ReimportDiffResult | null>(null);
@@ -39,31 +43,43 @@ export function ReimportModal({
   const [isSubmittingReconcile, setIsSubmittingReconcile] = useState(false);
 
   // Resolutions
-  const [conflictDecisions, setConflictDecisions] = useState<Record<string, 'keep_override' | 'use_new_imported'>>({});
-  const [ambiguousDecisions, setAmbiguousDecisions] = useState<Record<string, AmbiguousDecision>>({});
-  const [carryForwardOverrides, setCarryForwardOverrides] = useState<boolean>(true);
+  const [conflictDecisions, setConflictDecisions] = useState<
+    Record<string, "keep_override" | "use_new_imported">
+  >({});
+  const [ambiguousDecisions, setAmbiguousDecisions] = useState<
+    Record<string, AmbiguousDecision>
+  >({});
+  const [carryForwardOverrides, setCarryForwardOverrides] =
+    useState<boolean>(true);
 
   if (!isOpen) return null;
 
   const fieldMappings = templateVersion?.fieldMappings || [];
 
   // Step 1: Upload file and ingest chunks into new revision
-  const handleFileParsed = async (result: ParsedSpreadsheetResult) => {
+  const handleFileParsed = async (
+    result: ParsedSpreadsheetResult,
+    fileMeta: { name: string; size: number; type: string },
+  ) => {
     try {
       setParsedResult(result);
 
       // Create new import revision
       const initRes = await fetch(`/api/batches/${batchId}/imports`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
+          sourceFileName: fileMeta?.name || "spreadsheet",
+          sourceFileSize: fileMeta?.size ?? 0,
+          worksheetName: result.selectedWorksheet,
+          availableWorksheets: result.availableWorksheets,
           rawHeaders: result.rawHeaders,
           disambiguatedHeaders: result.disambiguatedHeaders,
           columnMap: {},
         }),
       });
-      if (!initRes.ok) throw new Error('Failed to create re-import session');
+      if (!initRes.ok) throw new Error("Failed to create re-import session");
       const initData = await initRes.json();
       const importId = initData.batchImport._id;
       setNewImportId(importId);
@@ -83,34 +99,48 @@ export function ReimportModal({
         }));
 
         const chunkId = `${importId}_chunk_${i}`;
-        const chunkRes = await fetch(`/api/batches/${batchId}/imports/${importId}/rows`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify({
-            chunkId,
-            chunkIndex: i,
-            totalChunks,
-            rows: chunkRows,
-          }),
-        });
+        const chunkRes = await fetch(
+          `/api/batches/${batchId}/imports/${importId}/rows`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+              chunkId,
+              chunkIndex: i,
+              totalChunks,
+              rows: chunkRows,
+            }),
+          },
+        );
         if (!chunkRes.ok) throw new Error(`Chunk ${i + 1} upload failed`);
       }
 
       // Finalize raw chunks
-      await fetch(`/api/batches/${batchId}/imports/${importId}/finalize`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          totalExpectedRows: rows.length,
-          totalExpectedChunks: totalChunks,
-        }),
-      });
+      const finalizeRes = await fetch(
+        `/api/batches/${batchId}/imports/${importId}/finalize`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            totalExpectedRows: rows.length,
+            totalExpectedChunks: totalChunks,
+          }),
+        },
+      );
+      if (!finalizeRes.ok) {
+        const errJson = await finalizeRes.json().catch(() => ({}));
+        throw new Error(
+          errJson.error?.message ||
+            errJson.error ||
+            "Failed to finalize raw chunk upload",
+        );
+      }
 
       setStep(2);
     } catch (err: any) {
-      toast.error('Import Failed', err.message);
+      toast.error("Import Failed", err.message);
     }
   };
 
@@ -123,24 +153,24 @@ export function ReimportModal({
 
       // Update mapping first
       await fetch(`/api/batches/${batchId}/imports/${newImportId}/mapping`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ columnMap }),
       });
 
       // Calculate diff
       const diffRes = await fetch(
         `/api/batches/${batchId}/reimports/${newImportId}/diff?reconciliationKey=${reconciliationKey}`,
-        { credentials: 'include' }
+        { credentials: "include" },
       );
-      if (!diffRes.ok) throw new Error('Failed to compute revision diff');
+      if (!diffRes.ok) throw new Error("Failed to compute revision diff");
 
       const diff = await diffRes.json();
       setDiffResult(diff);
       setStep(3);
     } catch (err: any) {
-      toast.error('Diff Computation Failed', err.message);
+      toast.error("Diff Computation Failed", err.message);
     } finally {
       setIsLoadingDiff(false);
     }
@@ -148,7 +178,10 @@ export function ReimportModal({
 
   // Step 3 -> 4 / Reconcile
   const handleNextFromDiff = () => {
-    if (diffResult && (diffResult.conflicted.length > 0 || diffResult.ambiguous.length > 0)) {
+    if (
+      diffResult &&
+      (diffResult.conflicted.length > 0 || diffResult.ambiguous.length > 0)
+    ) {
       setStep(4);
     } else {
       handleFinalReconciliation();
@@ -162,34 +195,39 @@ export function ReimportModal({
     try {
       setIsSubmittingReconcile(true);
 
-      const formattedConflicts = Object.entries(conflictDecisions).map(([key, resolution]) => {
-        const [newRowId, field] = key.split(':');
-        return { newRowId, field, resolution };
-      });
+      const formattedConflicts = Object.entries(conflictDecisions).map(
+        ([key, resolution]) => {
+          const [newRowId, field] = key.split(":");
+          return { newRowId, field, resolution };
+        },
+      );
 
       const formattedAmbiguous = Object.values(ambiguousDecisions);
 
-      const res = await fetch(`/api/batches/${batchId}/reimports/${newImportId}/reconcile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-          reconciliationKey,
-          resolutions: {
-            conflicts: formattedConflicts,
-            ambiguous: formattedAmbiguous,
-            carryForwardOverrides,
-          },
-        }),
-      });
+      const res = await fetch(
+        `/api/batches/${batchId}/reimports/${newImportId}/reconcile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            reconciliationKey,
+            resolutions: {
+              conflicts: formattedConflicts,
+              ambiguous: formattedAmbiguous,
+              carryForwardOverrides,
+            },
+          }),
+        },
+      );
 
-      if (!res.ok) throw new Error('Reconciliation failed');
+      if (!res.ok) throw new Error("Reconciliation failed");
 
-      toast.success('Spreadsheet Reconciled', 'Batch updated to new revision.');
+      toast.success("Spreadsheet Reconciled", "Batch updated to new revision.");
       onReconciled();
       onClose();
     } catch (err: any) {
-      toast.error('Reconciliation Failed', err.message);
+      toast.error("Reconciliation Failed", err.message);
     } finally {
       setIsSubmittingReconcile(false);
     }
@@ -226,7 +264,8 @@ export function ReimportModal({
           {step === 1 && (
             <div className="space-y-4">
               <p className="text-xs text-slate-500">
-                Upload revised XLSX or CSV spreadsheet. Differences against current Revision {currentRevision} will be computed.
+                Upload revised XLSX or CSV spreadsheet. Differences against
+                current Revision {currentRevision} will be computed.
               </p>
               <DataFilePicker onParsed={handleFileParsed} />
             </div>
@@ -240,7 +279,8 @@ export function ReimportModal({
                   Select Reconciliation Primary Key
                 </label>
                 <p className="text-[11px] text-slate-400">
-                  Unique identifier used to match records between revisions (e.g. Student ID, Email).
+                  Unique identifier used to match records between revisions
+                  (e.g. Student ID, Email).
                 </p>
                 <select
                   value={reconciliationKey}
@@ -266,7 +306,10 @@ export function ReimportModal({
           )}
 
           {step === 3 && diffResult && (
-            <ReimportDiffReview diff={diffResult} reconciliationKey={reconciliationKey} />
+            <ReimportDiffReview
+              diff={diffResult}
+              reconciliationKey={reconciliationKey}
+            />
           )}
 
           {step === 4 && diffResult && (
@@ -275,9 +318,13 @@ export function ReimportModal({
               ambiguousItems={diffResult.ambiguous}
               availableOldRows={[]}
               conflictDecisions={conflictDecisions}
-              onSetConflictDecision={(k, v) => setConflictDecisions((prev) => ({ ...prev, [k]: v }))}
+              onSetConflictDecision={(k, v) =>
+                setConflictDecisions((prev) => ({ ...prev, [k]: v }))
+              }
               ambiguousDecisions={ambiguousDecisions}
-              onSetAmbiguousDecision={(id, dec) => setAmbiguousDecisions((prev) => ({ ...prev, [id]: dec }))}
+              onSetAmbiguousDecision={(id, dec) =>
+                setAmbiguousDecisions((prev) => ({ ...prev, [id]: dec }))
+              }
               carryForwardOverrides={carryForwardOverrides}
               onToggleCarryForward={setCarryForwardOverrides}
             />
@@ -318,9 +365,11 @@ export function ReimportModal({
               onClick={handleNextFromDiff}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold cursor-pointer shadow-sm shadow-blue-500/20 transition-all"
             >
-              {diffResult && (diffResult.conflicted.length > 0 || diffResult.ambiguous.length > 0)
-                ? 'Resolve Conflicts & Ambiguities'
-                : 'Apply Reconciliation'}
+              {diffResult &&
+              (diffResult.conflicted.length > 0 ||
+                diffResult.ambiguous.length > 0)
+                ? "Resolve Conflicts & Ambiguities"
+                : "Apply Reconciliation"}
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
@@ -332,7 +381,9 @@ export function ReimportModal({
               disabled={isSubmittingReconcile}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold cursor-pointer shadow-sm"
             >
-              {isSubmittingReconcile ? <Spinner size="sm" variant="current" /> : null}
+              {isSubmittingReconcile ? (
+                <Spinner size="sm" variant="current" />
+              ) : null}
               Finalize & Update Batch
               <ArrowRight className="w-3.5 h-3.5" />
             </button>

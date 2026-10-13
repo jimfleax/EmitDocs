@@ -1,15 +1,22 @@
-import { PDFDocument, StandardFonts, TextAlignment, rgb, type Color, type PDFFont } from 'pdf-lib';
-import fontkit from '@pdf-lib/fontkit';
-import { calculateFit, calculateMultiLineWrap } from './fit-then-flag';
-import { validateStandardFontGlyphs } from './glyph-validator';
-import { formatFieldValue } from './format-engine';
-import type { TextTransformMode } from '@/components/templates/mapping/types';
+import {
+  PDFDocument,
+  StandardFonts,
+  TextAlignment,
+  rgb,
+  type Color,
+  type PDFFont,
+} from "pdf-lib";
+import fontkit from "@pdf-lib/fontkit";
+import { calculateFit, calculateMultiLineWrap } from "./fit-then-flag";
+import { validateStandardFontGlyphs } from "./glyph-validator";
+import { formatFieldValue } from "./format-engine";
+import type { TextTransformMode } from "@/components/templates/mapping/types";
 
 export interface FieldMappingConfig {
   id: string;
   key: string;
   label?: string;
-  type?: 'text' | 'date' | 'number';
+  type?: "text" | "date" | "number";
   pageIndex: number;
   rect: {
     x: number;
@@ -17,14 +24,14 @@ export interface FieldMappingConfig {
     width: number;
     height: number;
   };
-  alignment?: 'left' | 'center' | 'right';
+  alignment?: "left" | "center" | "right";
   fontFamily?: string;
   fontSize?: number;
   minFontSize?: number;
   maxFontSize?: number;
   color?: string;
-  fitMode?: 'shrink-to-fit' | 'fixed' | 'multi-line';
-  maskMode?: 'none' | 'solid-white' | 'custom-color' | 'acroform-field';
+  fitMode?: "shrink-to-fit" | "fixed" | "multi-line";
+  maskMode?: "none" | "solid-white" | "custom-color" | "acroform-field";
   maskColor?: string;
   customFontBytes?: string;
   customFontUrl?: string;
@@ -35,7 +42,7 @@ export interface FieldMappingConfig {
 }
 
 export interface EngineWarning {
-  type: 'overflow' | 'unsupported_glyph' | 'unsafe_mask';
+  type: "overflow" | "unsupported_glyph" | "unsafe_mask";
   fieldKey: string;
   message: string;
   details?: Record<string, unknown>;
@@ -47,8 +54,8 @@ export interface OverlayOptions {
 }
 
 export function parseHexColor(hex: string): Color {
-  if (!hex || typeof hex !== 'string') return rgb(0, 0, 0);
-  const cleanHex = hex.replace('#', '').trim();
+  if (!hex || typeof hex !== "string") return rgb(0, 0, 0);
+  const cleanHex = hex.replace("#", "").trim();
   if (cleanHex.length === 3) {
     const r = parseInt(cleanHex[0] + cleanHex[0], 16) / 255;
     const g = parseInt(cleanHex[1] + cleanHex[1], 16) / 255;
@@ -65,7 +72,7 @@ export function parseHexColor(hex: string): Color {
 }
 
 function decodeBase64(base64: string): Uint8Array {
-  if (typeof atob === 'function') {
+  if (typeof atob === "function") {
     const bin = atob(base64);
     const bytes = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) {
@@ -73,9 +80,10 @@ function decodeBase64(base64: string): Uint8Array {
     }
     return bytes;
   }
-  const globalObj = typeof globalThis !== 'undefined' ? (globalThis as any) : null;
+  const globalObj =
+    typeof globalThis !== "undefined" ? (globalThis as any) : null;
   if (globalObj?.Buffer) {
-    return Uint8Array.from(globalObj.Buffer.from(base64, 'base64'));
+    return Uint8Array.from(globalObj.Buffer.from(base64, "base64"));
   }
   return new Uint8Array(0);
 }
@@ -84,10 +92,13 @@ export async function generatePdfWithOverlay(
   sourcePdfBytes: Uint8Array | ArrayBuffer,
   fieldMappings: FieldMappingConfig[],
   data: Record<string, string> = {},
-  options: OverlayOptions = {}
+  options: OverlayOptions = {},
 ): Promise<{ pdfBytes: Uint8Array; warnings: EngineWarning[] }> {
-  const bytes = sourcePdfBytes instanceof Uint8Array ? sourcePdfBytes.slice(0) : new Uint8Array(sourcePdfBytes).slice(0);
-  
+  const bytes =
+    sourcePdfBytes instanceof Uint8Array
+      ? sourcePdfBytes.slice(0)
+      : new Uint8Array(sourcePdfBytes).slice(0);
+
   // 1. Load source document and create a clean output document
   // Copying pages into a fresh document strips corrupted object streams, multi-generation XRef tables,
   // and circular references that break PDF.js rendering on complex templates.
@@ -111,7 +122,9 @@ export async function generatePdfWithOverlay(
 
   // Font cache on outDoc
   const fontCache: Record<string, PDFFont> = {};
-  const getFont = async (mapping: FieldMappingConfig): Promise<{ font: PDFFont; isCustom: boolean }> => {
+  const getFont = async (
+    mapping: FieldMappingConfig,
+  ): Promise<{ font: PDFFont; isCustom: boolean }> => {
     if (mapping.customFontBytes) {
       const cacheKey = `custom-${mapping.id || mapping.key}`;
       if (!fontCache[cacheKey]) {
@@ -119,7 +132,10 @@ export async function generatePdfWithOverlay(
           const fontBytes = decodeBase64(mapping.customFontBytes);
           fontCache[cacheKey] = await outDoc.embedFont(fontBytes);
         } catch (err) {
-          console.warn('Failed to embed custom font, falling back to standard font', err);
+          console.warn(
+            "Failed to embed custom font, falling back to standard font",
+            err,
+          );
         }
       }
       if (fontCache[cacheKey]) {
@@ -128,38 +144,58 @@ export async function generatePdfWithOverlay(
     }
 
     const family = mapping.fontFamily;
-    const f = family?.toLowerCase() || 'helvetica';
-    if (f.includes('bold') && f.includes('helvetica')) {
-      if (!fontCache['helvetica-bold']) fontCache['helvetica-bold'] = await outDoc.embedFont(StandardFonts.HelveticaBold);
-      return { font: fontCache['helvetica-bold'], isCustom: false };
+    const f = family?.toLowerCase() || "helvetica";
+    if (f.includes("bold") && f.includes("helvetica")) {
+      if (!fontCache["helvetica-bold"])
+        fontCache["helvetica-bold"] = await outDoc.embedFont(
+          StandardFonts.HelveticaBold,
+        );
+      return { font: fontCache["helvetica-bold"], isCustom: false };
     }
-    if (f.includes('times')) {
-      if (f.includes('bold')) {
-        if (!fontCache['times-bold']) fontCache['times-bold'] = await outDoc.embedFont(StandardFonts.TimesRomanBold);
-        return { font: fontCache['times-bold'], isCustom: false };
+    if (f.includes("times")) {
+      if (f.includes("bold")) {
+        if (!fontCache["times-bold"])
+          fontCache["times-bold"] = await outDoc.embedFont(
+            StandardFonts.TimesRomanBold,
+          );
+        return { font: fontCache["times-bold"], isCustom: false };
       }
-      if (!fontCache['times']) fontCache['times'] = await outDoc.embedFont(StandardFonts.TimesRoman);
-      return { font: fontCache['times'], isCustom: false };
+      if (!fontCache["times"])
+        fontCache["times"] = await outDoc.embedFont(StandardFonts.TimesRoman);
+      return { font: fontCache["times"], isCustom: false };
     }
-    if (f.includes('courier')) {
-      if (f.includes('bold')) {
-        if (!fontCache['courier-bold']) fontCache['courier-bold'] = await outDoc.embedFont(StandardFonts.CourierBold);
-        return { font: fontCache['courier-bold'], isCustom: false };
+    if (f.includes("courier")) {
+      if (f.includes("bold")) {
+        if (!fontCache["courier-bold"])
+          fontCache["courier-bold"] = await outDoc.embedFont(
+            StandardFonts.CourierBold,
+          );
+        return { font: fontCache["courier-bold"], isCustom: false };
       }
-      if (!fontCache['courier']) fontCache['courier'] = await outDoc.embedFont(StandardFonts.Courier);
-      return { font: fontCache['courier'], isCustom: false };
+      if (!fontCache["courier"])
+        fontCache["courier"] = await outDoc.embedFont(StandardFonts.Courier);
+      return { font: fontCache["courier"], isCustom: false };
     }
-    if (!fontCache['helvetica']) fontCache['helvetica'] = await outDoc.embedFont(StandardFonts.Helvetica);
-    return { font: fontCache['helvetica'], isCustom: false };
+    if (!fontCache["helvetica"])
+      fontCache["helvetica"] = await outDoc.embedFont(StandardFonts.Helvetica);
+    return { font: fontCache["helvetica"], isCustom: false };
   };
 
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
     const page = pages[pageIdx];
-    const mappingsForPage = fieldMappings.filter((m) => m.pageIndex === pageIdx);
+    const mappingsForPage = fieldMappings.filter(
+      (m) => m.pageIndex === pageIdx,
+    );
 
     for (const mapping of mappingsForPage) {
-      const rawText = data[mapping.key] ?? mapping.sampleValue ?? `{{${mapping.key}}}`;
-      const formattedText = formatFieldValue(rawText, mapping.type, mapping.format, mapping.textTransform);
+      const rawText =
+        data[mapping.key] ?? mapping.sampleValue ?? `{{${mapping.key}}}`;
+      const formattedText = formatFieldValue(
+        rawText,
+        mapping.type,
+        mapping.format,
+        mapping.textTransform,
+      );
       const { font, isCustom } = await getFont(mapping);
 
       // 1. Glyph Validation (standard fonts only support WinAnsi)
@@ -168,21 +204,28 @@ export async function generatePdfWithOverlay(
         const glyphResult = validateStandardFontGlyphs(formattedText);
         if (!glyphResult.valid) {
           warnings.push({
-            type: 'unsupported_glyph',
+            type: "unsupported_glyph",
             fieldKey: mapping.key,
-            message: `Text contains glyphs unencodable by standard font: ${glyphResult.missingGlyphs.join(', ')}`,
+            message: `Text contains glyphs unencodable by standard font: ${glyphResult.missingGlyphs.join(", ")}`,
             details: { missingGlyphs: glyphResult.missingGlyphs },
           });
           const missingLookup = new Set(glyphResult.missingGlyphs);
-          textToRender = Array.from(rawText)
-            .map((c) => (missingLookup.has(c) ? '?' : c))
-            .join('');
+          textToRender = Array.from(formattedText)
+            .map((c) => (missingLookup.has(c) ? "?" : c))
+            .join("");
         }
       }
 
       // 2. Draw Mask if enabled (AcroForm mode is completely transparent - no rectangle drawn)
-      if (mapping.maskMode && mapping.maskMode !== 'none' && mapping.maskMode !== 'acroform-field') {
-        const maskHex = mapping.maskMode === 'solid-white' ? '#FFFFFF' : mapping.maskColor || '#FFFFFF';
+      if (
+        mapping.maskMode &&
+        mapping.maskMode !== "none" &&
+        mapping.maskMode !== "acroform-field"
+      ) {
+        const maskHex =
+          mapping.maskMode === "solid-white"
+            ? "#FFFFFF"
+            : mapping.maskColor || "#FFFFFF";
         page.drawRectangle({
           x: mapping.rect.x,
           y: mapping.rect.y,
@@ -191,11 +234,15 @@ export async function generatePdfWithOverlay(
           color: parseHexColor(maskHex),
         });
       } else {
-        if (mapping.maskMode === 'none' && mapping.color?.toLowerCase() === '#ffffff') {
+        if (
+          mapping.maskMode === "none" &&
+          mapping.color?.toLowerCase() === "#ffffff"
+        ) {
           warnings.push({
-            type: 'unsafe_mask',
+            type: "unsafe_mask",
             fieldKey: mapping.key,
-            message: 'White text drawn with transparent mask may be illegible over light backgrounds',
+            message:
+              "White text drawn with transparent mask may be illegible over light backgrounds",
           });
         }
       }
@@ -203,10 +250,10 @@ export async function generatePdfWithOverlay(
       // 3. Render Field: Native AcroForm Field OR Standard Overlay Text
       const minSize = mapping.minFontSize || 8;
       const maxSize = mapping.maxFontSize || mapping.fontSize || 18;
-      const fitMode = mapping.fitMode || 'shrink-to-fit';
-      const textColor = parseHexColor(mapping.color || '#000000');
+      const fitMode = mapping.fitMode || "shrink-to-fit";
+      const textColor = parseHexColor(mapping.color || "#000000");
 
-      if (mapping.maskMode === 'acroform-field') {
+      if (mapping.maskMode === "acroform-field") {
         hasAcroForms = true;
         const form = outDoc.getForm();
         const fieldName = `${mapping.key}_${pageIdx}_${mapping.id || Math.random().toString(36).substring(7)}`;
@@ -230,36 +277,44 @@ export async function generatePdfWithOverlay(
           { width: mapping.rect.width, height: mapping.rect.height },
           minSize,
           maxSize,
-          fitMode === 'multi-line' ? 'shrink-to-fit' : fitMode
+          fitMode === "multi-line" ? "shrink-to-fit" : fitMode,
         );
 
         if (fit.isOverflow) {
           warnings.push({
-            type: 'overflow',
+            type: "overflow",
             fieldKey: mapping.key,
             message: `Text overflows field by ${fit.overflowPixels} points at minimum font size (${minSize}pt)`,
-            details: { overflowPixels: fit.overflowPixels, fittedFontSize: fit.fittedFontSize },
+            details: {
+              overflowPixels: fit.overflowPixels,
+              fittedFontSize: fit.fittedFontSize,
+            },
           });
         }
 
         tf.setFontSize(fit.fittedFontSize);
 
-        if (mapping.alignment === 'center') {
+        if (mapping.alignment === "center") {
           tf.setAlignment(TextAlignment.Center);
-        } else if (mapping.alignment === 'right') {
+        } else if (mapping.alignment === "right") {
           tf.setAlignment(TextAlignment.Right);
         } else {
           tf.setAlignment(TextAlignment.Left);
         }
 
-        if (fitMode === 'multi-line') {
+        if (fitMode === "multi-line") {
           tf.enableMultiline();
         }
 
         tf.setText(textToRender);
         tf.updateAppearances(font);
-      } else if (fitMode === 'multi-line') {
-        const lhMultiplier = mapping.lineHeight && mapping.fontSize ? mapping.lineHeight / mapping.fontSize : 1.25;
+      } else if (fitMode === "multi-line") {
+        const lhMultiplier =
+          mapping.lineHeight &&
+          mapping.fontSize &&
+          mapping.lineHeight >= mapping.fontSize
+            ? mapping.lineHeight / mapping.fontSize
+            : 1.25;
         const wrapResult = calculateMultiLineWrap(
           textToRender,
           font,
@@ -267,28 +322,32 @@ export async function generatePdfWithOverlay(
           mapping.fontSize || 12,
           lhMultiplier,
           minSize,
-          maxSize
+          maxSize,
         );
 
         if (wrapResult.isOverflow) {
           warnings.push({
-            type: 'overflow',
+            type: "overflow",
             fieldKey: mapping.key,
             message: `Multi-line text overflows box height by ${wrapResult.overflowPixels} points at minimum font size (${minSize}pt)`,
-            details: { overflowPixels: wrapResult.overflowPixels, fittedFontSize: wrapResult.fittedFontSize },
+            details: {
+              overflowPixels: wrapResult.overflowPixels,
+              fittedFontSize: wrapResult.fittedFontSize,
+            },
           });
         }
 
         const fontSize = wrapResult.fittedFontSize;
         const lineHeight = wrapResult.lineHeight;
-        const startBaselineY = mapping.rect.y + mapping.rect.height - fontSize * 0.9;
+        const startBaselineY =
+          mapping.rect.y + mapping.rect.height - fontSize * 0.9;
 
         wrapResult.lines.forEach((lineText, lineIdx) => {
           const lineWidth = font.widthOfTextAtSize(lineText, fontSize);
           let lineX = mapping.rect.x;
-          if (mapping.alignment === 'center') {
+          if (mapping.alignment === "center") {
             lineX = mapping.rect.x + (mapping.rect.width - lineWidth) / 2;
-          } else if (mapping.alignment === 'right') {
+          } else if (mapping.alignment === "right") {
             lineX = mapping.rect.x + mapping.rect.width - lineWidth;
           }
           const baselineY = startBaselineY - lineIdx * lineHeight;
@@ -308,27 +367,33 @@ export async function generatePdfWithOverlay(
           { width: mapping.rect.width, height: mapping.rect.height },
           minSize,
           maxSize,
-          fitMode
+          fitMode,
         );
 
         if (fit.isOverflow) {
           warnings.push({
-            type: 'overflow',
+            type: "overflow",
             fieldKey: mapping.key,
             message: `Text overflows field by ${fit.overflowPixels} points at minimum font size (${minSize}pt)`,
-            details: { overflowPixels: fit.overflowPixels, fittedFontSize: fit.fittedFontSize },
+            details: {
+              overflowPixels: fit.overflowPixels,
+              fittedFontSize: fit.fittedFontSize,
+            },
           });
         }
 
         const fontSize = fit.fittedFontSize;
         const textWidth = font.widthOfTextAtSize(textToRender, fontSize);
         const textHeight = font.heightAtSize(fontSize);
-        const baselineY = mapping.rect.y + (mapping.rect.height - textHeight) / 2 + textHeight * 0.2;
+        const baselineY =
+          mapping.rect.y +
+          (mapping.rect.height - textHeight) / 2 +
+          textHeight * 0.2;
 
         let textX = mapping.rect.x;
-        if (mapping.alignment === 'center') {
+        if (mapping.alignment === "center") {
           textX = mapping.rect.x + (mapping.rect.width - textWidth) / 2;
-        } else if (mapping.alignment === 'right') {
+        } else if (mapping.alignment === "right") {
           textX = mapping.rect.x + mapping.rect.width - textWidth;
         }
 
@@ -360,7 +425,7 @@ export async function generatePdfWithOverlay(
     try {
       outDoc.getForm().flatten();
     } catch (err) {
-      console.warn('AcroForm flattening notice:', err);
+      console.warn("AcroForm flattening notice:", err);
     }
   }
 

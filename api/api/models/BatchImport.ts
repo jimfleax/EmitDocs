@@ -14,6 +14,7 @@ export interface IBatchImport extends Document {
   rawHeaders: string[];
   disambiguatedHeaders: string[];
   columnMap: Record<string, string>;
+  dateFormatHints?: Record<string, string>;
   status: ImportStatus;
   totalExpectedRows: number;
   totalExpectedChunks: number;
@@ -39,6 +40,7 @@ const BatchImportSchema = new Schema<IBatchImport>(
     rawHeaders: { type: [String], default: [] },
     disambiguatedHeaders: { type: [String], default: [] },
     columnMap: { type: Schema.Types.Mixed, default: {} },
+    dateFormatHints: { type: Schema.Types.Mixed, default: {} },
     status: {
       type: String,
       enum: ['pending', 'uploading', 'processing', 'completed', 'failed'],

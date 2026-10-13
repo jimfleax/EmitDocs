@@ -1,8 +1,10 @@
-import type { FC, ReactNode } from 'react';
+import type { FC, ReactNode } from "react";
 
-export type SwipeToastVariant = 'default' | 'success' | 'error' | 'failure' | 'warning' | 'info' | 'loading';
+export type SwipeToastVariant =
+  "default" | "success" | "error" | "failure" | "warning" | "info" | "loading";
 
-export type SwipeToastCloseReason = 'timeout' | 'swipe' | 'action' | 'close' | 'escape' | 'programmatic';
+export type SwipeToastCloseReason =
+  "timeout" | "swipe" | "action" | "close" | "escape" | "programmatic";
 
 export interface SwipeToastProps {
   /** The feedback category preset. Default: 'default' */
@@ -40,7 +42,7 @@ export interface SwipeToastProps {
   /** Milliseconds until it closes itself. Default: 4000 (0 for loading/infinite). */
   duration?: number;
   /** Which edge the line burns along. Default: 'bottom' */
-  fuse?: 'bottom' | 'top' | 'none';
+  fuse?: "bottom" | "top" | "none";
   /** Hovering freezes the line and timer. Default: true */
   pauseOnHover?: boolean;
   /** Adds a cross at the end of the row. Default: false */

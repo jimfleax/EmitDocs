@@ -1,9 +1,9 @@
-import React from 'react';
-import type { DetectedToken } from '@/lib/pdf-engine/token-detector';
-import type { IFieldMapping } from './types';
-import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
-import { X } from '@phosphor-icons/react';
+import React from "react";
+import type { DetectedToken } from "@/lib/pdf-engine/token-detector";
+import type { IFieldMapping } from "./types";
+import { Button } from "@/components/ui/button";
+import { Tooltip } from "@/components/ui/tooltip";
+import { X } from "@phosphor-icons/react";
 
 interface DetectedTokenListProps {
   tokens: DetectedToken[];
@@ -24,7 +24,9 @@ export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({
   const unconfirmedTokens = tokens.filter(
     (t) =>
       t.pageIndex === activePageIndex &&
-      !fieldMappings.some((m) => m.key === t.key && m.pageIndex === activePageIndex)
+      !fieldMappings.some(
+        (m) => m.key === t.key && m.pageIndex === activePageIndex,
+      ),
   );
 
   if (unconfirmedTokens.length === 0) {
@@ -45,7 +47,9 @@ export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({
       </div>
 
       <p className="text-[11px] text-slate-500 leading-tight">
-        Detected double-brace tokens. Click <span className="font-semibold text-slate-700">Confirm</span> to create an editable dynamic field.
+        Detected double-brace tokens. Click{" "}
+        <span className="font-semibold text-slate-700">Confirm</span> to create
+        an editable dynamic field.
       </p>
 
       <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
@@ -59,17 +63,23 @@ export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({
                 &#123;&#123;{token.key}&#125;&#125;
               </span>
               <Tooltip
-                content={token.confidence === 'split-span' ? 'Spanned multiple text runs' : 'Single text item'}
+                content={
+                  token.confidence === "split-span"
+                    ? "Spanned multiple text runs"
+                    : "Single text item"
+                }
                 side="top"
               >
                 <span
                   className={`text-[9px] px-1 py-0.2 rounded font-sans ${
-                    token.confidence === 'split-span'
-                      ? 'bg-purple-100 text-purple-700'
-                      : 'bg-slate-100 text-slate-600'
+                    token.confidence === "split-span"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-slate-100 text-slate-600"
                   }`}
                 >
-                  {token.confidence === 'split-span' ? 'reconstructed' : 'exact'}
+                  {token.confidence === "split-span"
+                    ? "reconstructed"
+                    : "exact"}
                 </span>
               </Tooltip>
             </div>
@@ -78,7 +88,9 @@ export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({
               <Button
                 variant="default"
                 size="sm"
-                onClick={(e) => onConfirmToken(token, e.shiftKey || e.ctrlKey || e.metaKey)}
+                onClick={(e) =>
+                  onConfirmToken(token, e.shiftKey || e.ctrlKey || e.metaKey)
+                }
                 className="h-6 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-medium"
               >
                 Confirm

@@ -1,19 +1,19 @@
-import { createFileRoute, Link, redirect } from '@tanstack/react-router'
-import { GoogleSignInButton } from '@/components/auth/GoogleSignInButton'
-import { Balatro } from '@/components/ui/Balatro'
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
+import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
+import { Balatro } from "@/components/ui/Balatro";
 
-export const Route = createFileRoute('/sign-in')({
+export const Route = createFileRoute("/sign-in")({
   beforeLoad: ({ context }) => {
     if (context.auth.session) {
       throw redirect({
-        to: '/app',
-      })
+        to: "/app",
+      });
     }
   },
   component: SignIn,
-})
+});
 
-const CURRENT_YEAR = new Date().getFullYear()
+const CURRENT_YEAR = new Date().getFullYear();
 
 function SignIn() {
   return (
@@ -43,7 +43,8 @@ function SignIn() {
               Welcome back
             </h1>
             <p className="text-sm text-slate-500 leading-relaxed">
-              Sign in with your Google account to access your certificate templates, issuance batches, and documents.
+              Sign in with your Google account to access your certificate
+              templates, issuance batches, and documents.
             </p>
           </div>
 
@@ -66,7 +67,8 @@ function SignIn() {
                 className="text-slate-600 hover:text-blue-600 underline underline-offset-2 transition-colors"
               >
                 Privacy Policy
-              </a>.
+              </a>
+              .
             </p>
           </div>
         </div>
@@ -75,10 +77,16 @@ function SignIn() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-400">
           <span>© {CURRENT_YEAR} EmitDocs. All rights reserved.</span>
           <div className="flex items-center gap-4">
-            <Link to="/terms" className="hover:text-slate-600 transition-colors">
+            <Link
+              to="/terms"
+              className="hover:text-slate-600 transition-colors"
+            >
               Terms
             </Link>
-            <Link to="/privacy" className="hover:text-slate-600 transition-colors">
+            <Link
+              to="/privacy"
+              className="hover:text-slate-600 transition-colors"
+            >
               Privacy
             </Link>
           </div>
@@ -99,5 +107,5 @@ function SignIn() {
         </div>
       </div>
     </div>
-  )
+  );
 }
