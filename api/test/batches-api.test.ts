@@ -12,6 +12,9 @@ import {
   updateImportMapping,
   submitRowsChunk,
   finalizeImport,
+  getBatchActivity,
+  deleteBatch,
+  getBatches,
 } from '../api/controllers/batches.controller.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
@@ -313,6 +316,99 @@ async function runTests() {
     const rev1Count = await DraftRow.countDocuments({ batchId: testBatchId, revision: 1 });
     assert.strictEqual(rev1Count, 3, 'Revision 1 draft rows must remain intact');
     console.log('  ✓ Re-import revision segregation verified (AC8)');
+  }
+
+  // ----------------------------------------------------
+  // Test 7: 30-Day Real Activity Endpoint
+  // ----------------------------------------------------
+  console.log('Test 7: 30-Day Real Activity Endpoint');
+  {
+    const cActivity = createMockContext({
+      user: mockUser,
+      query: { days: '30' },
+    });
+    await getBatchActivity(cActivity as any);
+    const { data, status } = cActivity._getResponse();
+    assert.strictEqual(status, 200, 'getBatchActivity must return 200');
+    assert.strictEqual(data.timeframe, '30d', 'timeframe must be 30d');
+    assert.strictEqual(data.activity.length, 30, 'activity must contain 30 daily buckets');
+    assert.ok(data.totalBatches >= 1, 'totalBatches must count created batches in window');
+    console.log('  ✓ 30-day activity endpoint verified');
+  }
+
+  // ----------------------------------------------------
+  // Test 8: Batch Deletion and Cascade Cleanup
+  // ----------------------------------------------------
+  console.log('Test 8: Batch Deletion and Cascade Cleanup');
+  {
+    const rowCountBefore = await DraftRow.countDocuments({ batchId: testBatchId });
+    assert.ok(rowCountBefore > 0, 'Rows should exist before deletion');
+
+    const cDelete = createMockContext({
+      user: mockUser,
+      params: { id: testBatchId },
+    });
+    await deleteBatch(cDelete as any);
+    const { data, status } = cDelete._getResponse();
+    assert.strictEqual(status, 200, 'deleteBatch must return 200');
+    assert.strictEqual(data.success, true, 'deleteBatch must succeed');
+
+    const deletedBatch = await Batch.findById(testBatchId);
+    assert.strictEqual(deletedBatch, null, 'Batch should be deleted from DB');
+
+    const remainingRows = await DraftRow.countDocuments({ batchId: testBatchId });
+    assert.strictEqual(remainingRows, 0, 'Associated draft rows should be cascade deleted');
+
+    const remainingImports = await BatchImport.countDocuments({ batchId: testBatchId });
+    assert.strictEqual(remainingImports, 0, 'Associated imports should be cascade deleted');
+
+    console.log('  ✓ Batch and associated records deleted cleanly');
+  }
+
+  // ----------------------------------------------------
+  console.log('Test 9: Listing Batches with Template Population & Scoping');
+  {
+    const otherUserId = `other_user_${Date.now()}`;
+    const b1 = await Batch.create({
+      ownerId: testUserId,
+      templateId: template._id,
+      templateVersionId: templateVersion._id,
+      name: 'Alpha Batch Run',
+      status: 'ready_for_download',
+      totalRows: 10,
+      validRows: 10,
+    });
+    const b2 = await Batch.create({
+      ownerId: testUserId,
+      templateId: template._id,
+      templateVersionId: templateVersion._id,
+      name: 'Beta Batch Run',
+      status: 'draft',
+      totalRows: 5,
+      validRows: 0,
+    });
+    const bOther = await Batch.create({
+      ownerId: otherUserId,
+      templateId: template._id,
+      templateVersionId: templateVersion._id,
+      name: 'Foreign Batch Run',
+      status: 'ready_for_download',
+    });
+
+    const cGet = createMockContext({ user: mockUser });
+    await getBatches(cGet as any);
+    const { data, status } = cGet._getResponse();
+
+    assert.strictEqual(status, 200, 'getBatches must return 200');
+    assert.ok(Array.isArray(data.batches), 'Must return batches array');
+    assert.strictEqual(data.batches.length, 2, 'Should only return user batches (2)');
+    assert.strictEqual(data.batches[0].name, 'Beta Batch Run', 'Newest batch should be first');
+    assert.ok(data.batches[0].templateId, 'templateId should be present');
+    assert.strictEqual(data.batches[0].templateId.name, 'Diploma Template', 'templateId should be populated with template name');
+
+    // Clean up created test batches
+    await Batch.deleteMany({ _id: { $in: [b1._id, b2._id, bOther._id] } });
+    console.log('  ✓ Batches listed correctly with populated templateId');
   }
 
   // Clean up test documents

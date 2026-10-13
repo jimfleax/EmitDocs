@@ -61,13 +61,15 @@ export function createEditorHistory<T>(initialPresent: T, maxDepth = MAX_HISTORY
   };
 }
 
+export type FieldMappingsUpdater = IFieldMapping[] | ((prev: IFieldMapping[]) => IFieldMapping[]);
+
 export interface UseEditorHistoryReturn {
   fieldMappings: IFieldMapping[];
   canUndo: boolean;
   canRedo: boolean;
   undo: () => void;
   redo: () => void;
-  pushSnapshot: (mappings: IFieldMapping[]) => void;
+  pushSnapshot: (mappingsOrUpdater: FieldMappingsUpdater) => void;
   setFieldMappingsDirect: React.Dispatch<React.SetStateAction<IFieldMapping[]>>;
   resetHistory: (initial: IFieldMapping[]) => void;
 }
@@ -85,11 +87,15 @@ export function useEditorHistory(initialMappings: IFieldMapping[] = []): UseEdit
     presentRef.current = present;
   }, [present]);
 
-  const pushSnapshot = useCallback((nextMappings: IFieldMapping[]) => {
+  const pushSnapshot = useCallback((nextOrUpdater: FieldMappingsUpdater) => {
+    const current = presentRef.current;
+    const nextMappings = typeof nextOrUpdater === 'function' ? nextOrUpdater(current) : nextOrUpdater;
+
     setPast((prevPast) => {
-      const newPast = [...prevPast, presentRef.current];
+      const newPast = [...prevPast, current];
       return newPast.length > MAX_HISTORY_DEPTH ? newPast.slice(newPast.length - MAX_HISTORY_DEPTH) : newPast;
     });
+    presentRef.current = nextMappings;
     setPresent(nextMappings);
     setFuture([]);
   }, []);
@@ -101,6 +107,7 @@ export function useEditorHistory(initialMappings: IFieldMapping[] = []): UseEdit
       const newPast = prevPast.slice(0, prevPast.length - 1);
 
       setFuture((prevFuture) => [presentRef.current, ...prevFuture]);
+      presentRef.current = previous;
       setPresent(previous);
       return newPast;
     });
@@ -116,12 +123,14 @@ export function useEditorHistory(initialMappings: IFieldMapping[] = []): UseEdit
         const newPast = [...prevPast, presentRef.current];
         return newPast.length > MAX_HISTORY_DEPTH ? newPast.slice(newPast.length - MAX_HISTORY_DEPTH) : newPast;
       });
+      presentRef.current = next;
       setPresent(next);
       return newFuture;
     });
   }, []);
 
   const resetHistory = useCallback((initial: IFieldMapping[]) => {
+    presentRef.current = initial;
     setPast([]);
     setPresent(initial);
     setFuture([]);

@@ -326,8 +326,8 @@ async function runTests() {
 
     const collisions = res.data.ambiguous.filter((a: any) => a.reason === 'COLLISION');
     assert.strictEqual(collisions.length, 2, 'Both colliding rows must be tagged COLLISION');
-    assert(collisions.some((c: any) => c.rowKey === 'row_dup_1'));
-    assert(collisions.some((c: any) => c.rowKey === 'row_dup_2'));
+    assert(collisions.some((item: any) => item.rowKey === 'row_dup_1'));
+    assert(collisions.some((item: any) => item.rowKey === 'row_dup_2'));
 
     await DraftRow.deleteMany({ _id: { $in: [dupRow1._id, dupRow2._id] } });
     console.log('  ✓ test_ambiguous_on_duplicate_key_collision passed');

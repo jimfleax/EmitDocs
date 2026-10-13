@@ -67,37 +67,39 @@ export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
       </Tooltip>
 
       {/* Text Color Picker */}
-      <Tooltip content="Text Color" side="top">
-        <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
-          <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">T</label>
-          <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
-            <input
-              type="color"
-              value={field.color || '#000000'}
-              onChange={(e) => handleTextColorChange(e.target.value)}
-              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            />
-            <div className="w-full h-full" style={{ backgroundColor: field.color || '#000000' }} />
-          </div>
+      <div
+        title="Text Color"
+        className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
+      >
+        <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">T</label>
+        <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
+          <input
+            type="color"
+            value={field.color || '#000000'}
+            onChange={(e) => handleTextColorChange(e.target.value)}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          />
+          <div className="w-full h-full" style={{ backgroundColor: field.color || '#000000' }} />
         </div>
-      </Tooltip>
+      </div>
 
       {/* Background / Mask Color (Only active when not transparent) */}
       {!isTransparent && (
-        <Tooltip content="Background Fill Color" side="top">
-          <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
-            <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">BG</label>
-            <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
-              <input
-                type="color"
-                value={field.maskColor || '#ffffff'}
-                onChange={(e) => handleMaskColorChange(e.target.value)}
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-              />
-              <div className="w-full h-full" style={{ backgroundColor: field.maskColor || '#ffffff' }} />
-            </div>
+        <div
+          title="Background Fill Color"
+          className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
+        >
+          <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">BG</label>
+          <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
+            <input
+              type="color"
+              value={field.maskColor || '#ffffff'}
+              onChange={(e) => handleMaskColorChange(e.target.value)}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+            <div className="w-full h-full" style={{ backgroundColor: field.maskColor || '#ffffff' }} />
           </div>
-        </Tooltip>
+        </div>
       )}
 
       {/* Duplicate Button */}

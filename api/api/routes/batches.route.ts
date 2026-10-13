@@ -3,6 +3,7 @@ import { requireAuth } from '../middleware/auth.middleware.js';
 import {
   createBatch,
   getBatches,
+  getBatchActivity,
   getBatchById,
   createImport,
   updateImportMapping,
@@ -12,6 +13,7 @@ import {
   patchDraftRow,
   getReimportDiff,
   reconcileReimport,
+  deleteBatch,
 } from '../controllers/batches.controller.js';
 
 const batchesApp = new Hono();
@@ -20,7 +22,9 @@ batchesApp.use('*', requireAuth);
 
 batchesApp.post('/', createBatch);
 batchesApp.get('/', getBatches);
+batchesApp.get('/activity', getBatchActivity);
 batchesApp.get('/:id', getBatchById);
+batchesApp.delete('/:id', deleteBatch);
 
 // Import workflows
 batchesApp.post('/:id/imports', createImport);

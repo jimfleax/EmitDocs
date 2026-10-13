@@ -19,6 +19,7 @@ import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as ProtectedAppRouteImport } from './routes/_protected/app'
 import { Route as DebugErrorsRouteImport } from './routes/debug.errors'
 import { Route as ProtectedAppIndexRouteImport } from './routes/_protected/app/index'
+import { Route as ProtectedAppBatchesIndexRouteImport } from './routes/_protected/app/batches/index'
 import { Route as ProtectedAppBatchesNewRouteImport } from './routes/_protected/app/batches/new'
 import { Route as ProtectedAppTemplatesIndexRouteImport } from './routes/_protected/app/templates/index'
 import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from './routes/_protected/app/templates/$templateId'
@@ -76,6 +77,12 @@ const ProtectedAppIndexRoute = ProtectedAppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ProtectedAppRoute,
 } as any)
+const ProtectedAppBatchesIndexRoute =
+  ProtectedAppBatchesIndexRouteImport.update({
+    id: '/batches/',
+    path: '/batches/',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
 const ProtectedAppBatchesNewRoute = ProtectedAppBatchesNewRouteImport.update({
   id: '/batches/new',
   path: '/batches/new',
@@ -131,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/app/batches/new': typeof ProtectedAppBatchesNewRoute
   '/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
   '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
+  '/app/batches/': typeof ProtectedAppBatchesIndexRoute
   '/app/templates/': typeof ProtectedAppTemplatesIndexRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
@@ -148,6 +156,7 @@ export interface FileRoutesByTo {
   '/app/batches/new': typeof ProtectedAppBatchesNewRoute
   '/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
   '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
+  '/app/batches': typeof ProtectedAppBatchesIndexRoute
   '/app/templates': typeof ProtectedAppTemplatesIndexRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
@@ -168,6 +177,7 @@ export interface FileRoutesById {
   '/_protected/app/batches/new': typeof ProtectedAppBatchesNewRoute
   '/_protected/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
   '/_protected/app/templates/new': typeof ProtectedAppTemplatesNewRoute
+  '/_protected/app/batches/': typeof ProtectedAppBatchesIndexRoute
   '/_protected/app/templates/': typeof ProtectedAppTemplatesIndexRoute
   '/_protected/app/batches/$batchId_/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/_protected/app/batches/$batchId_/review': typeof ProtectedAppBatchesBatchIdReviewRoute
@@ -188,6 +198,7 @@ export interface FileRouteTypes {
     | '/app/batches/new'
     | '/app/templates/$templateId'
     | '/app/templates/new'
+    | '/app/batches/'
     | '/app/templates/'
     | '/app/batches/$batchId/import'
     | '/app/batches/$batchId/review'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/app/batches/new'
     | '/app/templates/$templateId'
     | '/app/templates/new'
+    | '/app/batches'
     | '/app/templates'
     | '/app/batches/$batchId/import'
     | '/app/batches/$batchId/review'
@@ -224,6 +236,7 @@ export interface FileRouteTypes {
     | '/_protected/app/batches/new'
     | '/_protected/app/templates/$templateId'
     | '/_protected/app/templates/new'
+    | '/_protected/app/batches/'
     | '/_protected/app/templates/'
     | '/_protected/app/batches/$batchId_/import'
     | '/_protected/app/batches/$batchId_/review'
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppIndexRouteImport
       parentRoute: typeof ProtectedAppRoute
     }
+    '/_protected/app/batches/': {
+      id: '/_protected/app/batches/'
+      path: '/batches'
+      fullPath: '/app/batches/'
+      preLoaderRoute: typeof ProtectedAppBatchesIndexRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
     '/_protected/app/batches/new': {
       id: '/_protected/app/batches/new'
       path: '/batches/new'
@@ -370,6 +390,7 @@ interface ProtectedAppRouteChildren {
   ProtectedAppBatchesNewRoute: typeof ProtectedAppBatchesNewRoute
   ProtectedAppTemplatesTemplateIdRoute: typeof ProtectedAppTemplatesTemplateIdRoute
   ProtectedAppTemplatesNewRoute: typeof ProtectedAppTemplatesNewRoute
+  ProtectedAppBatchesIndexRoute: typeof ProtectedAppBatchesIndexRoute
   ProtectedAppTemplatesIndexRoute: typeof ProtectedAppTemplatesIndexRoute
   ProtectedAppBatchesBatchIdImportRoute: typeof ProtectedAppBatchesBatchIdImportRoute
   ProtectedAppBatchesBatchIdReviewRoute: typeof ProtectedAppBatchesBatchIdReviewRoute
@@ -381,6 +402,7 @@ const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
   ProtectedAppBatchesNewRoute: ProtectedAppBatchesNewRoute,
   ProtectedAppTemplatesTemplateIdRoute: ProtectedAppTemplatesTemplateIdRoute,
   ProtectedAppTemplatesNewRoute: ProtectedAppTemplatesNewRoute,
+  ProtectedAppBatchesIndexRoute: ProtectedAppBatchesIndexRoute,
   ProtectedAppTemplatesIndexRoute: ProtectedAppTemplatesIndexRoute,
   ProtectedAppBatchesBatchIdImportRoute: ProtectedAppBatchesBatchIdImportRoute,
   ProtectedAppBatchesBatchIdReviewRoute: ProtectedAppBatchesBatchIdReviewRoute,

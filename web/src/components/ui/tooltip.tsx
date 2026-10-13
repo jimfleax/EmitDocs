@@ -1,39 +1,16 @@
 import * as React from "react"
-import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 
-const TooltipProvider = TooltipPrimitive.Provider
-
-const TooltipRoot = TooltipPrimitive.Root
-
-const TooltipTrigger = TooltipPrimitive.Trigger
-
-const TooltipContent = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
->(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
-    <TooltipPrimitive.Content
-      ref={ref}
-      sideOffset={sideOffset}
-      className={cn(
-        "z-50 overflow-hidden rounded-md border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-medium text-slate-800 shadow-md backdrop-blur-xs select-none animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-1.5 data-[side=left]:slide-in-from-right-1.5 data-[side=right]:slide-in-from-left-1.5 data-[side=top]:slide-in-from-bottom-1.5 origin-[--radix-tooltip-content-transform-origin]",
-        className
-      )}
-      {...props}
-    />
-  </TooltipPrimitive.Portal>
-))
-TooltipContent.displayName = TooltipPrimitive.Content.displayName
-
-export interface TooltipProps extends React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Root> {
+export interface TooltipProps {
   content?: React.ReactNode
   side?: "top" | "right" | "bottom" | "left"
   align?: "start" | "center" | "end"
   sideOffset?: number
   contentClassName?: string
   asChild?: boolean
+  delayDuration?: number
+  children: React.ReactNode
 }
 
 const Tooltip = ({
@@ -43,38 +20,117 @@ const Tooltip = ({
   align = "center",
   sideOffset = 4,
   contentClassName,
-  asChild = true,
   delayDuration = 200,
-  ...props
 }: TooltipProps) => {
-  if (!content) {
-    return (
-      <TooltipPrimitive.Root delayDuration={delayDuration} {...props}>
-        {children}
-      </TooltipPrimitive.Root>
-    )
-  }
+  const [isVisible, setIsVisible] = React.useState(false)
+  const [coords, setCoords] = React.useState<{ top: number; left: number } | null>(null)
+  const triggerRef = React.useRef<HTMLSpanElement>(null)
+  const timerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  let triggerChild = children
-  if (React.isValidElement(children) && (children.props as any)?.disabled) {
-    triggerChild = <span className="inline-flex shrink-0">{children}</span>
+  const showTooltip = React.useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => {
+      if (!triggerRef.current) return
+      const rect = triggerRef.current.getBoundingClientRect()
+      let top = 0
+      let left = 0
+
+      if (side === "top") {
+        top = rect.top - sideOffset
+        left = align === "start" ? rect.left : align === "end" ? rect.right : rect.left + rect.width / 2
+      } else if (side === "bottom") {
+        top = rect.bottom + sideOffset
+        left = align === "start" ? rect.left : align === "end" ? rect.right : rect.left + rect.width / 2
+      } else if (side === "left") {
+        top = rect.top + rect.height / 2
+        left = rect.left - sideOffset
+      } else if (side === "right") {
+        top = rect.top + rect.height / 2
+        left = rect.right + sideOffset
+      }
+
+      setCoords({ top, left })
+      setIsVisible(true)
+    }, delayDuration)
+  }, [side, align, sideOffset, delayDuration])
+
+  const hideTooltip = React.useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setIsVisible(false)
+  }, [])
+
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  const transformStyle = React.useMemo(() => {
+    if (side === "top") {
+      return align === "start" ? "translate(0, -100%)" : align === "end" ? "translate(-100%, -100%)" : "translate(-50%, -100%)"
+    }
+    if (side === "bottom") {
+      return align === "start" ? "translate(0, 0)" : align === "end" ? "translate(-100%, 0)" : "translate(-50%, 0)"
+    }
+    if (side === "left") {
+      return "translate(-100%, -50%)"
+    }
+    return "translate(0, -50%)"
+  }, [side, align])
+
+  if (!content) {
+    return <>{children}</>
   }
 
   return (
-    <TooltipPrimitive.Root delayDuration={delayDuration} {...props}>
-      <TooltipPrimitive.Trigger asChild={asChild}>
-        {triggerChild}
-      </TooltipPrimitive.Trigger>
-      <TooltipContent
-        side={side}
-        align={align}
-        sideOffset={sideOffset}
-        className={contentClassName}
-      >
-        {content}
-      </TooltipContent>
-    </TooltipPrimitive.Root>
+    <span
+      ref={triggerRef}
+      onMouseEnter={showTooltip}
+      onMouseLeave={hideTooltip}
+      onFocus={showTooltip}
+      onBlur={hideTooltip}
+      className="inline-flex shrink-0 items-center justify-center"
+    >
+      {children}
+      {isVisible && coords && typeof document !== "undefined" && createPortal(
+        <div
+          style={{
+            position: "fixed",
+            top: coords.top,
+            left: coords.left,
+            transform: transformStyle,
+            zIndex: 9999,
+            pointerEvents: "none",
+          }}
+          className={cn(
+            "overflow-hidden rounded-md border border-slate-200/90 bg-white/95 px-2.5 py-1 text-xs font-medium text-slate-800 shadow-md backdrop-blur-xs select-none animate-in fade-in-0 zoom-in-95",
+            contentClassName
+          )}
+        >
+          {content}
+        </div>,
+        document.body
+      )}
+    </span>
   )
 }
+
+export interface TooltipProviderProps {
+  children: React.ReactNode
+  delayDuration?: number
+  skipDelayDuration?: number
+  disableHoverableContent?: boolean
+  [key: string]: unknown
+}
+
+const TooltipProvider: React.FC<TooltipProviderProps> = ({ children }) => <>{children}</>
+const TooltipRoot = Tooltip
+const TooltipTrigger = React.forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>((props, ref) => <span ref={ref} {...props} />)
+TooltipTrigger.displayName = "TooltipTrigger"
+const TooltipContent = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>((props, ref) => <div ref={ref} {...props} />)
+TooltipContent.displayName = "TooltipContent"
 
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider, TooltipRoot }

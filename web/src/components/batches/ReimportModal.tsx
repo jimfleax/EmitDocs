@@ -304,7 +304,7 @@ export function ReimportModal({
               type="button"
               onClick={handleProceedToDiff}
               disabled={isLoadingDiff}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold cursor-pointer shadow-sm"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold cursor-pointer shadow-sm shadow-blue-500/20 transition-all"
             >
               {isLoadingDiff ? <Spinner size="sm" variant="current" /> : null}
               Calculate Revision Diff
@@ -316,7 +316,7 @@ export function ReimportModal({
             <button
               type="button"
               onClick={handleNextFromDiff}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 text-white text-xs font-semibold cursor-pointer shadow-sm"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-semibold cursor-pointer shadow-sm shadow-blue-500/20 transition-all"
             >
               {diffResult && (diffResult.conflicted.length > 0 || diffResult.ambiguous.length > 0)
                 ? 'Resolve Conflicts & Ambiguities'

@@ -9,7 +9,7 @@ import {
 import { FilterByIssue, type FilterFacet, type FilterCounts } from './FilterByIssue';
 import { Badge } from '@/components/ui/Badge';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Spinner } from '@/components/ui/Spinner';
+import { DraftGallerySkeleton } from '@/components/skeletons/DraftGallerySkeleton';
 import { cn } from '@/lib/utils';
 import type { DraftRowItem } from './RowEditor';
 
@@ -70,6 +70,9 @@ export function DraftGallery({
         });
         if (debouncedQuery.trim().length > 0) {
           params.set('query', debouncedQuery.trim());
+        }
+        if (refreshTrigger) {
+          params.set('_r', String(refreshTrigger));
         }
 
         const res = await fetch(`/api/batches/${batchId}/rows?${params.toString()}`, {
@@ -132,7 +135,7 @@ export function DraftGallery({
   return (
     <div className="flex flex-col h-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
       {/* Top Controls Bar */}
-      <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-3">
+      <div className="p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-3 shrink-0">
         {/* Search Input */}
         <div className="relative">
           <MagnifyingGlass className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -163,12 +166,9 @@ export function DraftGallery({
       </div>
 
       {/* Row List / Table */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
         {isLoading && rows.length === 0 ? (
-          <div className="p-12 flex flex-col items-center justify-center text-slate-400 gap-2">
-            <Spinner size="md" variant="default" />
-            <span className="text-xs">Loading records...</span>
-          </div>
+          <DraftGallerySkeleton count={6} />
         ) : apiError ? (
           <div className="p-8 text-center text-rose-500 text-xs">{apiError}</div>
         ) : rows.length === 0 ? (
@@ -266,7 +266,7 @@ export function DraftGallery({
       </div>
 
       {/* Pagination Footer */}
-      <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 flex items-center justify-between text-xs text-slate-500">
+      <div className="p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 flex items-center justify-between text-xs text-slate-500 shrink-0">
         <div>
           Showing {rows.length > 0 ? (page - 1) * limit + 1 : 0}–
           {Math.min(page * limit, total)} of {total.toLocaleString()}

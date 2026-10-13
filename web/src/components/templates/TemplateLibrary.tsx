@@ -7,11 +7,13 @@ import {
   FilePdf,
   Certificate,
   CheckCircle,
+  PlusCircle,
 } from '@phosphor-icons/react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Badge } from '@/components/ui/Badge'
 import { Alert } from '@/components/ui/Alert'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { TemplateLibrarySkeleton } from '@/components/skeletons/TemplateLibrarySkeleton'
 
 interface TemplateVersion {
   _id?: string
@@ -20,6 +22,7 @@ interface TemplateVersion {
   bytes?: number
   sourceObjectKey?: string
   status?: string
+  fieldMappings?: any[]
 }
 
 interface Template {
@@ -108,7 +111,8 @@ export function TemplateLibrary() {
       try {
         setLoading(true);
         setError('');
-        const res = await fetch('/api/templates', {
+        const url = retryCount > 0 ? `/api/templates?_r=${retryCount}` : '/api/templates';
+        const res = await fetch(url, {
           credentials: 'include',
         });
         if (!res.ok) {
@@ -176,6 +180,7 @@ export function TemplateLibrary() {
       backTo="/app"
       backLabel="Back to Dashboard"
       isLoading={loading}
+      skeleton={<TemplateLibrarySkeleton />}
       loadingTitle="Loading templates..."
       actions={
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -234,7 +239,7 @@ export function TemplateLibrary() {
             ) : (
               <Link
                 to="/app/templates/new"
-                className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 active:scale-[0.98] text-white font-semibold px-4 py-2 rounded-xl shadow-xs transition-all cursor-pointer select-none text-sm"
+                className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold px-4 py-2 rounded-xl shadow-sm shadow-blue-500/20 transition-all cursor-pointer select-none text-sm"
               >
                 <Plus size={16} weight="bold" />
                 <span>Create your first template</span>
@@ -257,15 +262,20 @@ export function TemplateLibrary() {
               ? `${versionObj.pageCount} ${versionObj.pageCount === 1 ? 'Page' : 'Pages'}`
               : '1 Page'
 
+            const isMapped = Boolean(versionObj?.fieldMappings && versionObj.fieldMappings.length > 0)
+
             return (
               <div
                 key={template._id}
-                onClick={() =>
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('emitdocs_active_template_id', template._id)
+                  }
                   navigate({
                     to: '/app/templates/$templateId',
                     params: { templateId: template._id },
                   })
-                }
+                }}
                 className="rounded-2xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-lg transition-all overflow-hidden group flex flex-col cursor-pointer"
               >
                 {/* Thumbnail Area */}
@@ -309,25 +319,49 @@ export function TemplateLibrary() {
                     <Link
                       to="/app/templates/$templateId"
                       params={{ templateId: template._id }}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (typeof window !== 'undefined') {
+                          localStorage.setItem('emitdocs_active_template_id', template._id)
+                        }
+                      }}
                       className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 group/link cursor-pointer"
                     >
                       <span>View Details</span>
                       <span className="transition-transform group-hover/link:translate-x-0.5">&rarr;</span>
                     </Link>
 
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        setDeleteTarget(template)
-                      }}
-                      title="Delete template"
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                    >
-                      <Trash size={16} weight="bold" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                      {isMapped && (
+                        <Link
+                          to="/app/batches/new"
+                          search={{ templateId: template._id }}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            if (typeof window !== 'undefined') {
+                              localStorage.setItem('emitdocs_active_template_id', template._id)
+                            }
+                          }}
+                          className="px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg text-[11px] font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <PlusCircle size={13} weight="bold" />
+                          <span>Batch</span>
+                        </Link>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setDeleteTarget(template)
+                        }}
+                        title="Delete template"
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash size={16} weight="bold" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

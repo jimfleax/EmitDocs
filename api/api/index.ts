@@ -150,9 +150,11 @@ app.get('/', (c) => {
 
 import templatesApp from './routes/templates.route';
 import batchesApp from './routes/batches.route';
+import storageApp from './routes/storage.route';
 
 app.route('/templates', templatesApp);
 app.route('/batches', batchesApp);
+app.route('/storage', storageApp);
 
 // Standardized Not Found Handler
 app.notFound((c) => {

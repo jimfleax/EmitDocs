@@ -8,7 +8,8 @@ interface MappedFieldListProps {
   fields: IFieldMapping[];
   activePageIndex: number;
   selectedFieldId: string | null;
-  onSelectField: (id: string | null) => void;
+  selectedFieldIds?: string[];
+  onSelectField: (id: string | null, isMulti?: boolean) => void;
   onDeleteField: (id: string) => void;
 }
 
@@ -16,6 +17,7 @@ export const MappedFieldList: React.FC<MappedFieldListProps> = ({
   fields,
   activePageIndex,
   selectedFieldId,
+  selectedFieldIds,
   onSelectField,
   onDeleteField,
 }) => {
@@ -36,13 +38,15 @@ export const MappedFieldList: React.FC<MappedFieldListProps> = ({
 
       <div className="space-y-1.5 max-h-52 overflow-y-auto pr-1">
         {fields.map((field) => {
-          const isSelected = field.id === selectedFieldId;
+          const isSelected = selectedFieldIds
+            ? selectedFieldIds.includes(field.id)
+            : field.id === selectedFieldId;
           const isCurrentPage = field.pageIndex === activePageIndex;
 
           return (
             <div
               key={field.id}
-              onClick={() => onSelectField(field.id)}
+              onClick={(e) => onSelectField(field.id, e.shiftKey || e.ctrlKey || e.metaKey)}
               className={`p-2 rounded border text-xs cursor-pointer transition-all ${
                 isSelected
                   ? 'border-blue-500 bg-blue-50/80 ring-1 ring-blue-500 shadow-xs'

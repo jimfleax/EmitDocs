@@ -21,13 +21,13 @@ interface FieldPropertiesPanelProps {
   field: IFieldMapping | null;
   fields?: IFieldMapping[];
   selectedFieldIds?: string[];
-  onSelectField?: (id: string | null) => void;
+  onSelectField?: (id: string | null, isMulti?: boolean) => void;
   onUpdate: (updated: IFieldMapping) => void;
   onDelete: (id: string) => void;
   onDeleteMultiple?: (ids: string[]) => void;
 }
 
-export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
+const FieldPropertiesPanelComponent: React.FC<FieldPropertiesPanelProps> = ({
   field,
   fields = [],
   selectedFieldIds = [],
@@ -38,39 +38,13 @@ export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
 }) => {
   const fontFileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!field) {
-    if (fields.length > 0) {
-      return (
-        <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-2">
-          <p className="font-medium text-slate-700 text-[11px]">Select a field to configure:</p>
-          <div className="flex flex-wrap gap-1.5">
-            {fields.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => onSelectField?.(f.id)}
-                className="px-2 py-1 rounded bg-white border border-slate-200 hover:border-blue-500 font-mono text-[11px] text-blue-600 transition-colors shadow-2xs"
-              >
-                &#123;&#123;{f.key}&#125;&#125;
-              </button>
-            ))}
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="p-4 bg-slate-50 border border-slate-200 rounded-md text-xs text-slate-500 text-center">
-        Select a field on the canvas or click a suggested token to configure styling and behavior.
-      </div>
-    );
-  }
-
   const handleChange = <K extends keyof IFieldMapping>(key: K, value: IFieldMapping[K]) => {
+    if (!field) return;
     onUpdate({ ...field, [key]: value });
   };
 
   const handleFontFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!field) return;
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -89,6 +63,7 @@ export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
   };
 
   const handleClearCustomFont = () => {
+    if (!field) return;
     onUpdate({
       ...field,
       fontFamily: 'Helvetica',
@@ -99,6 +74,34 @@ export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
 
   return (
     <div className="space-y-3.5 p-3 sm:p-3.5 bg-white border border-slate-200 rounded-xl text-xs shadow-2xs max-w-full overflow-hidden">
+      {!field ? (
+        fields.length > 0 ? (
+          <div className="space-y-2">
+            <p className="font-medium text-slate-700 text-[11px]">Select a field to configure:</p>
+            <div className="flex flex-wrap gap-1.5">
+              {fields.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={(e) => onSelectField?.(f.id, e.shiftKey || e.ctrlKey || e.metaKey)}
+                  className={`px-2 py-1 rounded border font-mono text-[11px] transition-colors shadow-2xs cursor-pointer ${
+                    selectedFieldIds.includes(f.id)
+                      ? 'bg-blue-50 border-blue-500 text-blue-700 font-semibold ring-1 ring-blue-500'
+                      : 'bg-slate-50 border-slate-200 hover:border-blue-500 text-blue-600'
+                  }`}
+                >
+                  &#123;&#123;{f.key}&#125;&#125;
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="py-6 text-center text-slate-500 text-xs">
+            Select a field on the canvas or click a suggested token to configure styling and behavior.
+          </div>
+        )
+      ) : (
+        <>
       <div className="flex items-center justify-between pb-2 border-b border-slate-100 min-w-0">
         <div className="flex items-center gap-1.5">
           <h4 className="font-semibold text-slate-800 text-sm">Field Configuration</h4>
@@ -131,8 +134,13 @@ export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
             </SelectTrigger>
             <SelectContent className="bg-white">
               {fields.map((f) => (
-                <SelectItem key={f.id} value={f.id} className="font-mono text-xs">
-                  &#123;&#123;{f.key}&#125;&#125; ({f.label || f.type})
+                <SelectItem
+                  key={f.id}
+                  value={f.id}
+                  textValue={`{{${f.key}}} (${f.label || f.type})`}
+                  className="font-mono text-xs"
+                >
+                  {`{{${f.key}}} (${f.label || f.type})`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -187,8 +195,11 @@ export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
           <Select
             value={field.type}
             onValueChange={(val) => {
-              handleChange('type', val as any);
-              if (val === 'text') handleChange('format', undefined);
+              if (val === 'text') {
+                onUpdate({ ...field, type: 'text', format: undefined });
+              } else {
+                handleChange('type', val as any);
+              }
             }}
           >
             <SelectTrigger className="w-full h-8 text-xs bg-white text-slate-700 border-slate-200">
@@ -549,6 +560,86 @@ export const FieldPropertiesPanel: React.FC<FieldPropertiesPanelProps> = ({
         )}
         <p className="text-[10px] text-slate-400 mt-1">Used to evaluate fit, glyphs, and preview rendering.</p>
       </div>
+        </>
+      )}
     </div>
   );
 };
+
+function areFieldPropsEqual(prev: IFieldMapping | null, next: IFieldMapping | null): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return false;
+  return (
+    prev.id === next.id &&
+    prev.key === next.key &&
+    prev.label === next.label &&
+    prev.type === next.type &&
+    prev.format === next.format &&
+    prev.pageIndex === next.pageIndex &&
+    prev.alignment === next.alignment &&
+    prev.fontFamily === next.fontFamily &&
+    prev.customFontBytes === next.customFontBytes &&
+    prev.fontSize === next.fontSize &&
+    prev.minFontSize === next.minFontSize &&
+    prev.maxFontSize === next.maxFontSize &&
+    prev.color === next.color &&
+    prev.fitMode === next.fitMode &&
+    prev.lineHeight === next.lineHeight &&
+    prev.maskMode === next.maskMode &&
+    prev.maskColor === next.maskColor &&
+    prev.sampleValue === next.sampleValue &&
+    prev.textTransform === next.textTransform &&
+    prev.rect?.x === next.rect?.x &&
+    prev.rect?.y === next.rect?.y &&
+    prev.rect?.width === next.rect?.width &&
+    prev.rect?.height === next.rect?.height
+  );
+}
+
+function areSelectedFieldIdsEqual(prev?: string[], next?: string[]): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return !prev && !next;
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    if (prev[i] !== next[i]) return false;
+  }
+  return true;
+}
+
+function areFieldsEqual(prev?: IFieldMapping[], next?: IFieldMapping[]): boolean {
+  if (prev === next) return true;
+  if (!prev || !next) return !prev && !next;
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i++) {
+    if (
+      prev[i].id !== next[i].id ||
+      prev[i].key !== next[i].key ||
+      prev[i].label !== next[i].label ||
+      prev[i].type !== next[i].type
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
+export const FieldPropertiesPanel = React.memo(
+  FieldPropertiesPanelComponent,
+  (prevProps, nextProps) => {
+    if (prevProps === nextProps) return true;
+
+    if (!areFieldPropsEqual(prevProps.field, nextProps.field)) return false;
+    if (!areSelectedFieldIdsEqual(prevProps.selectedFieldIds, nextProps.selectedFieldIds)) return false;
+    if (!areFieldsEqual(prevProps.fields, nextProps.fields)) return false;
+
+    return (
+      prevProps.onSelectField === nextProps.onSelectField &&
+      prevProps.onUpdate === nextProps.onUpdate &&
+      prevProps.onDelete === nextProps.onDelete &&
+      prevProps.onDeleteMultiple === nextProps.onDeleteMultiple
+    );
+  }
+);
+
+FieldPropertiesPanel.displayName = 'FieldPropertiesPanel';
+

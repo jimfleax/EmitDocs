@@ -84,7 +84,7 @@ export function RecipientPreviewPanel({
   return (
     <div className="flex flex-col h-full bg-slate-100/70 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-xs">
       {/* Top Toolbar */}
-      <div className="p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
+      <div className="p-3 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 shrink-0">
         {/* Recipient Navigation */}
         <div className="flex items-center gap-1.5">
           <button
@@ -189,7 +189,7 @@ export function RecipientPreviewPanel({
 
       {/* Overflow Warning Notice */}
       {hasOverflow && (
-        <div className="px-4 pt-3">
+        <div className="px-4 pt-3 shrink-0">
           <Alert variant="warning" title="Layout Bounds Overflow">
             One or more text fields exceed the bounding box on this certificate.
             Values will be shrunk down or visually clipped. Review field size in template editor or shorten row data.
@@ -198,9 +198,9 @@ export function RecipientPreviewPanel({
       )}
 
       {/* Preview Viewport Canvas */}
-      <div className="flex-1 overflow-auto p-4 flex items-center justify-center min-h-[420px]">
+      <div className="flex-1 min-h-0 overflow-auto p-4 sm:p-6 flex">
         {sourcePdfBytes ? (
-          <div className="shadow-2xl rounded-sm overflow-hidden bg-white">
+          <div className="m-auto shadow-2xl rounded-sm overflow-hidden bg-white shrink-0">
             <PreviewDocumentPane
               sourcePdfBytes={sourcePdfBytes}
               fieldMappings={fieldMappings}
@@ -211,7 +211,7 @@ export function RecipientPreviewPanel({
             />
           </div>
         ) : (
-          <div className="text-xs text-slate-400">Loading document canvas...</div>
+          <div className="m-auto text-xs text-slate-400">Loading document canvas...</div>
         )}
       </div>
     </div>

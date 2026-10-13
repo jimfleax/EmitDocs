@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft } from '@phosphor-icons/react';
 import {
@@ -90,6 +90,18 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
 
   // Derived single selected field ID (first selected or null)
   const selectedFieldId = selectedFieldIds[0] || null;
+
+  // Stable ref of selectedFieldIds so layout/geometry recalculation does NOT trigger on selection change
+  const selectedFieldIdsRef = useRef<string[]>(selectedFieldIds);
+  useEffect(() => {
+    selectedFieldIdsRef.current = selectedFieldIds;
+  }, [selectedFieldIds]);
+
+  // Stable ref of fieldMappings for callbacks without stale closures
+  const fieldMappingsRef = useRef<IFieldMapping[]>(fieldMappings);
+  useEffect(() => {
+    fieldMappingsRef.current = fieldMappings;
+  }, [fieldMappings]);
 
   // Snapping & Guides state
   const [isSnapEnabled, setIsSnapEnabled] = useState(true);
@@ -197,7 +209,7 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
 
   // Token confirmation handler (AC1: user explicitly confirms suggested token)
   const handleConfirmToken = useCallback(
-    (token: DetectedToken) => {
+    (token: DetectedToken, isMulti?: boolean) => {
       const newField: IFieldMapping = {
         id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
         key: token.key,
@@ -218,10 +230,15 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
         sampleValue: `Sample ${token.key}`,
       };
 
-      pushSnapshot([...fieldMappings, newField]);
-      setSelectedFieldIds([newField.id]);
+      pushSnapshot((prev) => {
+        if (prev.some((f) => f.key === newField.key && f.pageIndex === newField.pageIndex)) {
+          return prev;
+        }
+        return [...prev, newField];
+      });
+      setSelectedFieldIds((prev) => (isMulti ? [...prev, newField.id] : [newField.id]));
     },
-    [fieldMappings, pushSnapshot]
+    [pushSnapshot]
   );
 
   const handleDismissToken = useCallback((token: DetectedToken) => {
@@ -231,31 +248,28 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
   // Update field mapping
   const handleUpdateField = useCallback(
     (updated: IFieldMapping) => {
-      const next = fieldMappings.map((f) => (f.id === updated.id ? updated : f));
-      pushSnapshot(next);
+      pushSnapshot((prev) => prev.map((f) => (f.id === updated.id ? updated : f)));
     },
-    [fieldMappings, pushSnapshot]
+    [pushSnapshot]
   );
 
   // Delete single field mapping
   const handleDeleteField = useCallback(
     (id: string) => {
-      const next = fieldMappings.filter((f) => f.id !== id);
-      pushSnapshot(next);
+      pushSnapshot((prev) => prev.filter((f) => f.id !== id));
       setSelectedFieldIds((prev) => prev.filter((fid) => fid !== id));
     },
-    [fieldMappings, pushSnapshot]
+    [pushSnapshot]
   );
 
   // Delete multiple field mappings
   const handleDeleteMultiple = useCallback(
     (ids: string[]) => {
       const idSet = new Set(ids);
-      const next = fieldMappings.filter((f) => !idSet.has(f.id));
-      pushSnapshot(next);
+      pushSnapshot((prev) => prev.filter((f) => !idSet.has(f.id)));
       setSelectedFieldIds((prev) => prev.filter((fid) => !idSet.has(fid)));
     },
-    [fieldMappings, pushSnapshot]
+    [pushSnapshot]
   );
 
   // Duplicate field with offset
@@ -272,15 +286,14 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
           y: Math.round((field.rect.y - 12) * 10) / 10,
         },
       };
-      pushSnapshot([...fieldMappings, duplicated]);
+      pushSnapshot((prev) => [...prev, duplicated]);
       setSelectedFieldIds([duplicated.id]);
     },
-    [fieldMappings, pushSnapshot]
+    [pushSnapshot]
   );
 
   // Direct Add Field (adds 180×36pt transparent field at page center)
   const handleAddField = useCallback(() => {
-    const fieldIndex = fieldMappings.length + 1;
     const boxWidth = 180;
     const boxHeight = 36;
     const centerX = Math.max(0, Math.round((pageDimensions.width - boxWidth) / 2));
@@ -294,46 +307,54 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
     };
     const initialRect = domToPdfRect(domRect, currentViewport);
 
-    const newField: IFieldMapping = {
-      id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      key: `field_${fieldIndex}`,
-      label: `Field ${fieldIndex}`,
-      type: 'text',
-      pageIndex: activePageIndex,
-      rect: {
-        x: Math.round(initialRect.x * 10) / 10,
-        y: Math.round(initialRect.y * 10) / 10,
-        width: Math.round(initialRect.width * 10) / 10,
-        height: Math.round(initialRect.height * 10) / 10,
-      },
-      alignment: 'left',
-      fontFamily: 'Helvetica',
-      fontSize: 14,
-      minFontSize: 8,
-      maxFontSize: 24,
-      color: '#000000',
-      fitMode: 'shrink-to-fit',
-      maskMode: 'none', // 100% Transparent background by default
-      sampleValue: `Value ${fieldIndex}`,
-    };
+    let createdId = '';
+    pushSnapshot((prev) => {
+      const fieldIndex = prev.length + 1;
+      const newField: IFieldMapping = {
+        id: `field_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+        key: `field_${fieldIndex}`,
+        label: `Field ${fieldIndex}`,
+        type: 'text',
+        pageIndex: activePageIndex,
+        rect: {
+          x: Math.round(initialRect.x * 10) / 10,
+          y: Math.round(initialRect.y * 10) / 10,
+          width: Math.round(initialRect.width * 10) / 10,
+          height: Math.round(initialRect.height * 10) / 10,
+        },
+        alignment: 'left',
+        fontFamily: 'Helvetica',
+        fontSize: 14,
+        minFontSize: 8,
+        maxFontSize: 24,
+        color: '#000000',
+        fitMode: 'shrink-to-fit',
+        maskMode: 'none', // 100% Transparent background by default
+        sampleValue: `Value ${fieldIndex}`,
+      };
+      createdId = newField.id;
+      return [...prev, newField];
+    });
 
-    pushSnapshot([...fieldMappings, newField]);
-    setSelectedFieldIds([newField.id]);
-  }, [fieldMappings, pageDimensions.width, pageDimensions.height, currentViewport, activePageIndex, pushSnapshot]);
+    if (createdId) {
+      setSelectedFieldIds([createdId]);
+    }
+  }, [pageDimensions.width, pageDimensions.height, currentViewport, activePageIndex, pushSnapshot]);
 
   // Alignment dispatcher
   const handleApplyAlignment = useCallback(
     (action: AlignmentAction) => {
-      const nextMappings = applyAlignmentToFields(
-        selectedFieldIds,
-        fieldMappings,
-        action,
-        currentViewport,
-        pageDimensions
+      pushSnapshot((prev) =>
+        applyAlignmentToFields(
+          selectedFieldIds,
+          prev,
+          action,
+          currentViewport,
+          pageDimensions
+        )
       );
-      pushSnapshot(nextMappings);
     },
-    [selectedFieldIds, fieldMappings, currentViewport, pageDimensions, pushSnapshot]
+    [selectedFieldIds, currentViewport, pageDimensions, pushSnapshot]
   );
 
   // Page dimensions & count determined by PdfPageNode
@@ -487,6 +508,75 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
     handleDeleteMultiple,
   ]);
 
+  // Global click-outside listener: unfocus selected fields when clicking outside
+  useEffect(() => {
+    let startX = 0;
+    let startY = 0;
+
+    const handlePointerDown = (e: MouseEvent) => {
+      startX = e.clientX;
+      startY = e.clientY;
+    };
+
+    const handlePointerUp = (e: MouseEvent) => {
+      if (selectedFieldIdsRef.current.length === 0) return;
+
+      // Ignore drags (e.g. canvas panning or node moving)
+      const distance = Math.hypot(e.clientX - startX, e.clientY - startY);
+      if (distance > 5) return;
+
+      const target = e.target as HTMLElement | null;
+      if (!target || !document.contains(target)) return;
+
+      // Ignore if clicking inside a field node
+      if (target.closest('.react-flow__node-field') || target.closest('[data-field-node]')) {
+        return;
+      }
+
+      // Ignore if clicking inside field node toolbar
+      if (target.closest('.react-flow__node-toolbar')) {
+        return;
+      }
+
+      // Ignore if clicking inside node resize handles
+      if (target.closest('.react-flow__resize-control')) {
+        return;
+      }
+
+      // Ignore if clicking inside top toolbar or inspector drawer
+      if (target.closest('[data-toolbar]') || target.closest('.react-flow__panel')) {
+        return;
+      }
+
+      // Ignore if clicking inside portaled selects, menus, popovers, modals, tooltips
+      if (
+        target.closest('[data-select-content]') ||
+        target.closest('[role="listbox"]') ||
+        target.closest('[role="dialog"]') ||
+        target.closest('[role="tooltip"]') ||
+        target.closest('[data-radix-portal]') ||
+        target.closest('[data-token-placeholder]')
+      ) {
+        return;
+      }
+
+      // Ignore if clicking controls (zoom in/out in bottom left)
+      if (target.closest('.react-flow__controls')) {
+        return;
+      }
+
+      // Any other click outside unfocuses selected fields
+      setSelectedFieldIds((prev) => (prev.length === 0 ? prev : []));
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('pointerup', handlePointerUp, true);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('pointerup', handlePointerUp, true);
+    };
+  }, []);
+
   // Save version with CAS concurrency check (AC7)
   const handleSaveVersion = async () => {
     if (!version) return;
@@ -576,32 +666,33 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
         const draggedFieldNodes = draggedNodes.filter((n) => n.type === 'field');
         const draggedIds = new Set(draggedFieldNodes.map((n) => n.id));
 
-        const updatedMappings = fieldMappings.map((m) => {
-          if (!draggedIds.has(m.id)) return m;
-          const dn = draggedFieldNodes.find((n) => n.id === m.id)!;
-          const domRect: DomRect = {
-            x: dn.position.x,
-            y: dn.position.y,
-            width: Number(dn.style?.width) || 100,
-            height: Number(dn.style?.height) || 30,
-          };
-          const pdfRect = domToPdfRect(domRect, currentViewport);
-          return {
-            ...m,
-            rect: {
-              x: Math.round(pdfRect.x * 10) / 10,
-              y: Math.round(pdfRect.y * 10) / 10,
-              width: Math.max(20, Math.round(pdfRect.width * 10) / 10),
-              height: Math.max(12, Math.round(pdfRect.height * 10) / 10),
-            },
-          };
-        });
-        pushSnapshot(updatedMappings);
+        pushSnapshot((prev) =>
+          prev.map((m) => {
+            if (!draggedIds.has(m.id)) return m;
+            const dn = draggedFieldNodes.find((n) => n.id === m.id)!;
+            const domRect: DomRect = {
+              x: dn.position.x,
+              y: dn.position.y,
+              width: Number(dn.style?.width) || 100,
+              height: Number(dn.style?.height) || 30,
+            };
+            const pdfRect = domToPdfRect(domRect, currentViewport);
+            return {
+              ...m,
+              rect: {
+                x: Math.round(pdfRect.x * 10) / 10,
+                y: Math.round(pdfRect.y * 10) / 10,
+                width: Math.max(20, Math.round(pdfRect.width * 10) / 10),
+                height: Math.max(12, Math.round(pdfRect.height * 10) / 10),
+              },
+            };
+          })
+        );
         return;
       }
 
       // Single node drag with snapping
-      const field = fieldMappings.find((m) => m.id === node.id);
+      const field = fieldMappingsRef.current.find((m) => m.id === node.id);
       if (!field) return;
 
       let finalDom: DomRect = {
@@ -612,7 +703,7 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
       };
 
       if (isSnapEnabled) {
-        const siblings = fieldMappings
+        const siblings = fieldMappingsRef.current
           .filter((m) => m.id !== node.id && m.pageIndex === activePageIndex)
           .map((m) => pdfToDomRect(m.rect, currentViewport));
 
@@ -625,23 +716,78 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
       }
 
       const pdfRect = domToPdfRect(finalDom, currentViewport);
-      const next = fieldMappings.map((f) =>
-        f.id === field.id
-          ? {
-              ...f,
-              rect: {
-                x: Math.round(pdfRect.x * 10) / 10,
-                y: Math.round(pdfRect.y * 10) / 10,
-                width: Math.max(20, Math.round(pdfRect.width * 10) / 10),
-                height: Math.max(12, Math.round(pdfRect.height * 10) / 10),
-              },
-            }
-          : f
+      pushSnapshot((prev) =>
+        prev.map((f) =>
+          f.id === node.id
+            ? {
+                ...f,
+                rect: {
+                  x: Math.round(pdfRect.x * 10) / 10,
+                  y: Math.round(pdfRect.y * 10) / 10,
+                  width: Math.max(20, Math.round(pdfRect.width * 10) / 10),
+                  height: Math.max(12, Math.round(pdfRect.height * 10) / 10),
+                },
+              }
+            : f
+        )
       );
-      pushSnapshot(next);
     },
-    [isSnapEnabled, fieldMappings, activePageIndex, currentViewport, snapThresholdPx, pushSnapshot]
+    [isSnapEnabled, activePageIndex, currentViewport, snapThresholdPx, pushSnapshot]
   );
+
+  // Guarded selection handlers to prevent cyclical re-renders and enable multi-selection
+  const handleSelectField = useCallback((id: string | null, isMulti?: boolean) => {
+    setSelectedFieldIds((prev) => {
+      if (!id) return [];
+      if (isMulti) {
+        if (prev.includes(id)) {
+          return prev.filter((fid) => fid !== id);
+        }
+        return [...prev, id];
+      }
+      if (prev.length === 1 && prev[0] === id) {
+        return prev;
+      }
+      return [id];
+    });
+  }, []);
+
+  const handleSelectionChange = useCallback(({ nodes: selNodes }: { nodes: Node[] }) => {
+    const fieldIds = selNodes.filter((n) => n.type === 'field').map((n) => n.id);
+    setSelectedFieldIds((prev) => {
+      if (prev.length === fieldIds.length && prev.every((id, idx) => id === fieldIds[idx])) {
+        return prev;
+      }
+      return fieldIds;
+    });
+  }, []);
+
+  const handleNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
+    if (node.type !== 'field') {
+      setSelectedFieldIds((prev) => (prev.length === 0 ? prev : []));
+      return;
+    }
+    const isMulti = event.shiftKey || event.metaKey || event.ctrlKey;
+    if (isMulti) {
+      // React Flow's multiSelectionKeyCode handles multi-selection and fires handleSelectionChange
+      return;
+    }
+    setSelectedFieldIds((prev) => {
+      if (prev.length === 1 && prev[0] === node.id) {
+        return prev;
+      }
+      return [node.id];
+    });
+  }, []);
+
+  const handlePaneClick = useCallback(() => {
+    setSelectedFieldIds((prev) => (prev.length === 0 ? prev : []));
+  }, []);
+
+  const handleToggleSnap = useCallback(() => setIsSnapEnabled((s) => !s), []);
+  const handleFitView = useCallback(() => fitView({ padding: 0.15, duration: 300 }), [fitView]);
+  const handleRotate = useCallback(() => setRotation((r) => (r + 90) % 360), []);
+  const handleOpenShortcuts = useCallback(() => setIsShortcutsModalOpen(true), []);
 
   // Compute React Flow nodes
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
@@ -662,9 +808,11 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
         pageHeight: pageDimensions.height,
         rotation,
         detectedTokens,
+        fieldMappings,
         onConfirmToken: handleConfirmToken,
         onPageLoaded: handlePageLoaded,
         onTokensDiscovered: setDetectedTokens,
+        onPageClick: handlePaneClick,
         viewport: currentViewport,
       },
       style: {
@@ -679,19 +827,22 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
       pageDimensions.height,
       rotation,
       detectedTokens,
+      fieldMappings,
       handleConfirmToken,
       handlePageLoaded,
+      handlePaneClick,
       currentViewport,
     ]
   );
 
+  // Recompute node layout and geometry only when fields, page, or viewport changes
   useEffect(() => {
     const currentPageFields = fieldMappings.filter((m) => m.pageIndex === activePageIndex);
     const siblingsDomRects = currentPageFields.map((m) => pdfToDomRect(m.rect, currentViewport));
 
     const fieldNodes: Node[] = currentPageFields.map((field) => {
       const domRect = pdfToDomRect(field.rect, currentViewport);
-      const isSelected = selectedFieldIds.includes(field.id);
+      const isSelected = selectedFieldIdsRef.current.includes(field.id);
 
       return {
         id: field.id,
@@ -722,7 +873,6 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
     fieldMappings,
     activePageIndex,
     currentViewport,
-    selectedFieldIds,
     handleUpdateField,
     handleDuplicateField,
     handleDeleteField,
@@ -730,6 +880,23 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
     snapThresholdPx,
     setNodes,
   ]);
+
+  // Synchronize selection changes into React Flow nodes without recreating node geometry
+  useEffect(() => {
+    setNodes((currentNodes) => {
+      let hasChanges = false;
+      const updatedNodes = currentNodes.map((node) => {
+        if (node.type !== 'field') return node;
+        const isSelected = selectedFieldIds.includes(node.id);
+        if (Boolean(node.selected) !== isSelected) {
+          hasChanges = true;
+          return { ...node, selected: isSelected };
+        }
+        return node;
+      });
+      return hasChanges ? updatedNodes : currentNodes;
+    });
+  }, [selectedFieldIds, setNodes]);
 
   if (loading) {
     return (
@@ -812,16 +979,9 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
             onNodesChange={onNodesChange}
             onNodeDrag={handleNodeDrag}
             onNodeDragStop={handleNodeDragStop}
-            onSelectionChange={({ nodes: selNodes }) => {
-              const fieldIds = selNodes.filter((n) => n.type === 'field').map((n) => n.id);
-              setSelectedFieldIds(fieldIds);
-            }}
-            onNodeClick={(_, node) => {
-              if (node.type === 'field') {
-                setSelectedFieldIds((prev) => (prev.includes(node.id) ? prev : [node.id]));
-              }
-            }}
-            onPaneClick={() => setSelectedFieldIds([])}
+            onSelectionChange={handleSelectionChange}
+            onNodeClick={handleNodeClick}
+            onPaneClick={handlePaneClick}
             fitView
             minZoom={0.2}
             maxZoom={3.0}
@@ -830,8 +990,8 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
             nodesDraggable={true}
             elementsSelectable={true}
             selectionMode={SelectionMode.Partial}
-            selectionKeyCode="Shift"
-            multiSelectionKeyCode="Shift"
+            selectionKeyCode={['Shift', 'Control', 'Meta']}
+            multiSelectionKeyCode={['Shift', 'Control', 'Meta']}
             deleteKeyCode={null}
           >
             <Background variant={BackgroundVariant.Dots} gap={16} size={1} color="#cbd5e1" />
@@ -852,7 +1012,7 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
               onNextPage={handleNextPage}
               onAddField={handleAddField}
               isSnapEnabled={isSnapEnabled}
-              onToggleSnap={() => setIsSnapEnabled((s) => !s)}
+              onToggleSnap={handleToggleSnap}
               snapThresholdPx={snapThresholdPx}
               onChangeSnapThreshold={setSnapThresholdPx}
               viewMode={viewMode}
@@ -863,21 +1023,21 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
               isSaving={isSaving}
               saveSuccessMessage={saveSuccessMessage}
               casError={casError}
-              onFitView={() => fitView({ padding: 0.15, duration: 300 })}
+              onFitView={handleFitView}
               rotation={rotation}
-              onRotate={() => setRotation((r) => (r + 90) % 360)}
+              onRotate={handleRotate}
               canUndo={canUndo}
               canRedo={canRedo}
               onUndo={undo}
               onRedo={redo}
               selectedFieldIds={selectedFieldIds}
               onApplyAlignment={handleApplyAlignment}
-              onOpenShortcuts={() => setIsShortcutsModalOpen(true)}
+              onOpenShortcuts={handleOpenShortcuts}
               onDeleteMultiple={handleDeleteMultiple}
               field={selectedField}
               fields={fieldMappings}
               selectedFieldId={selectedFieldId}
-              onSelectField={(id) => setSelectedFieldIds(id ? [id] : [])}
+              onSelectField={handleSelectField}
               onUpdateField={handleUpdateField}
               onDeleteField={handleDeleteField}
               detectedTokens={detectedTokens}

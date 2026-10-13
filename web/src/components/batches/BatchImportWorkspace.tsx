@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from '@tanstack/react-router';
-import { ArrowRight, WarningCircle } from '@phosphor-icons/react';
+import { ArrowRight, WarningCircle, Check, FileCsv, FileXls } from '@phosphor-icons/react';
 import { PageShell } from '@/components/layout/PageShell';
 import { Badge } from '@/components/ui/Badge';
 import { Alert } from '@/components/ui/Alert';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BatchImportSkeleton } from '@/components/skeletons/BatchImportSkeleton';
 import { DataFilePicker } from './DataFilePicker';
 import { WorksheetSelector } from './WorksheetSelector';
 import { ImportSchemaSummary } from './ImportSchemaSummary';
@@ -17,6 +18,13 @@ import { type ParsedSpreadsheetResult, parseXlsxBuffer } from '@/lib/spreadsheet
 
 interface BatchImportWorkspaceProps {
   batchId: string;
+}
+
+function formatFileSize(bytes?: number): string {
+  if (!bytes || bytes === 0) return '0 B';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
 export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
@@ -36,6 +44,14 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
   const [fileBuffer, setFileBuffer] = useState<ArrayBuffer | null>(null);
   const [parsedResult, setParsedResult] = useState<ParsedSpreadsheetResult | null>(null);
   const [activeImportId, setActiveImportId] = useState<string | null>(null);
+  const [isInitializingImport, setIsInitializingImport] = useState(false);
+  const [uploadedFileMeta, setUploadedFileMeta] = useState<{
+    name: string;
+    size: number;
+    type: string;
+    rowCount?: number;
+    worksheet?: string;
+  } | null>(null);
   const [columnMap, setColumnMap] = useState<Record<string, string>>({});
   const [dateHints, setDateHints] = useState<Record<string, 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD'>>({});
 
@@ -97,6 +113,19 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
           setCurrentStep(4);
           loadRows();
         }
+
+        if (data.currentImport) {
+          const isXlsx =
+            data.currentImport.sourceFileName?.endsWith('.xlsx') ||
+            data.currentImport.sourceFileName?.endsWith('.xls');
+          setUploadedFileMeta({
+            name: data.currentImport.sourceFileName || 'Uploaded Spreadsheet',
+            size: data.currentImport.sourceFileSize || 0,
+            type: isXlsx ? 'xlsx' : 'csv',
+            rowCount: data.currentImport.rowCount || 0,
+            worksheet: data.currentImport.worksheetName,
+          });
+        }
       } catch (err: any) {
         setApiError(err.message || 'Error loading batch');
       } finally {
@@ -115,6 +144,15 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     setParsedResult(result);
     if (buffer) setFileBuffer(buffer);
     setApiError(null);
+    setIsInitializingImport(true);
+
+    setUploadedFileMeta({
+      name: fileMeta.name,
+      size: fileMeta.size,
+      type: fileMeta.type,
+      rowCount: result.rows.length,
+      worksheet: result.selectedWorksheet,
+    });
 
     try {
       // Initialize BatchImport record (AC8 - bumps revision if re-importing)
@@ -143,6 +181,8 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       setCurrentStep(2); // advance to mapping
     } catch (err: any) {
       setApiError(err.message || 'Error initializing import');
+    } finally {
+      setIsInitializingImport(false);
     }
   };
 
@@ -152,6 +192,15 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     try {
       const reParsed = parseXlsxBuffer(fileBuffer, { worksheetName: sheetName });
       setParsedResult(reParsed);
+      setUploadedFileMeta((prev) =>
+        prev
+          ? {
+              ...prev,
+              worksheet: sheetName,
+              rowCount: reParsed.rows.length,
+            }
+          : null
+      );
     } catch (err: any) {
       setApiError(err.message || 'Failed to switch worksheet');
     }
@@ -298,28 +347,50 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       maxWidth="5xl"
       contentClassName="space-y-6"
       isLoading={isLoadingBatch}
+      skeleton={<BatchImportSkeleton />}
       loadingTitle="Loading batch configuration..."
       actions={
         batch ? (
           <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold">
-            {(['1. File', '2. Map', '3. Ingest', '4. Review'] as const).map((label, idx) => {
-              const step = (idx + 1) as 1 | 2 | 3 | 4;
+            {(
+              [
+                { step: 1, label: '1. File' },
+                { step: 2, label: '2. Map' },
+                { step: 3, label: '3. Ingest' },
+                { step: 4, label: '4. Review' },
+              ] as const
+            ).map(({ step, label }, idx) => {
               const isActive = currentStep === step;
               const isDone = currentStep > step;
+              const canNavigate = isDone && step !== 3;
               return (
                 <span key={label} className="flex items-center gap-1.5">
-                  <span
-                    className={`px-2.5 py-1 rounded-full transition-all ${
+                  <button
+                    type="button"
+                    disabled={!canNavigate}
+                    onClick={() => {
+                      if (canNavigate) setCurrentStep(step as 1 | 2 | 4);
+                    }}
+                    className={`flex items-center gap-1.5 px-3 py-1 rounded-full transition-all text-xs font-semibold ${
                       isActive
-                        ? 'bg-slate-950 text-white'
+                        ? 'bg-blue-600 text-white shadow-sm ring-2 ring-blue-500/25'
                         : isDone
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                        : 'bg-slate-100 text-slate-400'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200/80 hover:bg-blue-100 hover:border-blue-300 cursor-pointer shadow-2xs'
+                        : 'bg-slate-100 text-slate-400 border border-slate-200/60 cursor-default'
                     }`}
                   >
+                    {isDone && <Check className="w-3.5 h-3.5 text-blue-600 stroke-[3]" weight="bold" />}
                     {label}
-                  </span>
-                  {idx < 3 && <span className="text-slate-300">→</span>}
+                  </button>
+                  {idx < 3 && (
+                    <span
+                      className={`text-xs font-bold transition-colors ${
+                        currentStep > step ? 'text-blue-400' : 'text-slate-300'
+                      }`}
+                    >
+                      →
+                    </span>
+                  )}
                 </span>
               );
             })}
@@ -337,6 +408,23 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
         />
       ) : (
         <>
+          {/* Mobile Step Progress Indicator */}
+          <div className="flex sm:hidden items-center justify-between px-3.5 py-2.5 bg-blue-50/70 border border-blue-100 rounded-xl">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+              <span className="text-xs font-semibold text-blue-900">
+                Step {currentStep} of 4:{' '}
+                {['File Upload', 'Column Mapping', 'Chunk Ingest', 'Validation Review'][currentStep - 1]}
+              </span>
+            </div>
+            <div className="w-20 bg-blue-200/60 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                style={{ width: `${(currentStep / 4) * 100}%` }}
+              />
+            </div>
+          </div>
+
           {apiError && (
             <Alert variant="error">
               {apiError}
@@ -351,13 +439,111 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 version={templateVersion?.version}
                 fields={fieldMappings}
               />
-              <DataFilePicker onParsed={handleFileParsed} />
+
+              {uploadedFileMeta && (
+                <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/20">
+                      {uploadedFileMeta.type === 'xlsx' ? (
+                        <FileXls className="w-5 h-5 text-white" />
+                      ) : (
+                        <FileCsv className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-xs font-bold text-slate-900 truncate">
+                          {uploadedFileMeta.name}
+                        </p>
+                        <Badge variant="primary" size="sm" shape="pill" dot>
+                          Currently Loaded
+                        </Badge>
+                        {uploadedFileMeta.worksheet && (
+                          <Badge variant="neutral" size="sm" shape="pill">
+                            Sheet: {uploadedFileMeta.worksheet}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500 mt-0.5 flex items-center gap-2 font-medium">
+                        <span>{formatFileSize(uploadedFileMeta.size)}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-blue-700 font-semibold">
+                          {uploadedFileMeta.rowCount?.toLocaleString()} rows
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setCurrentStep(2)}
+                    className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer select-none"
+                  >
+                    <span>Continue with this file</span>
+                    <ArrowRight className="w-3.5 h-3.5" weight="bold" />
+                  </button>
+                </div>
+              )}
+
+              <DataFilePicker
+                onParsed={handleFileParsed}
+                isLoading={isInitializingImport}
+                loadingText="Initializing batch import & validating headers..."
+              />
             </div>
           )}
 
           {/* Step 2: Worksheet & Column Mapping */}
           {currentStep === 2 && parsedResult && (
             <div className="space-y-6">
+              {/* Uploaded File Indicator Card */}
+              {uploadedFileMeta && (
+                <div className="p-4 rounded-2xl border border-blue-200/90 bg-linear-to-r from-blue-50/80 via-white to-blue-50/30 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3.5 min-w-0">
+                    <div className="w-11 h-11 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-blue-500/25">
+                      {uploadedFileMeta.type === 'xlsx' ? (
+                        <FileXls className="w-6 h-6 text-white" />
+                      ) : (
+                        <FileCsv className="w-6 h-6 text-white" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-bold text-slate-900 truncate">
+                          {uploadedFileMeta.name}
+                        </p>
+                        <Badge variant="success" size="sm" shape="pill" dot>
+                          File Ready
+                        </Badge>
+                        {uploadedFileMeta.worksheet && (
+                          <Badge variant="primary" size="sm" shape="pill">
+                            Sheet: {uploadedFileMeta.worksheet}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap font-medium">
+                        <span>{formatFileSize(uploadedFileMeta.size)}</span>
+                        <span className="text-slate-300">•</span>
+                        <span className="text-blue-700 font-semibold">
+                          {(uploadedFileMeta.rowCount || parsedResult.rows.length).toLocaleString()} records detected
+                        </span>
+                        <span className="text-slate-300">•</span>
+                        <span>{parsedResult.disambiguatedHeaders.length} headers parsed</span>
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(1)}
+                      className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 hover:text-slate-900 text-xs font-semibold transition-all shadow-2xs hover:border-slate-300 cursor-pointer"
+                    >
+                      Change File
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <WorksheetSelector
                 worksheets={parsedResult.availableWorksheets}
                 selectedWorksheet={parsedResult.selectedWorksheet}
@@ -387,10 +573,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 <button
                   type="button"
                   onClick={startChunkedUpload}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-950 hover:bg-slate-900 active:scale-[0.98] text-xs font-semibold text-white shadow-sm transition-all cursor-pointer select-none"
+                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.98] text-xs font-bold text-white shadow-sm shadow-blue-500/20 transition-all cursor-pointer select-none focus:outline-none focus:ring-2 focus:ring-blue-500/30"
                 >
                   Upload & Validate {parsedResult.rows.length.toLocaleString()} Records
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-4 h-4" weight="bold" />
                 </button>
               </div>
             </div>
@@ -398,14 +584,39 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
 
           {/* Step 3: Chunk Upload Pipeline */}
           {currentStep === 3 && (
-            <ImportProgress
-              currentChunk={uploadProgress.currentChunk}
-              totalChunks={uploadProgress.totalChunks}
-              uploadedRows={uploadProgress.uploadedRows}
-              totalRows={uploadProgress.totalRows}
-              status={uploadProgress.status}
-              errorMessage={uploadProgress.errorMessage}
-            />
+            <div className="space-y-6">
+              {uploadedFileMeta && (
+                <div className="p-3.5 rounded-xl border border-blue-200 bg-blue-50/70 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
+                    {uploadedFileMeta.type === 'xlsx' ? (
+                      <FileXls className="w-5 h-5 text-white" />
+                    ) : (
+                      <FileCsv className="w-5 h-5 text-white" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-bold text-slate-900 truncate">
+                      {uploadedFileMeta.name}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {formatFileSize(uploadedFileMeta.size)} · {uploadProgress.totalRows.toLocaleString()} rows
+                    </p>
+                  </div>
+                  <Badge variant="primary" size="sm" shape="pill" dot>
+                    Ingesting
+                  </Badge>
+                </div>
+              )}
+
+              <ImportProgress
+                currentChunk={uploadProgress.currentChunk}
+                totalChunks={uploadProgress.totalChunks}
+                uploadedRows={uploadProgress.uploadedRows}
+                totalRows={uploadProgress.totalRows}
+                status={uploadProgress.status}
+                errorMessage={uploadProgress.errorMessage}
+              />
+            </div>
           )}
 
           {/* Step 4: Validation Summary & Row Review */}

@@ -1,7 +1,7 @@
 import React from 'react'
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft } from '@phosphor-icons/react'
-import { LoadingState } from '@/components/ui/LoadingState'
+import { DefaultPageSkeleton } from '@/components/skeletons/DefaultPageSkeleton'
 import { cn } from '@/lib/utils'
 
 export type PageShellMaxWidth = '2xl' | '3xl' | '4xl' | '5xl' | '6xl' | 'full';
@@ -48,6 +48,8 @@ export interface PageShellProps {
   loadingTitle?: string
   /** Custom subtitle / description for LoadingState when isLoading is true */
   loadingDescription?: string
+  /** Optional dedicated skeleton component rendered when isLoading is true */
+  skeleton?: React.ReactNode
   /** Optional additional class names for the body container */
   contentClassName?: string
   /** Page body content */
@@ -67,8 +69,9 @@ export function PageShell({
   actions,
   maxWidth = 'full',
   isLoading = false,
-  loadingTitle,
-  loadingDescription,
+  loadingTitle: _loadingTitle,
+  loadingDescription: _loadingDescription,
+  skeleton,
   contentClassName,
   children,
 }: PageShellProps) {
@@ -93,9 +96,9 @@ export function PageShell({
               {title}
             </h1>
             {subtitle && (
-              <p className="text-xs sm:text-sm text-slate-400 mt-1 font-normal leading-relaxed">
+              <div className="text-xs sm:text-sm text-slate-400 mt-1 font-normal leading-relaxed">
                 {subtitle}
-              </p>
+              </div>
             )}
           </div>
         </div>
@@ -111,11 +114,11 @@ export function PageShell({
       {/* ── Body Container with Architectural Centering ─────────────────── */}
       <div className={cn('w-full min-w-0', MAX_WIDTH_CLASSES[maxWidth], contentClassName)}>
         {isLoading ? (
-          <LoadingState
-            size="section"
-            title={loadingTitle || 'Loading...'}
-            description={loadingDescription}
-          />
+          skeleton ? (
+            skeleton
+          ) : (
+            <DefaultPageSkeleton />
+          )
         ) : (
           children
         )}

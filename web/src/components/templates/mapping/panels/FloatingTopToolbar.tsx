@@ -76,18 +76,18 @@ export interface FloatingTopToolbarProps {
   field?: IFieldMapping | null;
   fields?: IFieldMapping[];
   selectedFieldId?: string | null;
-  onSelectField?: (id: string | null) => void;
+  onSelectField?: (id: string | null, isMulti?: boolean) => void;
   onUpdateField?: (field: IFieldMapping) => void;
   onDeleteField?: (id: string) => void;
   detectedTokens?: DetectedToken[];
-  onConfirmToken?: (token: DetectedToken) => void;
+  onConfirmToken?: (token: DetectedToken, isMulti?: boolean) => void;
   onDismissToken?: (token: DetectedToken) => void;
   warnings?: EngineWarning[];
 }
 
 type TabType = 'properties' | 'fields' | 'tokens' | 'warnings';
 
-export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
+const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   templateName,
   versionNumber,
   activePageIndex,
@@ -134,6 +134,17 @@ export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
   // Inspector drawer open/collapsed state
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>('properties');
+  const [prevSelectedFieldId, setPrevSelectedFieldId] = useState<string | null>(selectedFieldId || null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const inspectorBtnRef = useRef<HTMLButtonElement>(null);
+
+  // Switch to 'properties' tab on field change ONLY IF the drawer is already open
+  if (selectedFieldId !== prevSelectedFieldId) {
+    setPrevSelectedFieldId(selectedFieldId || null);
+    if (selectedFieldId && isDrawerOpen) {
+      setActiveTab('properties');
+    }
+  }
 
   // Secondary actions popover state
   const [isMoreOpen, setIsMoreOpen] = useState(false);
@@ -143,35 +154,55 @@ export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
   const [isAlignOpen, setIsAlignOpen] = useState(false);
   const alignMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close more menu and align menu on click outside
+  // Close more menu, align menu, and inspector drawer on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as HTMLElement | null;
+      if (!target || !document.contains(target)) return;
+
+      if (moreMenuRef.current && !moreMenuRef.current.contains(target)) {
         setIsMoreOpen(false);
       }
-      if (alignMenuRef.current && !alignMenuRef.current.contains(e.target as Node)) {
+      if (alignMenuRef.current && !alignMenuRef.current.contains(target)) {
+        setIsAlignOpen(false);
+      }
+
+      // Hide inspector drawer when clicking outside (excluding drawer, inspector toggle button, and portaled selects)
+      if (isDrawerOpen) {
+        const isInsideDrawer = drawerRef.current?.contains(target);
+        const isInsideInspectorBtn = inspectorBtnRef.current?.contains(target);
+        const isInsideSelectContent = Boolean(
+          target.closest?.('[data-select-content]') || target.closest?.('[role="listbox"]')
+        );
+
+        if (!isInsideDrawer && !isInsideInspectorBtn && !isInsideSelectContent) {
+          setIsDrawerOpen(false);
+        }
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsDrawerOpen(false);
+        setIsMoreOpen(false);
         setIsAlignOpen(false);
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
-  // Auto-open drawer to 'properties' tab when a field is selected on canvas
-  useEffect(() => {
-    if (selectedFieldId) {
-      queueMicrotask(() => {
-        setIsDrawerOpen(true);
-        setActiveTab('properties');
-      });
-    }
-  }, [selectedFieldId]);
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDrawerOpen]);
 
   // Filter detected tokens for current active page
   const pageTokens = detectedTokens.filter((t) => t.pageIndex === activePageIndex);
 
   return (
     <Panel
+      data-toolbar="true"
       position="top-center"
       className="!m-0 !top-3 !left-1/2 !-translate-x-1/2 z-35 pointer-events-auto"
       style={{
@@ -645,6 +676,7 @@ export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
           {/* Single Compact Inspector Toggle Button */}
           <Tooltip content={isDrawerOpen ? 'Collapse Inspector' : 'Open Inspector'} side="bottom">
             <Button
+              ref={inspectorBtnRef}
               variant={isDrawerOpen ? 'secondary' : 'ghost'}
               size="sm"
               onClick={() => setIsDrawerOpen((prev) => !prev)}
@@ -674,7 +706,10 @@ export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
 
         {/* Attached Expandable Inspector Drawer */}
         {isDrawerOpen && (
-          <div className="mt-2 w-[360px] sm:w-[400px] max-w-[calc(100vw-2.5rem)] max-h-[calc(100vh-8.5rem)] flex flex-col bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden select-none animate-in fade-in slide-in-from-top-2 duration-150">
+          <div
+            ref={drawerRef}
+            className="mt-2 w-[360px] sm:w-[400px] max-w-[calc(100vw-2.5rem)] max-h-[calc(100vh-8.5rem)] flex flex-col bg-white border border-slate-200 shadow-2xl rounded-2xl overflow-hidden select-none animate-in fade-in slide-in-from-top-2 duration-150"
+          >
             {/* Drawer Header with 4 Segmented Tabs */}
             <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-200 bg-slate-50/90 shrink-0 gap-1 min-w-0">
               <div className="flex items-center gap-1 overflow-x-auto py-0.5 scrollbar-none min-w-0 flex-1">
@@ -784,6 +819,7 @@ export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
                   fields={fields}
                   activePageIndex={activePageIndex}
                   selectedFieldId={selectedFieldId || null}
+                  selectedFieldIds={selectedFieldIds}
                   onSelectField={onSelectField || (() => {})}
                   onDeleteField={onDeleteField || (() => {})}
                 />
@@ -818,3 +854,6 @@ export const FloatingTopToolbar: React.FC<FloatingTopToolbarProps> = ({
     </Panel>
   );
 };
+
+export const FloatingTopToolbar = React.memo<FloatingTopToolbarProps>(FloatingTopToolbarComponent);
+FloatingTopToolbar.displayName = 'FloatingTopToolbar';

@@ -124,6 +124,7 @@ const FieldNodeComponent: React.FC<NodeProps<FieldNodeType>> = ({
 
   return (
     <div
+      data-field-node="true"
       className={`relative w-full h-full rounded transition-shadow select-none group ${
         selected
           ? 'border-2 border-blue-600 bg-blue-500/15 shadow-md ring-2 ring-blue-500/20 z-20 cursor-move'
@@ -179,52 +180,52 @@ const FieldNodeComponent: React.FC<NodeProps<FieldNodeType>> = ({
         </Tooltip>
 
         {/* Text Color Picker */}
-        <Tooltip content="Text Color" side="top">
-          <div className="flex items-center gap-1 border-l border-slate-700 pl-1.5">
+        <div
+          title="Text Color"
+          className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
+        >
+          <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">
+            T
+          </label>
+          <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
+            <input
+              type="color"
+              value={field.color || '#000000'}
+              onChange={(e) => onUpdateField({ ...field, color: e.target.value })}
+              className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+            />
+            <div className="w-full h-full" style={{ backgroundColor: field.color || '#000000' }} />
+          </div>
+        </div>
+
+        {/* Background Fill Color (when not transparent) */}
+        {!isTransparent && (
+          <div
+            title="Background Fill Color"
+            className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
+          >
             <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">
-              T
+              BG
             </label>
             <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
               <input
                 type="color"
-                value={field.color || '#000000'}
-                onChange={(e) => onUpdateField({ ...field, color: e.target.value })}
+                value={field.maskColor || '#ffffff'}
+                onChange={(e) =>
+                  onUpdateField({
+                    ...field,
+                    maskMode: 'custom-color',
+                    maskColor: e.target.value,
+                  })
+                }
                 className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
               />
-              <div className="w-full h-full" style={{ backgroundColor: field.color || '#000000' }} />
+              <div
+                className="w-full h-full"
+                style={{ backgroundColor: field.maskColor || '#ffffff' }}
+              />
             </div>
           </div>
-        </Tooltip>
-
-        {/* Background Fill Color (when not transparent) */}
-        {!isTransparent && (
-          <Tooltip content="Background Fill Color" side="top">
-            <div
-              className="flex items-center gap-1 border-l border-slate-700 pl-1.5"
-            >
-              <label className="text-[10px] text-slate-400 uppercase font-semibold cursor-pointer">
-                BG
-              </label>
-              <div className="relative w-4 h-4 rounded-full border border-slate-500 overflow-hidden cursor-pointer shadow-2xs hover:scale-110 transition-transform">
-                <input
-                  type="color"
-                  value={field.maskColor || '#ffffff'}
-                  onChange={(e) =>
-                    onUpdateField({
-                      ...field,
-                      maskMode: 'custom-color',
-                      maskColor: e.target.value,
-                    })
-                  }
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                />
-                <div
-                  className="w-full h-full"
-                  style={{ backgroundColor: field.maskColor || '#ffffff' }}
-                />
-              </div>
-            </div>
-          </Tooltip>
         )}
 
         {/* Duplicate Button */}

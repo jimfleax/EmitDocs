@@ -38,7 +38,7 @@ export function WorksheetSelector({
               onClick={() => onSelectWorksheet(sheet)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 isSelected
-                  ? 'bg-slate-950 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-500/20'
                   : 'bg-white text-slate-600 hover:bg-slate-100 hover:text-slate-900 border border-slate-200'
               } ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer select-none'}`}
             >

@@ -46,8 +46,8 @@ export function KeyboardShortcutsModal({ isOpen, onClose }: KeyboardShortcutsMod
     {
       category: 'Selection',
       items: [
-        { keys: ['Shift', 'Click'], description: 'Add/remove field from selection' },
-        { keys: ['Shift', 'Drag'], description: 'Draw box to select multiple fields' },
+        { keys: ['Shift / ' + cmdKey, 'Click'], description: 'Add/remove field from selection' },
+        { keys: ['Shift / ' + cmdKey, 'Drag'], description: 'Draw box to select multiple fields' },
         { keys: [cmdKey, 'A'], description: 'Select all fields on active page' },
         { keys: ['Esc'], description: 'Clear selection' },
       ],

@@ -270,8 +270,8 @@ const TechText = ({
       return bestDistance < 28 ? best : -1;
     };
 
-    const falloff = (target, cx, cy, radius, strength, softness) => {
-      const inner = Math.min(1, Math.max(0, 1 - softness));
+    const falloff = (target, cx, cy, radius, strength, falloffSoftness) => {
+      const inner = Math.min(1, Math.max(0, 1 - falloffSoftness));
       const gradient = target.createRadialGradient(cx, cy, 0, cx, cy, radius);
       gradient.addColorStop(0, `rgba(0, 0, 0, ${strength})`);
       if (inner > 0.995) {

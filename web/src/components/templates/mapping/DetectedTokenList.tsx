@@ -9,7 +9,7 @@ interface DetectedTokenListProps {
   tokens: DetectedToken[];
   fieldMappings: IFieldMapping[];
   activePageIndex: number;
-  onConfirmToken: (token: DetectedToken) => void;
+  onConfirmToken: (token: DetectedToken, isMulti?: boolean) => void;
   onDismissToken: (token: DetectedToken) => void;
 }
 
@@ -78,7 +78,7 @@ export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({
               <Button
                 variant="default"
                 size="sm"
-                onClick={() => onConfirmToken(token)}
+                onClick={(e) => onConfirmToken(token, e.shiftKey || e.ctrlKey || e.metaKey)}
                 className="h-6 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded text-[11px] font-medium"
               >
                 Confirm

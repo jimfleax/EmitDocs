@@ -11,15 +11,23 @@ interface DataFilePickerProps {
     buffer?: ArrayBuffer
   ) => void;
   isLoading?: boolean;
+  loadingText?: string;
 }
 
-export function DataFilePicker({ onParsed, isLoading = false }: DataFilePickerProps) {
+export function DataFilePicker({
+  onParsed,
+  isLoading = false,
+  loadingText,
+}: DataFilePickerProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [parsingError, setParsingError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isBusy = isProcessing || isLoading;
+
   const processFile = async (file: File) => {
+    if (isBusy) return;
     setParsingError(null);
     const ext = file.name.split('.').pop()?.toLowerCase();
 
@@ -60,12 +68,14 @@ export function DataFilePicker({ onParsed, isLoading = false }: DataFilePickerPr
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
+    if (isBusy) return;
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       processFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isBusy) return;
     if (e.target.files && e.target.files[0]) {
       processFile(e.target.files[0]);
     }
@@ -76,47 +86,74 @@ export function DataFilePicker({ onParsed, isLoading = false }: DataFilePickerPr
       <div
         onDragOver={(e) => {
           e.preventDefault();
-          setIsDragging(true);
+          if (!isBusy) setIsDragging(true);
         }}
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all duration-200 ${
-          isDragging
-            ? 'border-blue-400 bg-blue-50'
-            : 'border-slate-200 hover:border-slate-300 bg-slate-50/60 hover:bg-slate-50'
+        onClick={() => {
+          if (!isBusy) fileInputRef.current?.click();
+        }}
+        className={`relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-200 ${
+          isBusy
+            ? 'border-blue-400 bg-blue-50/70 ring-4 ring-blue-500/10 cursor-wait'
+            : isDragging
+            ? 'border-blue-500 bg-blue-50/80 cursor-copy'
+            : 'border-slate-200 hover:border-blue-300 bg-slate-50/60 hover:bg-blue-50/30 cursor-pointer'
         }`}
       >
         <input
           ref={fileInputRef}
           type="file"
           accept=".csv,.xlsx,.xls"
+          disabled={isBusy}
           className="hidden"
           onChange={handleFileChange}
         />
 
         <div className="flex flex-col items-center justify-center space-y-3">
-          <div className="w-12 h-12 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-center text-slate-500">
-            {isProcessing || isLoading ? (
-              <Spinner size="lg" />
+          <div
+            className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all ${
+              isBusy
+                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                : 'bg-white border border-slate-200 shadow-xs text-slate-500'
+            }`}
+          >
+            {isBusy ? (
+              <Spinner size="lg" variant="current" />
             ) : (
-              <UploadSimple className="w-6 h-6" />
+              <UploadSimple className="w-6 h-6 text-slate-600" />
             )}
           </div>
 
           <div>
-            <p className="text-sm font-semibold text-slate-800">
-              {isProcessing ? 'Parsing spreadsheet data...' : 'Click to upload or drag & drop'}
+            <p
+              className={`text-sm font-semibold transition-colors ${
+                isBusy ? 'text-blue-900' : 'text-slate-800'
+              }`}
+            >
+              {isProcessing
+                ? 'Parsing spreadsheet data...'
+                : isLoading
+                ? (loadingText || 'Initializing batch import & validating headers...')
+                : 'Click to upload or drag & drop'}
             </p>
-            <p className="text-xs text-slate-400 mt-1">Supports CSV or XLSX up to 25MB (500–5,000 rows)</p>
+            <p
+              className={`text-xs mt-1 transition-colors ${
+                isBusy ? 'text-blue-600 font-medium' : 'text-slate-400'
+              }`}
+            >
+              {isBusy
+                ? 'Please wait while file headers and structure are validated...'
+                : 'Supports CSV or XLSX up to 25MB (500–5,000 rows)'}
+            </p>
           </div>
 
           <div className="flex items-center gap-3 pt-1 text-xs text-slate-400">
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 font-medium">
               <FileCsv className="w-4 h-4 text-emerald-500" /> RFC-4180 CSV
             </span>
-            <span className="text-slate-200">•</span>
-            <span className="flex items-center gap-1.5">
+            <span className="text-slate-300">•</span>
+            <span className="flex items-center gap-1.5 font-medium">
               <FileXls className="w-4 h-4 text-blue-500" /> Multi-sheet XLSX
             </span>
           </div>

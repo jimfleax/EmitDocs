@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { FilePdf, Certificate, Calendar } from '@phosphor-icons/react'
+import { FilePdf, Certificate, Calendar, PlusCircle } from '@phosphor-icons/react'
 import { PageShell } from '@/components/layout/PageShell'
 import { Badge } from '@/components/ui/Badge'
 import { Alert } from '@/components/ui/Alert'
+import { TemplateDetailsSkeleton } from '@/components/skeletons/TemplateDetailsSkeleton'
 
 interface TemplateVersion {
   _id: string
@@ -12,6 +13,7 @@ interface TemplateVersion {
   bytes?: number
   sourceObjectKey?: string
   status?: string
+  fieldMappings?: any[]
   createdAt: string
 }
 
@@ -45,6 +47,10 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
         const tpl = data?.template || data
         setTemplate(tpl)
 
+        if (typeof window !== 'undefined' && tpl?._id) {
+          localStorage.setItem('emitdocs_active_template_id', tpl._id)
+        }
+
         if (tpl?.currentVersionId && typeof tpl.currentVersionId === 'object') {
           setVersions([tpl.currentVersionId])
         }
@@ -63,6 +69,8 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
     template && typeof template.currentVersionId === 'object' && template.currentVersionId !== null
       ? template.currentVersionId
       : null
+
+  const isMapped = Boolean(currentVer?.fieldMappings && currentVer.fieldMappings.length > 0)
 
   return (
     <PageShell
@@ -94,18 +102,36 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
       backTo="/app/templates"
       backLabel="Back to Templates"
       isLoading={loading}
+      skeleton={<TemplateDetailsSkeleton />}
       loadingTitle="Loading template details..."
       maxWidth="full"
       actions={
         currentVer?._id && template ? (
-          <Link
-            to="/app/templates/$templateId/versions/$versionId"
-            params={{ templateId: template._id, versionId: currentVer._id }}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
-          >
-            <span>Map Fields & Preview</span>
-            <span>→</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            {isMapped && (
+              <Link
+                to="/app/batches/new"
+                search={{ templateId: template._id }}
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.setItem('emitdocs_active_template_id', template._id)
+                  }
+                }}
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-sm shadow-blue-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <PlusCircle size={15} weight="bold" />
+                <span>Create Batch</span>
+              </Link>
+            )}
+            <Link
+              to="/app/templates/$templateId/versions/$versionId"
+              params={{ templateId: template._id, versionId: currentVer._id }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors flex items-center gap-2"
+            >
+              <span>Map Fields & Preview</span>
+              <span>→</span>
+            </Link>
+          </div>
         ) : undefined
       }
     >

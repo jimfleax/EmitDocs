@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useLocation, Link } from '@tanstack/react-router'
-import { SignOut, House, FileText, PlusCircle } from '@phosphor-icons/react'
+import { SignOut, House, FileText, Stack } from '@phosphor-icons/react'
 import { authClient } from '../../lib/auth-client'
 
 export function AppShell({ children }: { children?: React.ReactNode }) {
@@ -131,19 +131,19 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
           </Link>
 
           <Link
-            to="/app/batches/new"
+            to="/app/batches"
             className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
               isBatchesActive
                 ? 'font-black text-white'
                 : 'font-bold text-white/55 hover:text-white'
             }`}
           >
-            <PlusCircle
+            <Stack
               size={16}
               weight="bold"
               className={`shrink-0 ${isBatchesActive ? 'text-white' : 'text-white/55'}`}
             />
-            <span className="translate-y-[1px]">New Batch</span>
+            <span className="translate-y-[1px]">Batches</span>
           </Link>
         </div>
       </header>
@@ -215,14 +215,14 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             </Link>
 
             <Link
-              to="/app/batches/new"
+              to="/app/batches"
               className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
                 isBatchesActive
                   ? 'text-xl font-black text-white'
                   : 'text-base font-bold text-white/50 hover:text-white'
               }`}
             >
-              <PlusCircle
+              <Stack
                 size={isBatchesActive ? 22 : 20}
                 weight="bold"
                 className={`shrink-0 ${
@@ -232,7 +232,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                 }`}
               />
               <span className={isBatchesActive ? 'translate-y-[2px]' : 'translate-y-[1.5px]'}>
-                New Batch
+                Batches
               </span>
             </Link>
           </nav>

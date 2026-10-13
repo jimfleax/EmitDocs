@@ -4,6 +4,7 @@ import { pdfjsLib, STANDARD_FONT_DATA_URL } from '@/lib/pdf-engine/worker-setup'
 import type { ViewportConfig } from '@/lib/pdf-engine/coordinate-transforms';
 import { pdfToDomRect } from '@/lib/pdf-engine/coordinate-transforms';
 import { detectTokensInTextItems, type DetectedToken } from '@/lib/pdf-engine/token-detector';
+import type { IFieldMapping } from '../types';
 import { Tooltip } from '@/components/ui/tooltip';
 
 export interface PdfPageNodeData {
@@ -13,9 +14,11 @@ export interface PdfPageNodeData {
   pageHeight: number;
   rotation: number;
   detectedTokens?: DetectedToken[];
-  onConfirmToken?: (token: DetectedToken) => void;
+  fieldMappings?: IFieldMapping[];
+  onConfirmToken?: (token: DetectedToken, isMulti?: boolean) => void;
   onPageLoaded?: (dimensions: { width: number; height: number; pageCount: number }) => void;
   onTokensDiscovered?: (tokens: DetectedToken[]) => void;
+  onPageClick?: () => void;
   viewport?: ViewportConfig;
   [key: string]: unknown;
 }
@@ -213,9 +216,11 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) =>
     pageHeight = 842,
     rotation = 0,
     detectedTokens = [],
+    fieldMappings = [],
     onConfirmToken,
     onPageLoaded,
     onTokensDiscovered,
+    onPageClick,
     viewport,
   } = data;
 
@@ -267,11 +272,17 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) =>
     rotation,
   };
 
-  const pageTokens = detectedTokens.filter((t) => t.pageIndex === activePageIndex);
+  // Only show placeholders on current page that haven't been converted into fields yet
+  const pageTokens = detectedTokens.filter(
+    (t) =>
+      t.pageIndex === activePageIndex &&
+      !fieldMappings.some((m) => m.key === t.key && m.pageIndex === activePageIndex)
+  );
 
   return (
     <div
-      className="relative bg-white shadow-2xl rounded-sm border border-slate-300 select-none"
+      onClick={() => onPageClick?.()}
+      className="relative bg-white shadow-2xl rounded-sm border border-slate-300 select-none cursor-default"
       style={{ width: `${pageWidth}px`, height: `${pageHeight}px` }}
     >
       {/* Isolated Memoized PDF Canvas */}
@@ -293,9 +304,10 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({ data }) =>
             side="top"
           >
             <div
+              data-token-placeholder="true"
               onClick={(e) => {
                 e.stopPropagation();
-                onConfirmToken?.(token);
+                onConfirmToken?.(token, e.shiftKey || e.ctrlKey || e.metaKey);
               }}
               className="absolute pointer-events-auto border-2 border-dashed border-amber-400 bg-amber-500/10 hover:bg-amber-500/25 cursor-pointer rounded transition-colors group flex items-center justify-center text-xs text-amber-700 font-mono z-20"
               style={{
@@ -338,5 +350,8 @@ export const PdfPageNode = React.memo(
     prev.data.rotation === next.data.rotation &&
     prev.data.pageWidth === next.data.pageWidth &&
     prev.data.pageHeight === next.data.pageHeight &&
-    prev.data.detectedTokens === next.data.detectedTokens
+    prev.data.detectedTokens === next.data.detectedTokens &&
+    prev.data.fieldMappings === next.data.fieldMappings &&
+    prev.data.onConfirmToken === next.data.onConfirmToken &&
+    prev.data.onPageClick === next.data.onPageClick
 );

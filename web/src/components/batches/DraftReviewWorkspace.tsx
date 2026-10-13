@@ -8,6 +8,7 @@ import { RowEditor, type DraftRowItem } from './RowEditor';
 import { ReimportModal } from './ReimportModal';
 import { toast } from '@/components/ui/toast';
 import { cn } from '@/lib/utils';
+import { DraftReviewSkeleton } from '@/components/skeletons/DraftReviewSkeleton';
 
 export interface DraftReviewWorkspaceProps {
   batchId: string;
@@ -203,13 +204,14 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
       actions={actionsSlot}
       maxWidth="full"
       isLoading={isLoading}
+      skeleton={<DraftReviewSkeleton />}
     >
       {error ? (
         <div className="p-8 text-center text-rose-600 text-sm font-semibold">{error}</div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-170px)] min-h-[600px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left Column: Draft Gallery (5 cols) */}
-          <div className="lg:col-span-5 h-full">
+          <div className="lg:col-span-5 h-[calc(100vh-225px)] min-h-[500px]">
             <DraftGallery
               batchId={batchId}
               selectedRowId={selectedRow?._id || null}
@@ -219,7 +221,7 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
           </div>
 
           {/* Right Column: Preview & Inspector (7 cols) */}
-          <div className="lg:col-span-7 h-full flex flex-col space-y-3">
+          <div className="lg:col-span-7 h-[calc(100vh-225px)] min-h-[500px] flex flex-col space-y-3 lg:sticky lg:top-4">
             {/* View Mode Switcher */}
             <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xs shrink-0">
               <div className="flex items-center gap-1">
@@ -260,7 +262,12 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
             </div>
 
             {/* Main Panel Viewport */}
-            <div className="flex-1 overflow-y-auto">
+            <div
+              className={cn(
+                'flex-1 min-h-0',
+                rightPanelMode === 'preview' ? 'flex flex-col' : 'overflow-y-auto pr-1'
+              )}
+            >
               {rightPanelMode === 'preview' ? (
                 <RecipientPreviewPanel
                   batch={batch}

@@ -5,9 +5,13 @@ import { DraftRow } from '../models/DraftRow.js';
 import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
 import { getJsonBody } from '../lib/request.js';
-import { validateDraftRow } from '../services/spreadsheet/row-validator.js';
-import { detectDuplicatesAcrossRows } from '../services/spreadsheet/duplicate-detector.js';
-import { calculateReimportDiff } from '../services/spreadsheet/diff-calculator.js';
+import {
+  BatchIntake,
+  BatchNotFoundError,
+  ConcurrencyConflictError,
+  ChunkMismatchError,
+  BatchIntakeValidationError,
+} from '../services/batch-intake.js';
 
 export const createBatch = async (c: Context) => {
   const user = c.get('user');
@@ -39,6 +43,14 @@ export const createBatch = async (c: Context) => {
       }
     }
 
+    const versionDoc = await TemplateVersion.findById(resolvedVersionId);
+    if (!versionDoc) {
+      return c.json({ error: 'Template version not found' }, 404);
+    }
+    if (!Array.isArray(versionDoc.fieldMappings) || versionDoc.fieldMappings.length === 0) {
+      return c.json({ error: 'Cannot create batch for an unmapped template. Please configure field mappings first.' }, 400);
+    }
+
     const batch = await Batch.create({
       ownerId: user.id,
       templateId: template._id,
@@ -64,7 +76,9 @@ export const getBatches = async (c: Context) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   try {
-    const batches = await Batch.find({ ownerId: user.id }).sort({ createdAt: -1 });
+    const batches = await Batch.find({ ownerId: user.id })
+      .populate('templateId', 'name thumbnailUrl')
+      .sort({ createdAt: -1 });
     return c.json({ batches });
   } catch (err: any) {
     return c.json({ error: err.message || 'Failed to list batches' }, 500);
@@ -195,96 +209,26 @@ export const submitRowsChunk = async (c: Context) => {
 
   const { id: batchId, importId } = c.req.param();
   try {
-    const [batchImport, batch] = await Promise.all([
-      BatchImport.findOne({
-        _id: importId,
-        batchId,
-        ownerId: user.id,
-      }),
-      Batch.findById(batchId),
-    ]);
-    if (!batchImport) return c.json({ error: 'Import not found' }, 404);
-    if (!batch) return c.json({ error: 'Batch not found' }, 404);
-
-    const templateVersion = (await TemplateVersion.findById(batch.templateVersionId).lean()) as any;
-    const fieldMappings = templateVersion?.fieldMappings || [];
-
     const body = await getJsonBody(c);
     const { chunkId, totalChunks, rows } = body || {};
 
-    if (!chunkId || !Array.isArray(rows)) {
-      return c.json({ error: 'chunkId and rows array are required' }, 400);
-    }
-
-    // Idempotency check: If chunkId already received, return success immediately (AC6)
-    if (batchImport.receivedChunkIds.includes(chunkId)) {
-      return c.json({
-        chunkId,
-        processed: rows.length,
-        idempotent: true,
-        message: 'Chunk already processed',
-      });
-    }
-
-    const bulkOps = [];
-    for (const row of rows) {
-      const sourceRowNumber = row.sourceRowNumber;
-      const rowKey = row.rowKey || `row_${sourceRowNumber}`;
-      const importedData = row.importedData || {};
-
-      // Authoritative server-side validation
-      const validation = validateDraftRow({
-        rowData: importedData,
-        sourceRowNumber,
-        fieldMappings,
-        columnMap: batchImport.columnMap || {},
-      });
-
-      bulkOps.push({
-        updateOne: {
-          filter: { importId: batchImport._id, rowKey },
-          update: {
-            $set: {
-              batchId: batch._id,
-              importId: batchImport._id,
-              ownerId: user.id,
-              revision: batchImport.revision,
-              rowKey,
-              sourceRowNumber,
-              importedData,
-              effectiveData: validation.effectiveData,
-              status: validation.status,
-              errors: validation.errors,
-              warnings: [],
-              isDuplicate: false,
-              duplicateReferences: [],
-              version: 1,
-            },
-          },
-          upsert: true,
-        },
-      });
-    }
-
-    if (bulkOps.length > 0) {
-      await DraftRow.bulkWrite(bulkOps, { ordered: false });
-    }
-
-    // Append chunkId atomically
-    await BatchImport.updateOne(
-      { _id: batchImport._id },
-      {
-        $push: { receivedChunkIds: chunkId },
-        ...(totalChunks ? { totalExpectedChunks: totalChunks } : {}),
-      }
-    );
-
-    return c.json({
+    const result = await BatchIntake.ingestChunk({
+      batchId,
+      importId,
+      ownerId: user.id,
       chunkId,
-      processed: rows.length,
-      idempotent: false,
+      totalChunks,
+      rows,
     });
+
+    return c.json(result);
   } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: err.message }, 404);
+    }
+    if (err instanceof BatchIntakeValidationError) {
+      return c.json({ error: err.message }, 400);
+    }
     return c.json({ error: err.message || 'Failed to submit chunk' }, 500);
   }
 };
@@ -295,112 +239,34 @@ export const finalizeImport = async (c: Context) => {
 
   const { id: batchId, importId } = c.req.param();
   try {
-    const [batchImport, batch] = await Promise.all([
-      BatchImport.findOne({
-        _id: importId,
-        batchId,
-        ownerId: user.id,
-      }),
-      Batch.findById(batchId),
-    ]);
-    if (!batchImport) return c.json({ error: 'Import not found' }, 404);
-    if (!batch) return c.json({ error: 'Batch not found' }, 404);
-
     const body = await getJsonBody(c);
     const { totalExpectedRows, totalExpectedChunks, columnMap } = body || {};
 
-    if (columnMap) {
-      batchImport.columnMap = columnMap;
-    }
-
-    // Finalization count validation (AC7)
-    if (totalExpectedChunks !== undefined) {
-      if (batchImport.receivedChunkIds.length !== totalExpectedChunks) {
-        return c.json(
-          {
-            error: {
-              code: 'IMPORT_CHUNK_MISMATCH',
-              message: `Chunk mismatch: expected ${totalExpectedChunks} chunks, received ${batchImport.receivedChunkIds.length}`,
-            },
-          },
-          400
-        );
-      }
-    }
-
-    const actualRowCount = await DraftRow.countDocuments({ importId: batchImport._id });
-    if (totalExpectedRows !== undefined) {
-      if (actualRowCount !== totalExpectedRows) {
-        return c.json(
-          {
-            error: {
-              code: 'IMPORT_CHUNK_MISMATCH',
-              message: `Row count mismatch: expected ${totalExpectedRows} rows, persisted ${actualRowCount}`,
-            },
-          },
-          400
-        );
-      }
-    }
-
-    // Run batch-wide duplicate detection and warning preservation (AC4)
-    const allRows = await DraftRow.find({ importId: batchImport._id })
-      .sort({ sourceRowNumber: 1 })
-      .lean();
-    const duplicateChecked = detectDuplicatesAcrossRows(allRows as any[]);
-
-    const duplicateBulkOps = [];
-    for (const r of duplicateChecked) {
-      if (r.isDuplicate) {
-        duplicateBulkOps.push({
-          updateOne: {
-            filter: { _id: r._id },
-            update: {
-              $set: {
-                isDuplicate: true,
-                duplicateReferences: r.duplicateReferences,
-                warnings: r.warnings,
-              },
-            },
-          },
-        });
-      }
-    }
-    if (duplicateBulkOps.length > 0) {
-      await DraftRow.bulkWrite(duplicateBulkOps, { ordered: false });
-    }
-
-    // Calculate final counts authoritatively in memory
-    const validCount = duplicateChecked.filter((r) => r.status === 'valid').length;
-    const invalidCount = duplicateChecked.filter((r) => r.status === 'invalid').length;
-    const duplicateCount = duplicateChecked.filter((r) => r.isDuplicate).length;
-
-    batchImport.status = 'completed';
-    batchImport.rowCount = actualRowCount;
-    batchImport.validCount = validCount;
-    batchImport.invalidCount = invalidCount;
-    batchImport.duplicateCount = duplicateCount;
-    await batchImport.save();
-
-    batch.currentImportRevision = batchImport.revision;
-    batch.status = 'review';
-    batch.totalRows = actualRowCount;
-    batch.validRows = validCount;
-    batch.invalidRows = invalidCount;
-    batch.duplicateRows = duplicateCount;
-    await batch.save();
-
-    return c.json({
-      batch,
-      batchImport,
-      summary: {
-        totalRows: actualRowCount,
-        validRows: validCount,
-        invalidRows: invalidCount,
-        duplicateRows: duplicateCount,
-      },
+    const result = await BatchIntake.finalizeImport({
+      batchId,
+      importId,
+      ownerId: user.id,
+      totalExpectedRows,
+      totalExpectedChunks,
+      columnMap,
     });
+
+    return c.json(result);
   } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: err.message }, 404);
+    }
+    if (err instanceof ChunkMismatchError) {
+      return c.json(
+        {
+          error: {
+            code: err.code,
+            message: err.message,
+          },
+        },
+        400
+      );
+    }
     return c.json({ error: err.message || 'Failed to finalize import' }, 500);
   }
 };
@@ -559,116 +425,32 @@ export const patchDraftRow = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const batchId = c.req.param('id');
-  const rowId = c.req.param('rowId');
+  const { id: batchId, rowId } = c.req.param();
 
   try {
-    const batch = await Batch.findOne({ _id: batchId, ownerId: user.id });
-    if (!batch) {
-      return c.json({ error: 'Batch not found or access denied' }, 404);
-    }
-
     const body = await getJsonBody(c);
     const { expectedRevision, expectedVersion, overrides } = body || {};
 
-    if (expectedRevision !== undefined && batch.currentImportRevision !== expectedRevision) {
-      return c.json({ error: 'STALE_BATCH_REVISION' }, 409);
-    }
-
-    const row = await DraftRow.findOne({ _id: rowId, batchId: batch._id });
-    if (!row) {
-      return c.json({ error: 'Row not found or access denied' }, 404);
-    }
-
-    if (expectedVersion !== undefined && row.version !== expectedVersion) {
-      return c.json({ error: 'CONCURRENT_MODIFICATION' }, 409);
-    }
-
-    // Merge overrides
-    const currentOverrides = (row.overrides as Record<string, any>) || {};
-    if (overrides && typeof overrides === 'object') {
-      for (const [k, v] of Object.entries(overrides)) {
-        if (v === null || v === undefined) {
-          delete currentOverrides[k];
-        } else {
-          currentOverrides[k] = v;
-        }
-      }
-    }
-    row.overrides = currentOverrides;
-    row.markModified('overrides');
-
-    // Fetch templateVersion and batchImport
-    const [templateVersion, batchImport] = await Promise.all([
-      TemplateVersion.findById(batch.templateVersionId).lean(),
-      BatchImport.findOne({ batchId: batch._id, revision: batch.currentImportRevision }).lean(),
-    ]);
-
-    const fieldMappings = (templateVersion as any)?.fieldMappings || [];
-    const columnMap = (batchImport as any)?.columnMap || {};
-
-    const combinedData: Record<string, any> = {};
-    const effectiveColumnMap: Record<string, string> = {};
-
-    for (const f of fieldMappings) {
-      if (row.overrides && row.overrides[f.key] !== undefined) {
-        combinedData[f.key] = row.overrides[f.key];
-        effectiveColumnMap[f.key] = f.key;
-      } else if (columnMap[f.key]) {
-        const sheetCol = columnMap[f.key];
-        combinedData[f.key] = row.importedData?.[sheetCol];
-        effectiveColumnMap[f.key] = f.key;
-      } else if (row.importedData && row.importedData[f.key] !== undefined) {
-        combinedData[f.key] = row.importedData[f.key];
-        effectiveColumnMap[f.key] = f.key;
-      }
-    }
-
-    const validation = validateDraftRow({
-      rowData: combinedData,
-      sourceRowNumber: row.sourceRowNumber,
-      fieldMappings,
-      columnMap: effectiveColumnMap,
+    const result = await BatchIntake.patchRowOverride({
+      batchId,
+      rowId,
+      ownerId: user.id,
+      overrides,
+      expectedRevision,
+      expectedVersion,
     });
-
-    row.effectiveData = validation.effectiveData;
-    row.markModified('effectiveData');
-    row.errors = validation.errors as any;
-    row.markModified('errors');
-    row.status = validation.status;
-    row.version = (row.version || 1) + 1;
-    await row.save();
-
-    // Approval invalidation
-    if (batch.approvedSnapshotId || batch.status === 'awaiting_approval' || batch.status === 'approved') {
-      batch.approvedSnapshotId = null as any;
-      batch.status = 'review';
-    }
-
-    // Recompute batch counts
-    const [validCount, invalidCount, duplicateCount, totalCount] = await Promise.all([
-      DraftRow.countDocuments({ batchId: batch._id, revision: batch.currentImportRevision, status: 'valid' }),
-      DraftRow.countDocuments({ batchId: batch._id, revision: batch.currentImportRevision, status: 'invalid' }),
-      DraftRow.countDocuments({ batchId: batch._id, revision: batch.currentImportRevision, isDuplicate: true }),
-      DraftRow.countDocuments({ batchId: batch._id, revision: batch.currentImportRevision }),
-    ]);
-
-    batch.validRows = validCount;
-    batch.invalidRows = invalidCount;
-    batch.duplicateRows = duplicateCount;
-    batch.totalRows = totalCount;
-    await batch.save();
 
     return c.json({
-      row,
-      batchSummary: {
-        totalRows: batch.totalRows,
-        validRows: batch.validRows,
-        invalidRows: batch.invalidRows,
-        duplicateRows: batch.duplicateRows,
-      },
+      row: result.row,
+      batchSummary: result.batchSummary,
     });
   } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: err.message }, 404);
+    }
+    if (err instanceof ConcurrencyConflictError) {
+      return c.json({ error: err.code }, 409);
+    }
     return c.json({ error: err.message || 'Failed to update draft row' }, 500);
   }
 };
@@ -677,41 +459,23 @@ export const getReimportDiff = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const batchId = c.req.param('id');
-  const importId = c.req.param('importId');
+  const { id: batchId, importId } = c.req.param();
 
   try {
-    const batch = await Batch.findOne({ _id: batchId, ownerId: user.id });
-    if (!batch) return c.json({ error: 'Batch not found or access denied' }, 404);
+    const reconciliationKey = c.req.query('reconciliationKey');
 
-    const newImport = await BatchImport.findOne({ _id: importId, batchId: batch._id });
-    if (!newImport) return c.json({ error: 'Import not found' }, 404);
-
-    const templateVersion = await TemplateVersion.findById(batch.templateVersionId).lean();
-    const fieldMappings = (templateVersion as any)?.fieldMappings || [];
-
-    const reconciliationKey: string =
-      c.req.query('reconciliationKey') || fieldMappings[0]?.key || 'studentId';
-
-    const [oldRows, newRows, oldImport] = await Promise.all([
-      DraftRow.find({ batchId: batch._id, revision: batch.currentImportRevision }).lean(),
-      DraftRow.find({ batchId: batch._id, revision: newImport.revision }).lean(),
-      BatchImport.findOne({ batchId: batch._id, revision: batch.currentImportRevision }).lean(),
-    ]);
-
-    const diffResult = calculateReimportDiff(
-      oldRows as any[],
-      newRows as any[],
+    const diffResult = await BatchIntake.getReimportDiff({
+      batchId,
+      importId,
+      ownerId: user.id,
       reconciliationKey,
-      fieldMappings,
-      {
-        oldColumnMap: (oldImport as any)?.columnMap || {},
-        newColumnMap: newImport.columnMap || {},
-      }
-    );
+    });
 
     return c.json(diffResult);
   } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: err.message }, 404);
+    }
     return c.json({ error: err.message || 'Failed to calculate re-import diff' }, 500);
   }
 };
@@ -720,218 +484,145 @@ export const reconcileReimport = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
-  const batchId = c.req.param('id');
-  const importId = c.req.param('importId');
+  const { id: batchId, importId } = c.req.param();
 
   try {
-    const batch = await Batch.findOne({ _id: batchId, ownerId: user.id });
-    if (!batch) return c.json({ error: 'Batch not found or access denied' }, 404);
-
-    const newImport = await BatchImport.findOne({ _id: importId, batchId: batch._id });
-    if (!newImport) return c.json({ error: 'Import not found' }, 404);
-
     const body = await getJsonBody(c);
-    const { reconciliationKey: reqKey, resolutions } = body || {};
+    const { reconciliationKey, resolutions } = body || {};
 
-    const templateVersion = await TemplateVersion.findById(batch.templateVersionId).lean();
-    const fieldMappings = (templateVersion as any)?.fieldMappings || [];
-    const reconciliationKey = reqKey || fieldMappings[0]?.key || 'studentId';
-
-    const [oldRows, newRows, oldImport] = await Promise.all([
-      DraftRow.find({ batchId: batch._id, revision: batch.currentImportRevision }),
-      DraftRow.find({ batchId: batch._id, revision: newImport.revision }),
-      BatchImport.findOne({ batchId: batch._id, revision: batch.currentImportRevision }).lean(),
-    ]);
-
-    const oldColumnMap = (oldImport as any)?.columnMap || {};
-    const newColumnMap = newImport.columnMap || {};
-
-    const diffResult = calculateReimportDiff(
-      oldRows.map((r) => r.toObject()),
-      newRows.map((r) => r.toObject()),
+    const result = await BatchIntake.reconcileImportRevision({
+      batchId,
+      importId,
+      ownerId: user.id,
       reconciliationKey,
-      fieldMappings,
-      { oldColumnMap, newColumnMap }
-    );
-
-    const oldRowMap = new Map<string, any>();
-    for (const r of oldRows) {
-      oldRowMap.set(r._id.toString(), r);
-    }
-    const newRowMap = new Map<string, any>();
-    for (const r of newRows) {
-      newRowMap.set(r._id.toString(), r);
-    }
-
-    const conflictResolutions = resolutions?.conflicts || [];
-    const ambiguousResolutions = resolutions?.ambiguous || [];
-    const carryForwardOverrides = resolutions?.carryForwardOverrides !== false;
-
-    const matchedNewToOld = new Map<string, string>();
-    for (const u of diffResult.unchanged) matchedNewToOld.set(u.newRowId, u.oldRowId);
-    for (const ch of diffResult.changed) matchedNewToOld.set(ch.newRowId, ch.oldRowId);
-    for (const co of diffResult.conflicted) matchedNewToOld.set(co.newRowId, co.oldRowId);
-
-    const rowsToDelete = new Set<string>();
-    for (const amb of ambiguousResolutions) {
-      const { newRowId, action, matchedOldRowId } = amb;
-      if (action === 'discard') {
-        rowsToDelete.add(newRowId);
-      } else if (action === 'match_old' && matchedOldRowId) {
-        matchedNewToOld.set(newRowId, matchedOldRowId);
-      }
-    }
-
-    const resolvedConflictMap = new Map<string, 'keep_override' | 'use_new_imported'>();
-    for (const cr of conflictResolutions) {
-      resolvedConflictMap.set(`${cr.newRowId}:${cr.field}`, cr.resolution);
-    }
-
-    const affectedNewRows = new Set<string>();
-
-    for (const [newRowId, oldRowId] of matchedNewToOld.entries()) {
-      if (rowsToDelete.has(newRowId)) continue;
-      const newRow = newRowMap.get(newRowId);
-      const oldRow = oldRowMap.get(oldRowId);
-      if (!newRow || !oldRow) continue;
-
-      const currentOverrides: Record<string, any> = { ...newRow.overrides };
-      let changedOverrides = false;
-
-      if (carryForwardOverrides && oldRow.overrides) {
-        for (const [field, val] of Object.entries(oldRow.overrides)) {
-          const conflictKey = `${newRowId}:${field}`;
-          if (resolvedConflictMap.has(conflictKey)) continue;
-          currentOverrides[field] = val;
-          changedOverrides = true;
-        }
-      }
-
-      for (const cr of conflictResolutions) {
-        if (cr.newRowId === newRowId) {
-          if (cr.resolution === 'keep_override') {
-            const overrideVal = oldRow.overrides?.[cr.field];
-            if (overrideVal !== undefined) {
-              currentOverrides[cr.field] = overrideVal;
-              changedOverrides = true;
-            }
-          } else if (cr.resolution === 'use_new_imported') {
-            delete currentOverrides[cr.field];
-            changedOverrides = true;
-          }
-        }
-      }
-
-      if (changedOverrides || Object.keys(currentOverrides).length > 0) {
-        newRow.overrides = currentOverrides;
-        newRow.markModified('overrides');
-        affectedNewRows.add(newRowId);
-      }
-    }
-
-    if (rowsToDelete.size > 0) {
-      await DraftRow.deleteMany({ _id: { $in: Array.from(rowsToDelete) } });
-    }
-
-    for (const newRowId of affectedNewRows) {
-      const newRow = newRowMap.get(newRowId);
-      if (!newRow || rowsToDelete.has(newRowId)) continue;
-
-      const combinedData: Record<string, any> = {};
-      const effectiveColumnMap: Record<string, string> = {};
-
-      for (const f of fieldMappings) {
-        if (newRow.overrides && newRow.overrides[f.key] !== undefined) {
-          combinedData[f.key] = newRow.overrides[f.key];
-          effectiveColumnMap[f.key] = f.key;
-        } else if (newColumnMap[f.key] && newRow.importedData?.[newColumnMap[f.key]] !== undefined) {
-          combinedData[f.key] = newRow.importedData[newColumnMap[f.key]];
-          effectiveColumnMap[f.key] = f.key;
-        } else if (newRow.importedData && newRow.importedData[f.key] !== undefined) {
-          combinedData[f.key] = newRow.importedData[f.key];
-          effectiveColumnMap[f.key] = f.key;
-        }
-      }
-
-      const validation = validateDraftRow({
-        rowData: combinedData,
-        sourceRowNumber: newRow.sourceRowNumber,
-        fieldMappings,
-        columnMap: effectiveColumnMap,
-      });
-
-      newRow.effectiveData = validation.effectiveData;
-      newRow.markModified('effectiveData');
-      newRow.errors = validation.errors as any;
-      newRow.markModified('errors');
-      newRow.status = validation.status;
-      newRow.version = (newRow.version || 1) + 1;
-      await newRow.save();
-    }
-
-    const survivingRows = await DraftRow.find({
-      batchId: batch._id,
-      revision: newImport.revision,
-    })
-      .sort({ sourceRowNumber: 1 })
-      .lean();
-    const duplicateChecked = detectDuplicatesAcrossRows(survivingRows as any[]);
-
-    const duplicateBulkOps = [];
-    for (const r of duplicateChecked) {
-      duplicateBulkOps.push({
-        updateOne: {
-          filter: { _id: r._id },
-          update: {
-            $set: {
-              isDuplicate: r.isDuplicate,
-              duplicateReferences: r.duplicateReferences || [],
-              warnings: r.warnings || [],
-            },
-          },
-        },
-      });
-    }
-    if (duplicateBulkOps.length > 0) {
-      await DraftRow.bulkWrite(duplicateBulkOps, { ordered: false });
-    }
-
-    batch.currentImportRevision = newImport.revision;
-    batch.approvedSnapshotId = null as any;
-    batch.status = 'review';
-
-    const [validCount, invalidCount, duplicateCount, totalCount] = await Promise.all([
-      DraftRow.countDocuments({ batchId: batch._id, revision: newImport.revision, status: 'valid' }),
-      DraftRow.countDocuments({ batchId: batch._id, revision: newImport.revision, status: 'invalid' }),
-      DraftRow.countDocuments({ batchId: batch._id, revision: newImport.revision, isDuplicate: true }),
-      DraftRow.countDocuments({ batchId: batch._id, revision: newImport.revision }),
-    ]);
-
-    batch.validRows = validCount;
-    batch.invalidRows = invalidCount;
-    batch.duplicateRows = duplicateCount;
-    batch.totalRows = totalCount;
-    batch.version = (batch.version || 1) + 1;
-    await batch.save();
-
-    newImport.status = 'completed';
-    newImport.rowCount = totalCount;
-    newImport.validCount = validCount;
-    newImport.invalidCount = invalidCount;
-    newImport.duplicateCount = duplicateCount;
-    await newImport.save();
+      resolutions,
+    });
 
     return c.json({
       success: true,
-      batch,
-      summary: {
-        totalRows: totalCount,
-        validRows: validCount,
-        invalidRows: invalidCount,
-        duplicateRows: duplicateCount,
-      },
+      batch: result.batch,
+      summary: result.summary,
     });
   } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: 'Batch not found or access denied' }, 404);
+    }
     return c.json({ error: err.message || 'Failed to reconcile import' }, 500);
   }
 };
+
+export const getBatchActivity = async (c: Context) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const daysParam = parseInt(c.req.query('days') || '30', 10);
+  const numDays = Number.isInteger(daysParam) && daysParam > 0 && daysParam <= 90 ? daysParam : 30;
+
+  try {
+    const now = new Date();
+    // Calculate start date (numDays - 1) days ago at start of day
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (numDays - 1), 0, 0, 0, 0);
+
+    const batches = await Batch.find({
+      ownerId: user.id,
+      createdAt: { $gte: startDate },
+    }).select('createdAt validRows totalRows status name');
+
+    // Aggregate by YYYY-MM-DD
+    const dateMap = new Map<string, { docs: number; batches: number }>();
+    for (const batch of batches) {
+      if (!batch.createdAt) continue;
+      const d = new Date(batch.createdAt);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const entry = dateMap.get(key) || { docs: 0, batches: 0 };
+      const docsCount = batch.validRows || batch.totalRows || 0;
+      entry.docs += docsCount;
+      entry.batches += 1;
+      dateMap.set(key, entry);
+    }
+
+    let maxDocs = 0;
+    let peakKey = '';
+    for (let i = 0; i < numDays; i++) {
+      const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const entry = dateMap.get(key) || { docs: 0, batches: 0 };
+      if (entry.docs > maxDocs) {
+        maxDocs = entry.docs;
+        peakKey = key;
+      }
+    }
+
+    let totalDocs = 0;
+    let totalBatches = 0;
+    const dayBuckets = [];
+
+    for (let i = 0; i < numDays; i++) {
+      const d = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const entry = dateMap.get(key) || { docs: 0, batches: 0 };
+      totalDocs += entry.docs;
+      totalBatches += entry.batches;
+
+      const dayLabel = d.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+      const fullDate = d.toLocaleDateString('en-US', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+
+      let height = 0;
+      if (maxDocs > 0 && entry.docs > 0) {
+        height = Math.max(12, Math.round((entry.docs / maxDocs) * 100));
+      } else if (entry.batches > 0) {
+        height = 8;
+      }
+
+      dayBuckets.push({
+        date: key,
+        label: dayLabel,
+        fullDate,
+        docs: entry.docs,
+        batches: entry.batches,
+        height,
+        isHighlight: maxDocs > 0 ? key === peakKey : (i === numDays - 1),
+      });
+    }
+
+    return c.json({
+      timeframe: `${numDays}d`,
+      totalDocs,
+      totalBatches,
+      maxDocs,
+      activity: dayBuckets,
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to retrieve batch activity' }, 500);
+  }
+};
+
+export const deleteBatch = async (c: Context) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const id = c.req.param('id');
+  try {
+    const batch = await Batch.findOneAndDelete({ _id: id, ownerId: user.id });
+    if (!batch) {
+      return c.json({ error: 'Batch not found or access denied' }, 404);
+    }
+
+    // Cascade delete associated draft rows and imports
+    await Promise.all([
+      DraftRow.deleteMany({ batchId: batch._id }),
+      BatchImport.deleteMany({ batchId: batch._id }),
+    ]);
+
+    return c.json({ success: true, message: 'Batch deleted' });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to delete batch' }, 500);
+  }
+};
+
+
