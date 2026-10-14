@@ -1,8 +1,5 @@
 {
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" }
-  ],
-  "redirects": [
-    { "source": "/app", "destination": "http://localhost:5173/app", "permanent": false }
   ]
 }

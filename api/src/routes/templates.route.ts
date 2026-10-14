@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { requireAuth } from '../middleware/auth.middleware';
+import { requireAuth } from '../middleware/auth.middleware.js';
 import {
   signUpload,
   createTemplate,
@@ -10,7 +10,7 @@ import {
   getTemplateVersionById,
   streamTemplateVersionPdf,
   createTemplateVersion,
-} from '../controllers/templates.controller';
+} from '../controllers/templates.controller.js';
 
 const templatesApp = new Hono();
 

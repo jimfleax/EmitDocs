@@ -2,25 +2,17 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import mongoose from 'mongoose'
 import 'dotenv/config'
-import { checkHealth } from './controllers/health.controller'
-import { auth } from './auth'
+import { checkHealth } from './controllers/health.controller.js'
+import { auth } from './auth.js'
+import { resolveCorsOrigin } from './lib/origins.js'
 
 const app = new Hono().basePath('/api')
 
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:5173')
-  .split(',')
-  .map(o => o.trim());
-
-
 app.use('*', cors({
-  origin: (origin) => {
-    if (!origin) return allowedOrigins[0];
-    if (allowedOrigins.includes(origin)) return origin;
-    return null;
-  },
+  origin: (origin) => resolveCorsOrigin(origin),
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'x-client-version', 'x-client-name', 'Accept'],
+  allowHeaders: ['Content-Type', 'Authorization', 'x-client-version', 'x-client-name', 'Accept', 'Cookie'],
 }))
 
 // Database connection
@@ -147,9 +139,9 @@ app.get('/', (c) => {
   })
 })
 
-import templatesApp from './routes/templates.route';
-import batchesApp from './routes/batches.route';
-import storageApp from './routes/storage.route';
+import templatesApp from './routes/templates.route.js';
+import batchesApp from './routes/batches.route.js';
+import storageApp from './routes/storage.route.js';
 
 app.route('/templates', templatesApp);
 app.route('/batches', batchesApp);

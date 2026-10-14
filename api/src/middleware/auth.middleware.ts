@@ -1,5 +1,5 @@
 import { Context, Next } from 'hono';
-import { auth } from '../auth';
+import { auth } from '../auth.js';
 
 export const requireAuth = async (c: Context, next: Next) => {
   const session = await auth.api.getSession({
