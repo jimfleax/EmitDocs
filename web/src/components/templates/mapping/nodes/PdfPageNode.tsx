@@ -1,3 +1,10 @@
+/**
+ * @file PdfPageNode.tsx
+ * @description Custom React Flow canvas node that renders a PDF page using PDF.js and detects template tokens.
+ * @architecture Foundational canvas background node providing the visual coordinate plane and token discovery layer.
+ * @agent_note Uses PDF.js to render page canvas, extracts text items to run regex token detection, and projects detected tokens as interactive overlays.
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import { useViewport, type NodeProps, type Node } from "@xyflow/react";
 import {
@@ -51,6 +58,10 @@ interface MemoizedPdfCanvasProps {
   onTokensDiscovered?: (tokens: DetectedToken[]) => void;
 }
 
+/**
+ * @component MemoizedPdfCanvas
+ * @description Renders rasterized PDF page onto HTML5 canvas with HiDPI backing store and debounced zoom scaling.
+ */
 const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
   ({ doc, activePageIndex, rotation, onPageLoaded, onTokensDiscovered }) => {
     const { zoom } = useViewport();
@@ -255,6 +266,12 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
     prev.rotation === next.rotation,
 );
 
+/**
+ * @component PdfPageNode
+ * @description Background canvas node rendering rendered PDF vector graphics, rotation, and auto-discovered tokens.
+ * @param {NodeProps<PdfPageNodeType>} props - React Flow custom node properties.
+ * @returns {JSX.Element} Canvas container with PDF page render and token highlight boxes.
+ */
 const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({
   data,
 }) => {

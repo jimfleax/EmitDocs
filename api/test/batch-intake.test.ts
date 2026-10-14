@@ -496,6 +496,66 @@ async function runTests() {
   const reloadedBatchAfterDup = await Batch.findById(batch._id);
   assert.strictEqual(reloadedBatchAfterDup.duplicateRows, 0);
 
+  const persistedRow3Clean1 = await DraftRow.findById(row3._id);
+  assert.ok(persistedRow3Clean1);
+  assert.strictEqual(persistedRow3Clean1.isDuplicate, false);
+  assert.deepStrictEqual(persistedRow3Clean1.duplicateReferences, []);
+  assert.strictEqual(persistedRow3Clean1.warnings.filter((w: any) => w.code === 'DUPLICATE_ROW').length, 0);
+
+  // 8f. Override row3 to create duplicate again, verifying persisted fields and counters
+  const patchResRow3Dup = await BatchIntake.patchRowOverride({
+    batchId: batch._id,
+    rowId: row3._id,
+    ownerId: testUserId,
+    overrides: {
+      studentName: 'Alice Walker',
+      graduationDate: '2026-05-15',
+      gpa: '3.95',
+    },
+    expectedRevision: 1,
+    expectedVersion: 2,
+  });
+  assert.strictEqual(patchResRow3Dup.row.isDuplicate, true);
+  assert.deepStrictEqual(patchResRow3Dup.row.duplicateReferences, [1]);
+  assert.ok(patchResRow3Dup.row.warnings.some((w: any) => w.code === 'DUPLICATE_ROW'));
+  assert.strictEqual(patchResRow3Dup.batchSummary.duplicateRows, 1);
+
+  // Verify persisted fields in MongoDB
+  const persistedRow3Dup = await DraftRow.findById(row3._id);
+  assert.ok(persistedRow3Dup);
+  assert.strictEqual(persistedRow3Dup.isDuplicate, true);
+  assert.deepStrictEqual(persistedRow3Dup.duplicateReferences, [1]);
+  assert.ok(persistedRow3Dup.warnings.some((w: any) => w.code === 'DUPLICATE_ROW'));
+
+  const batchAfterReDup = await Batch.findById(batch._id);
+  assert.strictEqual(batchAfterReDup.duplicateRows, 1);
+
+  // 8g. Override row3 to remove the duplicate again, verifying persisted fields and counters
+  const patchResRow3Clean2 = await BatchIntake.patchRowOverride({
+    batchId: batch._id,
+    rowId: row3._id,
+    ownerId: testUserId,
+    overrides: {
+      studentName: 'Zoe Unique',
+    },
+    expectedRevision: 1,
+    expectedVersion: 3,
+  });
+  assert.strictEqual(patchResRow3Clean2.row.isDuplicate, false);
+  assert.deepStrictEqual(patchResRow3Clean2.row.duplicateReferences, []);
+  assert.strictEqual(patchResRow3Clean2.row.warnings.filter((w: any) => w.code === 'DUPLICATE_ROW').length, 0);
+  assert.strictEqual(patchResRow3Clean2.batchSummary.duplicateRows, 0);
+
+  // Verify persisted fields in MongoDB
+  const persistedRow3Clean2 = await DraftRow.findById(row3._id);
+  assert.ok(persistedRow3Clean2);
+  assert.strictEqual(persistedRow3Clean2.isDuplicate, false);
+  assert.deepStrictEqual(persistedRow3Clean2.duplicateReferences, []);
+  assert.strictEqual(persistedRow3Clean2.warnings.filter((w: any) => w.code === 'DUPLICATE_ROW').length, 0);
+
+  const batchAfterRemoveDup = await Batch.findById(batch._id);
+  assert.strictEqual(batchAfterRemoveDup.duplicateRows, 0);
+
   console.log('   ✓ patchRowOverride CAS, approval invalidation, and counter recalculation verified\n');
 
   // Test 9: reconcileImportRevision (diff calculation, override carry-forward, duplicate detection, counter rollup)

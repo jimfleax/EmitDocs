@@ -1,3 +1,10 @@
+/**
+ * @file index.tsx
+ * @description Public marketing landing page displaying animated brand headers and entry links.
+ * @architecture Public route redirecting authenticated users to /app and rendering landing visuals for guests.
+ * @agent_note In beforeLoad, checks context.auth.session and redirects active sessions to /app.
+ */
+
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import TechText from "@/components/ui/TechText";
 import { Button } from "@/components/ui/button";
@@ -15,6 +22,11 @@ export const Route = createFileRoute("/")({
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/**
+ * @component Index
+ * @description Landing page view featuring stylized logo animations and registration CTA buttons.
+ * @returns {JSX.Element} Landing hero page.
+ */
 function Index() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground justify-between p-4 sm:p-6">

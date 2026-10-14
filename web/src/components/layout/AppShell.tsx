@@ -8,6 +8,7 @@ import React, { useState } from "react";
 import { useLocation, Link } from "@tanstack/react-router";
 import { SignOut, House, FileText, Stack } from "@phosphor-icons/react";
 import { authClient } from "../../lib/auth-client";
+import { OfflineIndicator } from "../pwa";
 
 /**
  * @component AppShell
@@ -77,6 +78,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             <span className="font-extrabold text-lg tracking-tight text-white drop-shadow-xs">
               Emit<span className="text-blue-300">Docs</span>
             </span>
+            <OfflineIndicator />
           </div>
 
           {/* Compact Account Info & Sign Out */}
@@ -169,17 +171,20 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
         {/* Top Section */}
         <div className="space-y-10">
           {/* Brand Header */}
-          <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-2xl bg-white shadow-md border border-white/30 flex-none">
-              <img
-                src="/favicon.svg"
-                alt="EmitDocs"
-                className="w-7 h-7 rounded-xl"
-              />
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 rounded-2xl bg-white shadow-md border border-white/30 flex-none">
+                <img
+                  src="/favicon.svg"
+                  alt="EmitDocs"
+                  className="w-7 h-7 rounded-xl"
+                />
+              </div>
+              <span className="font-extrabold text-xl tracking-tight text-white drop-shadow-xs">
+                Emit<span className="text-blue-300">Docs</span>
+              </span>
             </div>
-            <span className="font-extrabold text-xl tracking-tight text-white drop-shadow-xs">
-              Emit<span className="text-blue-300">Docs</span>
-            </span>
+            <OfflineIndicator />
           </div>
 
           {/* Navigation Text List matching Figma style */}

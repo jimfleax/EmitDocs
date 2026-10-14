@@ -1,3 +1,10 @@
+/**
+ * @file FieldOverlayLayer.tsx
+ * @description Direct DOM overlay layer for rendering and manipulating mapped fields when not using React Flow nodes.
+ * @architecture Canvas overlay component translating PDF coordinates to DOM rectangles for interaction and resizing.
+ * @agent_note Handles drag events, handle resize (nw, ne, se, sw, n, s, e, w), magnetic snapping guides, and context toolbar.
+ */
+
 import React, { useRef, useState, useEffect } from "react";
 import type { IFieldMapping } from "./types";
 import {
@@ -31,6 +38,12 @@ interface FieldOverlayLayerProps {
   snapThresholdPx?: number;
 }
 
+/**
+ * @component FieldOverlayLayer
+ * @description Canvas layer hosting interactive field boxes, resize handles, magnetic snapping lines, and toolbars.
+ * @param {FieldOverlayLayerProps} props - Component properties.
+ * @returns {JSX.Element} Interactive DOM overlay layer for PDF page fields.
+ */
 export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
   viewport,
   fieldMappings,

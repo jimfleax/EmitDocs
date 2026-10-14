@@ -1,3 +1,10 @@
+/**
+ * @file debug.errors.tsx
+ * @description Developer playground route for previewing and testing application error boundaries and states.
+ * @architecture Development-only route guarded by beforeLoad to throw 404 in non-development environments.
+ * @agent_note Allows testing standalone and embedded variants of 404, 500, 403, and offline error screens.
+ */
+
 import { useState } from "react";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import {
@@ -18,6 +25,11 @@ export const Route = createFileRoute("/debug/errors")({
   component: DebugErrorsPage,
 });
 
+/**
+ * @component DebugErrorsPage
+ * @description Interactive visual workbench for inspecting error views and simulating uncaught exceptions.
+ * @returns {JSX.Element} Interactive debug studio.
+ */
 function DebugErrorsPage() {
   const [activeTab, setActiveTab] = useState<"404" | "500" | "403" | "offline">(
     "404",

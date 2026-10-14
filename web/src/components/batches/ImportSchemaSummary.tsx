@@ -1,3 +1,10 @@
+/**
+ * @file ImportSchemaSummary.tsx
+ * @description Summary card displaying the target template's expected placeholder variables and required data types.
+ * @architecture Guidance card displayed during column mapping in the batch import wizard.
+ * @agent_note Lists template version, total placeholder count, and pills for date, number, or text data types.
+ */
+
 import { FileText, CalendarBlank, Hash, TextT } from "@phosphor-icons/react";
 
 interface FieldItem {
@@ -13,6 +20,12 @@ interface ImportSchemaSummaryProps {
   fields: FieldItem[];
 }
 
+/**
+ * @component ImportSchemaSummary
+ * @description Visual overview of template variables and required formats before spreadsheet column binding.
+ * @param {ImportSchemaSummaryProps} props - Component properties.
+ * @returns {JSX.Element} Schema summary card with placeholder pills.
+ */
 export function ImportSchemaSummary({
   templateName,
   version,

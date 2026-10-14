@@ -4,8 +4,8 @@
  * @architecture Computes cloud storage consumption across Cloudinary Admin API assets (`templates/{userId}/*`)
  *               and MongoDB TemplateVersion records. Employs a resilient fallback strategy if Cloudinary
  *               is rate-limited or unreachable.
- * @agent_note When computing storage metrics, deleted templates are flagged with `isSoftDeleted: true`
- *               so users can audit retained assets before cleanup.
+ * @agent_note When computing storage metrics, assets are correlated with MongoDB templates and versions
+ *               to enrich document names and template IDs.
  */
 
 import { Context } from 'hono';

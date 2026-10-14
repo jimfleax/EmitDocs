@@ -1,3 +1,10 @@
+/**
+ * @file MappedFieldList.tsx
+ * @description Sidebar listing of all defined fields across the template version, partitioned by page.
+ * @architecture Navigation and selection list component inside the workspace floating inspector.
+ * @agent_note Supports single and multi-selection (via Shift/Cmd click) and direct deletion of mapped fields.
+ */
+
 import React from "react";
 import type { IFieldMapping } from "./types";
 import { Button } from "@/components/ui/button";
@@ -13,6 +20,12 @@ interface MappedFieldListProps {
   onDeleteField: (id: string) => void;
 }
 
+/**
+ * @component MappedFieldList
+ * @description Interactive inventory list of mapped template fields with selection indicators and deletion buttons.
+ * @param {MappedFieldListProps} props - Component properties.
+ * @returns {JSX.Element | null} Field list drawer element or null if no fields are present.
+ */
 export const MappedFieldList: React.FC<MappedFieldListProps> = ({
   fields,
   activePageIndex,

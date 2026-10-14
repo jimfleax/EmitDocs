@@ -1,3 +1,10 @@
+/**
+ * @file ImportProgress.tsx
+ * @description Progress bar and status indicator for chunked batch spreadsheet ingestion and server validation.
+ * @architecture Progress monitoring component shown during step 3 of the batch import wizard.
+ * @agent_note Displays chunk counts, uploaded row percentages, and validation spinners during multi-step uploads.
+ */
+
 import { CheckCircle, WarningCircle } from "@phosphor-icons/react";
 import { Spinner } from "@/components/ui/Spinner";
 
@@ -10,6 +17,12 @@ interface ImportProgressProps {
   errorMessage?: string | null;
 }
 
+/**
+ * @component ImportProgress
+ * @description Renders progress bar, chunk statistics, and status spinners during chunked row upload.
+ * @param {ImportProgressProps} props - Component properties.
+ * @returns {JSX.Element | null} Progress card or null if status is idle.
+ */
 export function ImportProgress({
   currentChunk,
   totalChunks,

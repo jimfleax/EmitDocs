@@ -1,3 +1,10 @@
+/**
+ * @file DataFilePicker.tsx
+ * @description Drag-and-drop file picker and client-side parser for CSV and Excel (.xlsx, .xls) data sources.
+ * @architecture Presentation and parsing coordinator initiating spreadsheet ingestion in step 1 of import.
+ * @agent_note Enforces 25MB limit, parses CSV via parseCsvString and XLSX via parseXlsxBuffer, returning parsed sheets and raw buffers.
+ */
+
 import React, { useState, useRef } from "react";
 import { UploadSimple, FileCsv, FileXls } from "@phosphor-icons/react";
 import { Alert } from "@/components/ui/Alert";
@@ -18,6 +25,12 @@ interface DataFilePickerProps {
   loadingText?: string;
 }
 
+/**
+ * @component DataFilePicker
+ * @description Drag-and-drop spreadsheet uploader with real-time browser-side parsing and format validation.
+ * @param {DataFilePickerProps} props - Component properties.
+ * @returns {JSX.Element} Dropzone container with parsing status indicators.
+ */
 export function DataFilePicker({
   onParsed,
   isLoading = false,

@@ -1,3 +1,10 @@
+/**
+ * @file privacy.tsx
+ * @description Official Privacy Policy legal document detailing data minimization, retention, and subprocessors.
+ * @architecture Public legal route utilizing LegalLayout with table-of-contents navigation and retention diagrams.
+ * @agent_note Explains GDPR, CCPA, zero AI model training policies, and 30-day default document purge mechanics.
+ */
+
 import { createFileRoute } from "@tanstack/react-router";
 import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
@@ -25,6 +32,11 @@ const SECTIONS = [
   { id: "contact", number: 10, title: "Contact Our Privacy Officer" },
 ];
 
+/**
+ * @component PrivacyPage
+ * @description Comprehensive Privacy Policy page with section bookmarks, retention diagrams, and subprocessor audits.
+ * @returns {JSX.Element} Formatted legal document layout.
+ */
 export function PrivacyPage() {
   return (
     <LegalLayout

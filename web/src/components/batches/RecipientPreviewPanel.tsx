@@ -1,3 +1,10 @@
+/**
+ * @file RecipientPreviewPanel.tsx
+ * @description Detail inspection panel rendering a live PDF certificate preview for a single recipient draft record.
+ * @architecture Preview detail pane inside DraftReviewWorkspace.
+ * @agent_note Displays recipient's rendered PDF page using PreviewDocumentPane, pagination controls, zoom controls, and overflow badges.
+ */
+
 import React, { useState, useMemo } from "react";
 import {
   CaretLeft,
@@ -25,6 +32,12 @@ export interface RecipientPreviewPanelProps {
   hasNext?: boolean;
 }
 
+/**
+ * @component RecipientPreviewPanel
+ * @description Detail viewer rendering live merged certificate for the selected row with navigation and zoom controls.
+ * @param {RecipientPreviewPanelProps} props - Component properties.
+ * @returns {JSX.Element} Preview viewport panel with toolbar and document canvas.
+ */
 export function RecipientPreviewPanel({
   batch: _batch,
   templateVersion,

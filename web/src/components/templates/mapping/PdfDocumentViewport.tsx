@@ -1,3 +1,10 @@
+/**
+ * @file PdfDocumentViewport.tsx
+ * @description Standalone canvas viewport rendering PDF page vector items, marquee creation tool, and field overlays.
+ * @architecture Non-flow alternative or encapsulated viewport component for PDF canvas rendering and coordinate translation.
+ * @agent_note Integrates PDF.js page rendering, text extraction token discovery, FieldSelectionTool, and FieldOverlayLayer.
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import {
   pdfjsLib,
@@ -37,6 +44,12 @@ interface PdfDocumentViewportProps {
   snapThresholdPx?: number;
 }
 
+/**
+ * @component PdfDocumentViewport
+ * @description Coordinate-managed container rendering PDF page canvas, selection overlay, and interactive field nodes.
+ * @param {PdfDocumentViewportProps} props - Component properties.
+ * @returns {JSX.Element} Interactive PDF canvas container with overlays.
+ */
 export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({
   sourcePdfBytes,
   activePageIndex,

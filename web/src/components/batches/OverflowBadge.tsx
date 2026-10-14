@@ -1,3 +1,10 @@
+/**
+ * @file OverflowBadge.tsx
+ * @description Warning badge indicator signalling text overflow beyond template field boundaries.
+ * @architecture Micro-indicator component used across draft review lists and detail cards.
+ * @agent_note Flags that rendered text exceeds field dimensions and will be subject to shrink-to-fit or clipping.
+ */
+
 import { Warning } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -7,6 +14,12 @@ interface OverflowBadgeProps {
   size?: "sm" | "md";
 }
 
+/**
+ * @component OverflowBadge
+ * @description Visual warning pill indicating text length exceeds field bounding box on the PDF canvas.
+ * @param {OverflowBadgeProps} props - Component properties.
+ * @returns {JSX.Element} Styled warning badge with tooltip description.
+ */
 export function OverflowBadge({ className, size = "sm" }: OverflowBadgeProps) {
   return (
     <Badge

@@ -1,3 +1,10 @@
+/**
+ * @file DraftReviewWorkspace.tsx
+ * @description Master-detail review studio allowing certificate reviewers to inspect drafts, edit row fields, and trigger batch generation.
+ * @architecture Central review coordinator linking DraftGallery with live RecipientPreviewPanel and RowEditor.
+ * @agent_note Fetches batch, template, and PDF binary assets; toggles between preview and inline editor panels; and manages reimport flows.
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import {
   Eye,
@@ -19,6 +26,13 @@ export interface DraftReviewWorkspaceProps {
   batchId: string;
 }
 
+/**
+ * @component DraftReviewWorkspace
+ * @description Master-detail workspace for inspecting, editing, overriding, and approving draft records prior to document issuance.
+ * @param {DraftReviewWorkspaceProps} props - Component properties.
+ * @param {string} props.batchId - Target batch ID for draft review.
+ * @returns {JSX.Element} Review interface with left draft list and right-hand preview/editor pane.
+ */
 export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
   const [batch, setBatch] = useState<any>(null);
   const [template, setTemplate] = useState<any>(null);

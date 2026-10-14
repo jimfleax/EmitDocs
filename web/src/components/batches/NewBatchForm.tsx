@@ -1,3 +1,10 @@
+/**
+ * @file NewBatchForm.tsx
+ * @description Batch creation form enabling template selection, version locking, and batch name configuration.
+ * @architecture Inception workflow component rendered under the batches new route.
+ * @agent_note Fetches available templates, formats automatic default batch names, and creates batch via POST /api/batches.
+ */
+
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { FilePdf, ArrowRight, Clock } from "@phosphor-icons/react";
@@ -98,6 +105,12 @@ function BatchTemplateThumbnail({ url }: { url?: string }) {
   return <FilePdf className="w-5 h-5 text-blue-500" />;
 }
 
+/**
+ * @component NewBatchForm
+ * @description Creation form for initiating a certificate batch from an existing template.
+ * @param {NewBatchFormProps} props - Component properties.
+ * @returns {JSX.Element} Interactive batch creation form.
+ */
 export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);

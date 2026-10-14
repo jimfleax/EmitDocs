@@ -1,3 +1,10 @@
+/**
+ * @file PdfMappingWorkspace.tsx
+ * @description Interactive visual studio workspace for mapping database/spreadsheet fields onto PDF certificate templates.
+ * @architecture Primary interactive workspace orchestrating React Flow canvas, PDF rendering, snapping, undo/redo history, and persistence.
+ * @agent_note Manages React Flow nodes for PDF pages and fields, optimistic CAS version saves (/api/templates/:id/versions/:vid/mapping), alignment tools, keyboard navigation, and preview toggling.
+ */
+
 import React, {
   useEffect,
   useState,
@@ -1216,6 +1223,14 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
   );
 };
 
+/**
+ * @component PdfMappingWorkspace
+ * @description Root React Flow provider wrapper for template field positioning, formatting, and live preview.
+ * @param {PdfMappingWorkspaceProps} props - Component properties.
+ * @param {string} props.templateId - ID of parent template.
+ * @param {string} props.versionId - Specific template version ID to map.
+ * @returns {JSX.Element} Fully configured React Flow workspace.
+ */
 export const PdfMappingWorkspace: React.FC<PdfMappingWorkspaceProps> = (
   props,
 ) => {

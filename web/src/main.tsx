@@ -1,3 +1,10 @@
+/**
+ * @file main.tsx
+ * @description Client-side application entry point initializing TanStack Router, AuthProvider, and root React DOM.
+ * @architecture Top-level bootstrap module wiring routing, global styles, and authentication context into the DOM.
+ * @agent_note Instantiates createRouter with routeTree and router context; mounts InnerApp with loading fallbacks.
+ */
+
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider, createRouter } from "@tanstack/react-router";
@@ -5,7 +12,11 @@ import { routeTree } from "./routeTree.gen";
 import { AuthProvider, useAuth } from "./lib/auth-context";
 import { InfinityTrack } from "./components/ui/InfinityTrack";
 import { NotFoundView, GeneralErrorView } from "./components/errors";
+import { registerServiceWorker } from "./lib/registerSW";
 import "./index.css";
+
+// Register Service Worker for PWA functionality
+registerServiceWorker();
 
 const router = createRouter({
   routeTree,
@@ -25,6 +36,11 @@ declare module "@tanstack/react-router" {
   }
 }
 
+/**
+ * @component InnerApp
+ * @description Context bridge mounting RouterProvider once initial authentication hydration is resolved.
+ * @returns {JSX.Element} RouterProvider with active auth context, or full-screen loading spinner.
+ */
 // @ts-ignore
 // eslint-disable-next-line react-refresh/only-export-components
 function InnerApp() {

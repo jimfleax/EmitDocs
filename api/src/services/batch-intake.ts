@@ -572,21 +572,26 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
     .sort({ sourceRowNumber: 1 })
     .lean();
 
-  const duplicateChecked = detectDuplicatesAcrossRows(currentRevisionRows as any[]);
-
-  const oldRowMap = new Map<string, any>();
+  // Snapshot relevant persisted duplicate/warning fields before duplicate detection
+  const oldRowMap = new Map<string, { isDuplicate: boolean; duplicateReferences: number[]; warnings: any[] }>();
   for (const row of currentRevisionRows) {
-    oldRowMap.set(String(row._id), row);
+    oldRowMap.set(String(row._id), {
+      isDuplicate: Boolean(row.isDuplicate),
+      duplicateReferences: Array.isArray(row.duplicateReferences) ? [...row.duplicateReferences] : [],
+      warnings: Array.isArray(row.warnings) ? JSON.parse(JSON.stringify(row.warnings)) : [],
+    });
   }
+
+  const duplicateChecked = detectDuplicatesAcrossRows(currentRevisionRows as any[]);
 
   const selectiveBulkOps = [];
   for (const r of duplicateChecked) {
     const oldR = oldRowMap.get(String(r._id));
-    const isDuplicateChanged = !oldR || Boolean(oldR.isDuplicate) !== Boolean(r.isDuplicate);
+    const isDuplicateChanged = !oldR || oldR.isDuplicate !== Boolean(r.isDuplicate);
     const duplicateRefsChanged =
-      !oldR || JSON.stringify(oldR.duplicateReferences || []) !== JSON.stringify(r.duplicateReferences || []);
+      !oldR || JSON.stringify(oldR.duplicateReferences) !== JSON.stringify(r.duplicateReferences || []);
     const warningsChanged =
-      !oldR || JSON.stringify(oldR.warnings || []) !== JSON.stringify(r.warnings || []);
+      !oldR || JSON.stringify(oldR.warnings) !== JSON.stringify(r.warnings || []);
 
     if (isDuplicateChanged || duplicateRefsChanged || warningsChanged) {
       selectiveBulkOps.push({

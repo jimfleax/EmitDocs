@@ -1,3 +1,10 @@
+/**
+ * @file DetectedTokenList.tsx
+ * @description Sidebar listing of auto-detected double-bracket placeholder tokens found within the active PDF page.
+ * @architecture Inspector sub-panel component providing token discovery review and quick-conversion into mapped fields.
+ * @agent_note Displays tokens extracted by token-detector.ts and allows confirming them into dynamic fields or dismissing them.
+ */
+
 import React from "react";
 import type { DetectedToken } from "@/lib/pdf-engine/token-detector";
 import type { IFieldMapping } from "./types";
@@ -13,6 +20,17 @@ interface DetectedTokenListProps {
   onDismissToken: (token: DetectedToken) => void;
 }
 
+/**
+ * @component DetectedTokenList
+ * @description Renders a scrollable list of unconfirmed tokens with quick-confirm and dismiss buttons.
+ * @param {DetectedTokenListProps} props - Component properties.
+ * @param {DetectedToken[]} props.tokens - Discovered token candidates from PDF text analysis.
+ * @param {IFieldMapping[]} props.fieldMappings - Existing field mappings to check against already confirmed tokens.
+ * @param {number} props.activePageIndex - Currently visible page index (0-indexed).
+ * @param {(token: DetectedToken, isMulti?: boolean) => void} props.onConfirmToken - Callback to convert token to a field.
+ * @param {(token: DetectedToken) => void} props.onDismissToken - Callback to ignore or dismiss token candidate.
+ * @returns {JSX.Element} Token list panel or empty notice.
+ */
 export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({
   tokens,
   fieldMappings,

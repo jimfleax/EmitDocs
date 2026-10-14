@@ -1,3 +1,10 @@
+/**
+ * @file ImportValidationSummary.tsx
+ * @description Ingestion summary dashboard highlighting total, valid, invalid, and duplicate row statistics.
+ * @architecture Outcome overview component displayed in step 4 of the batch import workflow.
+ * @agent_note Displays stat metric cards and provides navigation to either Re-import or proceed to Review.
+ */
+
 import {
   CheckCircle,
   Warning,
@@ -19,6 +26,12 @@ interface ImportValidationSummaryProps {
   onReimport: () => void;
 }
 
+/**
+ * @component ImportValidationSummary
+ * @description Metric card dashboard summarizing validation totals and integrity statistics with next-step actions.
+ * @param {ImportValidationSummaryProps} props - Component properties.
+ * @returns {JSX.Element} Metric dashboard and action buttons.
+ */
 export function ImportValidationSummary({
   summary,
   onProceed,

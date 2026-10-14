@@ -1,3 +1,10 @@
+/**
+ * @file WorksheetSelector.tsx
+ * @description Tab/button selector allowing users to choose an active worksheet from multi-sheet Excel workbooks.
+ * @architecture Selection control component displayed in step 1 of the batch import wizard when workbook contains >1 sheet.
+ * @agent_note Automatically omitted (returns null) if the workbook contains only a single sheet.
+ */
+
 import { Table } from "@phosphor-icons/react";
 
 interface WorksheetSelectorProps {
@@ -7,6 +14,12 @@ interface WorksheetSelectorProps {
   disabled?: boolean;
 }
 
+/**
+ * @component WorksheetSelector
+ * @description Sheet selection pills for multi-worksheet Excel spreadsheets.
+ * @param {WorksheetSelectorProps} props - Component properties.
+ * @returns {JSX.Element | null} Sheet selector container or null if single sheet.
+ */
 export function WorksheetSelector({
   worksheets,
   selectedWorksheet,

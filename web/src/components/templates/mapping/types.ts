@@ -1,3 +1,10 @@
+/**
+ * @file types.ts
+ * @description Type definitions for PDF template field mappings, template version models, and transformation modes.
+ * @architecture Shared contract types for visual field mapping, layout persistence, and canvas rendering.
+ * @agent_note Used across xyflow canvas nodes, toolbars, and inspector panels to coordinate coordinates, styling, and font configuration.
+ */
+
 export type TextTransformMode =
   "none" | "uppercase" | "lowercase" | "capitalize";
 

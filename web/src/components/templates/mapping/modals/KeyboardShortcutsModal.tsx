@@ -1,3 +1,10 @@
+/**
+ * @file KeyboardShortcutsModal.tsx
+ * @description Modal dialog displaying keyboard shortcuts reference cheat-sheet for the mapping canvas.
+ * @architecture UI presentation modal providing accessibility and power-user discoverability in template mapping.
+ * @agent_note Displays platform-aware shortcut modifiers (Cmd on Mac, Ctrl on PC/Linux) and handles Escape-key dismiss.
+ */
+
 import { useEffect } from "react";
 import { X, Keyboard } from "@phosphor-icons/react";
 
@@ -16,6 +23,14 @@ interface ShortcutGroup {
   items: ShortcutItem[];
 }
 
+/**
+ * @component KeyboardShortcutsModal
+ * @description Modal dialogue categorizing all workspace keyboard hotkeys (undo/redo, nudging, snapping bypass, duplication).
+ * @param {KeyboardShortcutsModalProps} props - Component properties.
+ * @param {boolean} props.isOpen - Whether the modal dialog is visible.
+ * @param {() => void} props.onClose - Dismiss callback triggered on backdrop click, close button, or Escape.
+ * @returns {JSX.Element | null} Rendered accessible dialog or null when closed.
+ */
 export function KeyboardShortcutsModal({
   isOpen,
   onClose,

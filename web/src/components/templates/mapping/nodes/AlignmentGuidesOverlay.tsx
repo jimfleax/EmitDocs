@@ -1,3 +1,10 @@
+/**
+ * @file AlignmentGuidesOverlay.tsx
+ * @description SVG overlay rendering dynamic magnetic snapping guides on top of the React Flow canvas.
+ * @architecture Viewport portal overlay integrating alignment-snapper engine output with React Flow canvas coordinates.
+ * @agent_note Renders horizontal and vertical glowing alignment lines and distance badges via ViewportPortal.
+ */
+
 import React from "react";
 import { ViewportPortal } from "@xyflow/react";
 import type { AlignmentGuide } from "@/lib/pdf-engine/alignment-snapper";
@@ -8,6 +15,15 @@ export interface AlignmentGuidesOverlayProps {
   height: number;
 }
 
+/**
+ * @component AlignmentGuidesOverlay
+ * @description Visual overlay projecting magnetic alignment lines and measurement labels onto the canvas.
+ * @param {AlignmentGuidesOverlayProps} props - Component properties.
+ * @param {AlignmentGuide[]} props.guides - Active alignment guides computed by the snapping engine.
+ * @param {number} props.width - Canvas overlay width in pixels.
+ * @param {number} props.height - Canvas overlay height in pixels.
+ * @returns {JSX.Element | null} ViewportPortal containing SVG alignment lines, or null if no guides are active.
+ */
 export const AlignmentGuidesOverlay: React.FC<AlignmentGuidesOverlayProps> = ({
   guides,
   width,

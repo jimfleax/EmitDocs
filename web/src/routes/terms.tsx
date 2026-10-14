@@ -1,3 +1,10 @@
+/**
+ * @file terms.tsx
+ * @description Comprehensive Terms of Service document governing EmitDocs platform usage and worker execution.
+ * @architecture Public legal route using LegalLayout with navigation sidebar and structured section anchors.
+ * @agent_note Details user IP ownership, zero model training commitments, acceptable use policies, and billing.
+ */
+
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
@@ -27,6 +34,11 @@ const SECTIONS = [
   { id: "modifications", number: 14, title: "Modifications & Contact" },
 ];
 
+/**
+ * @component TermsPage
+ * @description Terms of Service legal document layout covering platform agreements, liability, and acceptable use.
+ * @returns {JSX.Element} Structured legal agreement page.
+ */
 export function TermsPage() {
   return (
     <LegalLayout

@@ -1,3 +1,10 @@
+/**
+ * @file BatchList.tsx
+ * @description Batches index table displaying imported batches, validation counts, status badges, and action dropdowns.
+ * @architecture Top-level dashboard page component for managing certificate issuance batches.
+ * @agent_note Fetches batch catalog from /api/batches, supports client-side search filtering, row deletion, and navigation to import or review.
+ */
+
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -81,6 +88,11 @@ function getBatchStatusBadge(status: string) {
 
 type StatusFilterType = "all" | "ready_for_download" | "review" | "draft";
 
+/**
+ * @component BatchList
+ * @description Main batch inventory view with status badges, validation tallies, search, and context actions.
+ * @returns {JSX.Element} Batches listing dashboard.
+ */
 export function BatchList() {
   const navigate = useNavigate();
   const [batches, setBatches] = useState<BatchItem[]>([]);

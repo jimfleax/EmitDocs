@@ -1,3 +1,10 @@
+/**
+ * @file ReimportDiffReview.tsx
+ * @description Difference audit viewer comparing an incoming spreadsheet file against the active batch draft records.
+ * @architecture Diff inspection component displayed in step 3 of the ReimportModal workflow.
+ * @agent_note Shows summary metric cards (Added, Removed, Changed, Unchanged, Ambiguous, Conflicted) and tabbed detail tables.
+ */
+
 import { useState } from "react";
 import type { ReimportDiffResult } from "@/types/diff";
 
@@ -6,6 +13,12 @@ export interface ReimportDiffReviewProps {
   reconciliationKey: string;
 }
 
+/**
+ * @component ReimportDiffReview
+ * @description Metric and tabular summary of changes between active batch data and new spreadsheet import.
+ * @param {ReimportDiffReviewProps} props - Component properties.
+ * @returns {JSX.Element} Re-import diff inspection view with categorized tabs.
+ */
 export function ReimportDiffReview({
   diff,
   reconciliationKey: _reconciliationKey,

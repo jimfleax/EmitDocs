@@ -772,13 +772,47 @@ export const getBatchActivity = async (c: Context) => {
 };
 
 /**
+ * Helper function determining if an error indicates that MongoDB transactions or sessions
+ * are unsupported by the active deployment (e.g. standalone Mongo instances).
+ *
+ * @param {any} err - Caught error object from database operation or session initialization.
+ * @returns {boolean} True if error indicates transactions/sessions are unsupported.
+ */
+export function isTransactionUnsupportedError(err: any): boolean {
+  if (!err) return false;
+  if (err.code === 20 || err.code === 263 || err.code === 148) {
+    return true;
+  }
+  if (
+    err.codeName === 'IllegalOperation' ||
+    err.codeName === 'CommandNotSupported' ||
+    err.codeName === 'OperationNotSupportedInTransaction'
+  ) {
+    return true;
+  }
+  const msg = typeof err.message === 'string' ? err.message.toLowerCase() : '';
+  return (
+    msg.includes('replica set member or mongos') ||
+    msg.includes('transactions are not supported') ||
+    msg.includes('does not support transactions') ||
+    msg.includes('does not support retryable writes') ||
+    msg.includes('sessions are not supported') ||
+    msg.includes('standalone') ||
+    msg.includes('not supported by this deployment') ||
+    msg.includes('transaction management is not supported')
+  );
+}
+
+/**
  * Deletes a batch and cascades deletion to all associated draft rows and batch import records.
  *
- * @desc Permanently removes the batch document and executes cleanup queries across `DraftRow` and `BatchImport` collections.
+ * @desc Atomically claims the batch for deletion before cleanup, then permanently removes the batch
+ *       document and executes cleanup queries across `DraftRow` and `BatchImport` collections within
+ *       a transaction (with graceful fallback for standalone MongoDB deployments where transactions are unsupported).
  * @route DELETE /api/batches/:id
  * @access Private (authenticated owner)
  * @param {Context} c - Hono context containing the batch ID route parameter.
- * @returns {Promise<Response>} 200 with deletion confirmation message; 401 if unauthenticated; 404 if not found; 500 on failure.
+ * @returns {Promise<Response>} 200 with deletion confirmation message; 400 if generating; 401 if unauthenticated; 404 if not found; 500 on failure.
  */
 export const deleteBatch = async (c: Context) => {
   const user = c.get('user');
@@ -786,18 +820,27 @@ export const deleteBatch = async (c: Context) => {
 
   const id = c.req.param('id');
   try {
-    const batch = await Batch.findOne({ _id: id, ownerId: user.id });
+    // Atomically claim the batch for deletion before cleanup, coordinating with generation state transitions
+    const batch = await Batch.findOneAndUpdate(
+      { _id: id, ownerId: user.id, status: { $ne: 'generating' } },
+      { $set: { status: 'deleting' } },
+      { new: true }
+    );
     if (!batch) {
-      return c.json({ error: 'Batch not found or access denied' }, 404);
-    }
-
-    if (batch.status === 'generating') {
-      return c.json({ error: 'Cannot delete batch while generating (generation in progress)' }, 400);
+      const existing = await Batch.findOne({ _id: id, ownerId: user.id });
+      if (!existing) {
+        return c.json({ error: 'Batch not found or access denied' }, 404);
+      }
+      if (existing.status === 'generating') {
+        return c.json({ error: 'Cannot delete batch while generating (generation in progress)' }, 400);
+      }
+      return c.json({ error: 'Cannot delete batch' }, 400);
     }
 
     // Wrap permanent cascade delete in a Mongoose session transaction where supported, fallback gracefully
     let session: mongoose.ClientSession | null = null;
     let transactionCommitted = false;
+    let transactionError: any = null;
     try {
       session = await mongoose.startSession();
       session.startTransaction();
@@ -806,7 +849,8 @@ export const deleteBatch = async (c: Context) => {
       await Batch.deleteOne({ _id: batch._id }, { session });
       await session.commitTransaction();
       transactionCommitted = true;
-    } catch {
+    } catch (err: any) {
+      transactionError = err;
       if (session && session.inTransaction()) {
         try {
           await session.abortTransaction();
@@ -825,12 +869,18 @@ export const deleteBatch = async (c: Context) => {
     }
 
     if (!transactionCommitted) {
-      // Graceful fallback without transaction (e.g. standalone Mongo)
+      // Restrict non-transactional fallback strictly to errors indicating unsupported transactions
+      if (transactionError && !isTransactionUnsupportedError(transactionError)) {
+        throw transactionError;
+      }
+
+      // Graceful fallback without transaction (e.g. standalone Mongo where transactions are unsupported).
+      // Delete child records first; only remove batch document if both child cleanups succeed to preserve recovery path.
       await Promise.all([
         DraftRow.deleteMany({ batchId: batch._id }),
         BatchImport.deleteMany({ batchId: batch._id }),
-        Batch.deleteOne({ _id: batch._id }),
       ]);
+      await Batch.deleteOne({ _id: batch._id });
     }
 
     return c.json({ success: true, message: 'Batch deleted' });

@@ -1,3 +1,10 @@
+/**
+ * @file PreviewDocumentPane.tsx
+ * @description Real-time live PDF preview generator pane demonstrating dynamic variable replacement and layout checking.
+ * @architecture Preview engine coordinator component rendering simulated PDF outputs using pdf-lib and PDF.js.
+ * @agent_note Generates full binary PDF with generatePdfWithOverlay, passes warnings to onWarningsGenerated, and renders output to canvas.
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import type { IFieldMapping } from "./types";
 import {
@@ -19,6 +26,12 @@ interface PreviewDocumentPaneProps {
   onWarningsGenerated: (warnings: EngineWarning[]) => void;
 }
 
+/**
+ * @component PreviewDocumentPane
+ * @description Renders live preview canvas by overlaying sample values into PDF template and detecting layout overflow.
+ * @param {PreviewDocumentPaneProps} props - Component properties.
+ * @returns {JSX.Element} Canvas preview container with generation loading indicators and error banners.
+ */
 export const PreviewDocumentPane: React.FC<PreviewDocumentPaneProps> = ({
   sourcePdfBytes,
   fieldMappings,

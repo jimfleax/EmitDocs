@@ -1,7 +1,7 @@
 /**
  * @file tooltip.tsx
  * @description Lightweight hover and focus tooltip component rendered via document portal.
- * @architecture Computes anchor bounding rects on hover/focus and projects floating tooltips into document.body with collision avoidance.
+ * @architecture Computes anchor bounding rects on hover/focus and projects floating tooltips into document.body.
  */
 
 import * as React from "react";

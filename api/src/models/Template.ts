@@ -1,10 +1,9 @@
 /**
  * @file Template.ts
  * @description Mongoose schema and interface for root Template entities.
- * @architecture Serves as the primary parent entity for document templates. Holds owner metadata,
- *               points to the active `currentVersionId` (in TemplateVersion), and supports soft deletion.
- * @agent_note When modifying or querying templates, always check `deletedAt === null` to exclude soft-deleted records.
- *             Do not mutate field mappings directly on Template; mappings belong strictly to TemplateVersion.
+ * @architecture Serves as the primary parent entity for document templates. Holds owner metadata
+ *               and points to the active `currentVersionId` (in TemplateVersion).
+ * @agent_note Do not mutate field mappings directly on Template; mappings belong strictly to TemplateVersion.
  */
 
 import mongoose, { Schema, Document } from 'mongoose';

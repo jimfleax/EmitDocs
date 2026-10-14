@@ -12,7 +12,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 /**
- * @typedef {('draft' | 'importing' | 'review' | 'awaiting_approval' | 'approved' | 'generating' | 'ready_for_download' | 'paused' | 'cancelled' | 'failed')} BatchStatus
+ * @typedef {('draft' | 'importing' | 'review' | 'awaiting_approval' | 'approved' | 'generating' | 'ready_for_download' | 'paused' | 'cancelled' | 'failed' | 'deleting')} BatchStatus
  * @description Represents the lifecycle state machine status of a bulk generation batch.
  */
 export type BatchStatus =
@@ -25,7 +25,8 @@ export type BatchStatus =
   | 'ready_for_download'
   | 'paused'
   | 'cancelled'
-  | 'failed';
+  | 'failed'
+  | 'deleting';
 
 /**
  * @interface IBatch
@@ -83,6 +84,7 @@ const BatchSchema = new Schema<IBatch>(
         'paused',
         'cancelled',
         'failed',
+        'deleting',
       ],
       default: 'draft',
     },

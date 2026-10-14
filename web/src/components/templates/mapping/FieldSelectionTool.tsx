@@ -1,3 +1,10 @@
+/**
+ * @file FieldSelectionTool.tsx
+ * @description Marquee drag-to-select tool allowing users to draw a rectangular bounding box to create new fields.
+ * @architecture Interactive canvas overlay translating pointer drag box from DOM coordinates into PDF coordinate rects.
+ * @agent_note Active when the user chooses the "Draw Field" tool; invokes onAreaSelected with normalized PDF points.
+ */
+
 import React, { useState, useRef } from "react";
 import {
   domToPdfRect,
@@ -12,6 +19,16 @@ interface FieldSelectionToolProps {
   children: React.ReactNode;
 }
 
+/**
+ * @component FieldSelectionTool
+ * @description Marquee selection interaction container providing visual bounding box during drag-to-create actions.
+ * @param {FieldSelectionToolProps} props - Component properties.
+ * @param {ViewportConfig} props.viewport - Coordinate mapping viewport parameters.
+ * @param {boolean} props.isActive - Whether marquee drawing mode is currently enabled.
+ * @param {(pdfRect: PdfRect) => void} props.onAreaSelected - Callback triggered on mouse up with normalized PDF bounds.
+ * @param {React.ReactNode} props.children - Enclosed canvas or page elements.
+ * @returns {JSX.Element} Wrapper container with drawing canvas overlay.
+ */
 export const FieldSelectionTool: React.FC<FieldSelectionToolProps> = ({
   viewport,
   isActive,

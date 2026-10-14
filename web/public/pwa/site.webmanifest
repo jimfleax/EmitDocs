@@ -1,12 +1,15 @@
 {
-  "name": "EmitDocs \u2014 Bulk Document Automation",
+  "id": "/app/",
+  "name": "EmitDocs — Bulk Document Automation",
   "short_name": "EmitDocs",
   "description": "Personalize and generate documents in bulk using PDF templates and spreadsheet data.",
   "start_url": "/app/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#F8FAFC",
   "theme_color": "#3182F6",
+  "categories": ["productivity", "utilities", "business"],
   "icons": [
     {
       "src": "/pwa/icon-192.png",
@@ -31,6 +34,22 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Batch",
+      "short_name": "New Batch",
+      "description": "Create a new document automation batch",
+      "url": "/app/batches/new",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Templates",
+      "short_name": "Templates",
+      "description": "View and manage document templates",
+      "url": "/app/templates",
+      "icons": [{ "src": "/pwa/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

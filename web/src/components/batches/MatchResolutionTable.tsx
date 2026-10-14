@@ -1,3 +1,10 @@
+/**
+ * @file MatchResolutionTable.tsx
+ * @description Conflict and ambiguity resolution interface for reconciling differences during spreadsheet re-import.
+ * @architecture Review table component presented within the ReimportDiffReview dialog.
+ * @agent_note Enables reviewers to choose whether to keep existing manual overrides or accept new imported spreadsheet values.
+ */
+
 import type { ConflictedDiffItem, AmbiguousDiffItem } from "@/types/diff";
 import { Badge } from "@/components/ui/Badge";
 
@@ -36,6 +43,12 @@ export interface MatchResolutionTableProps {
   onToggleCarryForward: (checked: boolean) => void;
 }
 
+/**
+ * @component MatchResolutionTable
+ * @description Interactive decision table for resolving field collisions and ambiguous rows during re-imports.
+ * @param {MatchResolutionTableProps} props - Component properties.
+ * @returns {JSX.Element} Conflict resolution choices and table rows.
+ */
 export function MatchResolutionTable({
   conflictedItems,
   ambiguousItems,

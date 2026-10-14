@@ -1,3 +1,10 @@
+/**
+ * @file sign-in.tsx
+ * @description Authentication page providing Google OAuth sign-in flow and legal links.
+ * @architecture Public sign-in route with beforeLoad guard redirecting logged-in users to /app.
+ * @agent_note Displays Balatro background shader animation on desktop and embeds GoogleSignInButton.
+ */
+
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { Balatro } from "@/components/ui/Balatro";
@@ -15,6 +22,11 @@ export const Route = createFileRoute("/sign-in")({
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/**
+ * @component SignIn
+ * @description Authentication portal with Google OAuth login and animated interactive background.
+ * @returns {JSX.Element} Split-screen sign-in interface.
+ */
 function SignIn() {
   return (
     <div className="min-h-screen w-full bg-white text-slate-900 flex flex-col lg:grid lg:grid-cols-2">

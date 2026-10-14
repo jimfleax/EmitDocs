@@ -1,3 +1,10 @@
+/**
+ * @file FieldNode.tsx
+ * @description Custom React Flow node representing an interactive mapped field with resizers, toolbars, and snapping.
+ * @architecture Custom node component registered in React Flow nodeTypes dictionary for template layout mapping.
+ * @agent_note Supports live resizing (NodeResizer), drag events with snap calculations, font styling previews, and quick actions toolbar.
+ */
+
 import React, { useCallback } from "react";
 import {
   NodeResizer,
@@ -37,6 +44,12 @@ export interface FieldNodeData {
 
 export type FieldNodeType = Node<FieldNodeData, "field">;
 
+/**
+ * @component FieldNode
+ * @description Interactive visual canvas node for configuring field position, dimensions, masking, and sample rendering.
+ * @param {NodeProps<FieldNodeType>} props - React Flow custom node properties.
+ * @returns {JSX.Element} Draggable, resizable field box with floating action toolbar.
+ */
 const FieldNodeComponent: React.FC<NodeProps<FieldNodeType>> = ({
   id,
   data,

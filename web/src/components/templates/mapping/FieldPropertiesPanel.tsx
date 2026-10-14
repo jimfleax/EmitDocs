@@ -1,3 +1,10 @@
+/**
+ * @file FieldPropertiesPanel.tsx
+ * @description Configuration panel for adjusting field mapping key, label, data type, fonts, geometry, alignment, and masking.
+ * @architecture Inspector drawer component for detailed field customization in the mapping workspace.
+ * @agent_note Manages single and multi-selection batch properties, custom font upload (TTF/OTF via base64 data URL), formatting, and masking styles.
+ */
+
 import React, { useRef } from "react";
 import type { IFieldMapping } from "./types";
 import { Button } from "@/components/ui/button";
@@ -27,6 +34,12 @@ interface FieldPropertiesPanelProps {
   onDeleteMultiple?: (ids: string[]) => void;
 }
 
+/**
+ * @component FieldPropertiesPanel
+ * @description Detailed properties editor panel for inspecting and modifying field geometry, typography, and format rules.
+ * @param {FieldPropertiesPanelProps} props - Component properties.
+ * @returns {JSX.Element} Property fields form, multi-field summary, or empty selection state.
+ */
 const FieldPropertiesPanelComponent: React.FC<FieldPropertiesPanelProps> = ({
   field,
   fields = [],

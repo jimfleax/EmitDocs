@@ -1,3 +1,10 @@
+/**
+ * @file InlineFieldEditor.tsx
+ * @description Inline single-field value editor allowing reviewers to override cell values with revert capability.
+ * @architecture Field-level editor component used in draft review sidebar inspector.
+ * @agent_note Supports keyboard shortcuts (Enter to save, Escape to cancel), override indicator badges, and reverting to original imported values.
+ */
+
 import React, { useState, useRef, useEffect } from "react";
 import {
   Check,
@@ -23,6 +30,12 @@ export interface InlineFieldEditorProps {
   disabled?: boolean;
 }
 
+/**
+ * @component InlineFieldEditor
+ * @description Field editor row supporting live edit mode, override status badges, and reset to original value.
+ * @param {InlineFieldEditorProps} props - Component properties.
+ * @returns {JSX.Element} Editable field row with inline action controls.
+ */
 export function InlineFieldEditor({
   fieldKey,
   label,

@@ -1,3 +1,10 @@
+/**
+ * @file DraftGallery.tsx
+ * @description Paginated gallery and issue-filtering sidebar for inspecting generated draft certificate records.
+ * @architecture Master-detail master list component inside DraftReviewWorkspace.
+ * @agent_note Communicates with /api/batches/:id/drafts, supports debounced search, issue faceted filtering (FilterByIssue), and row selection.
+ */
+
 import { useState, useEffect, useRef } from "react";
 import {
   MagnifyingGlass,
@@ -24,6 +31,12 @@ export interface DraftGalleryProps {
   refreshTrigger: number;
 }
 
+/**
+ * @component DraftGallery
+ * @description Sidebar listing of draft recipient records with issue count badges, search, and pagination.
+ * @param {DraftGalleryProps} props - Component properties.
+ * @returns {JSX.Element} Interactive draft gallery listing.
+ */
 export function DraftGallery({
   batchId,
   selectedRowId,

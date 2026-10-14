@@ -1,3 +1,10 @@
+/**
+ * @file BatchImportWorkspace.tsx
+ * @description Multi-step wizard coordinating spreadsheet upload, column mapping, chunked ingestion, and validation review.
+ * @architecture Comprehensive feature container component managing data import lifecycle for a batch.
+ * @agent_note Coordinates 4-step wizard: file selection/worksheet picking, column mapping with auto-suggest, 500-row chunked backend upload, and validation results.
+ */
+
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import {
@@ -36,6 +43,13 @@ function formatFileSize(bytes?: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
+/**
+ * @component BatchImportWorkspace
+ * @description Ingestion studio facilitating file parsing, column-to-field matching, chunked upload, and error summaries.
+ * @param {BatchImportWorkspaceProps} props - Component properties.
+ * @param {string} props.batchId - Target batch ID for importing data.
+ * @returns {JSX.Element} Multi-step import workspace with breadcrumb stepper and stage views.
+ */
 export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
   const navigate = useNavigate();
 

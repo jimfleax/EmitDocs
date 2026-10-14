@@ -1,3 +1,10 @@
+/**
+ * @file index.tsx
+ * @description Main dashboard home overview displaying issuance analytics, recent batches, templates, and storage quotas.
+ * @architecture Primary dashboard landing route for authenticated users (/app).
+ * @agent_note Fetches batches, templates, and storage metrics (/api/storage/overview); renders timeline charts and quick-action shortcuts.
+ */
+
 import { useEffect, useState, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -24,6 +31,7 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toast";
+import { PwaInstallCard } from "@/components/pwa";
 
 export const Route = createFileRoute("/_protected/app/")({
   component: AppIndexRoute,
@@ -189,6 +197,11 @@ function formatDateTime(): string {
   return `${time} · ${date}`;
 }
 
+/**
+ * @component AppIndexRoute
+ * @description Dashboard home view featuring greeting, issuance metrics, recent batches, and quick action cards.
+ * @returns {JSX.Element} Dashboard overview screen.
+ */
 function AppIndexRoute() {
   const navigate = useNavigate();
   const { data: session } = authClient.useSession();
@@ -896,6 +909,9 @@ function AppIndexRoute() {
             </div>
           )}
         </div>
+
+        {/* PWA Install Prompt Card (half-height, dismissible with localStorage persistence) */}
+        <PwaInstallCard />
 
         {/* 3. Quick Action Helper Card */}
         <div className="rounded-2xl bg-slate-50/90 border border-slate-100 p-6 sm:p-7 space-y-4">

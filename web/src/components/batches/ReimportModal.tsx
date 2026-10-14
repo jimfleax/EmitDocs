@@ -1,3 +1,10 @@
+/**
+ * @file ReimportModal.tsx
+ * @description Multi-step modal wizard for replacing or updating batch spreadsheet data while reconciling existing edits.
+ * @architecture Orchestrating modal dialog for non-destructive data re-ingestion and conflict resolution.
+ * @agent_note Guides users through 4 steps: upload file, map columns & reconciliation key, review diff, and resolve conflicting manual overrides.
+ */
+
 import { useState } from "react";
 import { X, ArrowRight, ArrowLeft, GitMerge } from "@phosphor-icons/react";
 import { DataFilePicker } from "./DataFilePicker";
@@ -21,6 +28,12 @@ export interface ReimportModalProps {
   onReconciled: () => void;
 }
 
+/**
+ * @component ReimportModal
+ * @description Step-by-step modal for uploading an updated spreadsheet and reconciling changes against manual overrides.
+ * @param {ReimportModalProps} props - Component properties.
+ * @returns {JSX.Element | null} Modal dialog overlay or null when closed.
+ */
 export function ReimportModal({
   isOpen,
   onClose,

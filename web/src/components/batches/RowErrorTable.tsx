@@ -1,3 +1,10 @@
+/**
+ * @file RowErrorTable.tsx
+ * @description Tabular integrity inspector displaying row validation errors, warnings, and duplicate line references.
+ * @architecture Diagnostic review table shown in step 4 of batch import and inside review workspaces.
+ * @agent_note Filters across all, invalid, and duplicate rows; shows error code badges and duplicate line reference badges.
+ */
+
 import { useState } from "react";
 import { Copy, CheckCircle, Funnel } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
@@ -34,6 +41,12 @@ interface RowErrorTableProps {
   onPageChange?: (page: number) => void;
 }
 
+/**
+ * @component RowErrorTable
+ * @description Filterable diagnostics table enumerating errors, duplicate references, and invalid cell values.
+ * @param {RowErrorTableProps} props - Component properties.
+ * @returns {JSX.Element} Integrity inspector table with filter controls.
+ */
 export function RowErrorTable({ rows, totalRows }: RowErrorTableProps) {
   const [filter, setFilter] = useState<"all" | "invalid" | "duplicate">(
     "invalid",

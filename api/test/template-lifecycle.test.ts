@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import cloudinary from '../src/lib/cloudinary.js';
 import { Template } from '../src/models/Template.js';
 import { TemplateVersion, IFieldMapping } from '../src/models/TemplateVersion.js';
+import { Batch } from '../src/models/Batch.js';
 import {
   computeMappingHash,
   publishVersion,
@@ -736,6 +737,55 @@ async function runTests() {
       async () => deleteTemplate({ templateId: tOther._id, ownerId: testOwner }),
       (err: any) => err instanceof TemplateNotFoundError
     );
+
+    // 16g. Deleting template with dependent batch in 'generating' status throws TemplateValidationError
+    const tWithGenBatch = await Template.create({
+      ownerId: testOwner,
+      name: 'Template With Generating Batch',
+    });
+    const vWithGenBatch = await TemplateVersion.create({
+      templateId: tWithGenBatch._id,
+      ownerId: testOwner,
+      version: 1,
+      sourceObjectKey: 'templates/owner/gen.pdf',
+      bytes: 1024,
+      pageCount: 1,
+      status: 'active',
+      fieldMappings: [],
+      mappingHash: computeMappingHash([]),
+    });
+    tWithGenBatch.currentVersionId = vWithGenBatch._id;
+    await tWithGenBatch.save();
+
+    const genBatch = await Batch.create({
+      ownerId: testOwner,
+      templateId: tWithGenBatch._id,
+      templateVersionId: vWithGenBatch._id,
+      name: 'Actively Generating Batch',
+      status: 'generating',
+      currentImportRevision: 0,
+      totalRows: 10,
+    });
+
+    await assert.rejects(
+      async () => deleteTemplate({ templateId: tWithGenBatch._id, ownerId: testOwner }),
+      (err: any) => err instanceof TemplateValidationError && err.code === 'BATCH_GENERATING'
+    );
+
+    await assert.rejects(
+      async () => deleteTemplate({ templateId: tWithGenBatch._id, ownerId: testOwner, confirmCascade: true }),
+      (err: any) => err instanceof TemplateValidationError && err.code === 'BATCH_GENERATING'
+    );
+
+    // Verify template and batch are preserved
+    assert.ok(await Template.findById(tWithGenBatch._id));
+    assert.ok(await Batch.findById(genBatch._id));
+
+    // Cleanup
+    await Batch.deleteOne({ _id: genBatch._id });
+    await TemplateVersion.deleteMany({ templateId: tWithGenBatch._id });
+    await Template.deleteOne({ _id: tWithGenBatch._id });
+
     console.log('   ✓ deleteTemplate permanent deletion and guards verified\n');
 
     // Test 17: streamAsset

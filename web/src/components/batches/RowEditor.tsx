@@ -1,3 +1,10 @@
+/**
+ * @file RowEditor.tsx
+ * @description Detail editor sidebar for inspecting and modifying single draft record cell values with concurrency locking.
+ * @architecture Editor pane inside DraftReviewWorkspace for row-level override mutations.
+ * @agent_note Issues PATCH /api/batches/:id/drafts/:rowId with optimistic UI updates and revision-based optimistic concurrency conflict handling.
+ */
+
 import { useState } from "react";
 import { CheckCircle, Warning, WarningCircle } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
@@ -37,6 +44,12 @@ export interface RowEditorProps {
   onRefreshBatch?: () => void;
 }
 
+/**
+ * @component RowEditor
+ * @description Detailed inspection and editing form for an individual recipient row and its mapped field values.
+ * @param {RowEditorProps} props - Component properties.
+ * @returns {JSX.Element} Row editor panel with validation messages and editable cells.
+ */
 export function RowEditor({
   batchId,
   batchRevision,

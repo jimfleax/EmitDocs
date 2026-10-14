@@ -721,10 +721,18 @@ export async function getTemplate(input: GetTemplateInput): Promise<ITemplate> {
 
 /**
  * Permanently deletes a template.
- * Validates dependencies against Batch collection; throws TemplateCascadeConfirmationRequiredError
- * if dependent batches exist and confirmCascade is false or omitted.
+ * Validates dependencies against Batch collection; throws TemplateValidationError if any dependent batch is in 'generating' status.
+ * Throws TemplateCascadeConfirmationRequiredError if dependent batches exist and confirmCascade is false or omitted.
  * When confirmCascade is true, permanently deletes all draft rows, batch imports, and batches.
  * Cascades to permanently delete all TemplateVersion documents and the root Template.
+ * Runs cascade deletions in a Mongoose session transaction where supported.
+ * 
+ * @desc Permanently deletes a template and its versions, cascading to child batches and imports within a transaction.
+ * @param {DeleteTemplateInput} input - Object containing templateId, ownerId, and confirmCascade.
+ * @returns {Promise<DeleteTemplateResult>} Operation outcome and deleted batch count.
+ * @throws {TemplateValidationError} If ownerId is missing or if any dependent batch is in 'generating' status.
+ * @throws {TemplateNotFoundError} If template does not exist.
+ * @throws {TemplateCascadeConfirmationRequiredError} If dependent batches exist and cascade is not confirmed.
  */
 export async function deleteTemplate(input: DeleteTemplateInput): Promise<DeleteTemplateResult> {
   const { templateId, ownerId, confirmCascade } = input || {};
@@ -744,6 +752,14 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
 
   const dependentBatches = await Batch.find({ templateId: template._id, ownerId }).select('_id name status totalRows');
 
+  const generatingBatch = dependentBatches.find((b) => b.status === 'generating');
+  if (generatingBatch) {
+    throw new TemplateValidationError(
+      'Cannot delete template while dependent batch is generating',
+      'BATCH_GENERATING'
+    );
+  }
+
   if (dependentBatches.length > 0 && !confirmCascade) {
     throw new TemplateCascadeConfirmationRequiredError(
       dependentBatches.map((b) => ({
@@ -756,18 +772,74 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
   }
 
   let deletedBatchesCount = 0;
-  if (dependentBatches.length > 0 && confirmCascade === true) {
-    const batchIds = dependentBatches.map((b) => b._id);
-    await Promise.all([
-      DraftRow.deleteMany({ batchId: { $in: batchIds } }),
-      BatchImport.deleteMany({ batchId: { $in: batchIds } }),
-      Batch.deleteMany({ _id: { $in: batchIds } }),
-    ]);
-    deletedBatchesCount = dependentBatches.length;
+  const batchIds =
+    dependentBatches.length > 0 && confirmCascade === true
+      ? dependentBatches.map((b) => b._id)
+      : [];
+
+  let session: mongoose.ClientSession | null = null;
+  let transactionCommitted = false;
+
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
+
+    if (batchIds.length > 0) {
+      await DraftRow.deleteMany({ batchId: { $in: batchIds } }, { session });
+      await BatchImport.deleteMany({ batchId: { $in: batchIds } }, { session });
+      await Batch.deleteMany({ _id: { $in: batchIds } }, { session });
+    }
+
+    await TemplateVersion.deleteMany({ templateId: template._id }, { session });
+    await Template.deleteOne({ _id: template._id }, { session });
+
+    await session.commitTransaction();
+    transactionCommitted = true;
+    if (batchIds.length > 0) {
+      deletedBatchesCount = batchIds.length;
+    }
+  } catch (error: any) {
+    if (session && session.inTransaction()) {
+      try {
+        await session.abortTransaction();
+      } catch {
+        // Transaction abort failed or unsupported
+      }
+    }
+    const isUnsupported =
+      error?.code === 20 ||
+      error?.codeName === 'IllegalOperation' ||
+      error?.message?.includes('Transaction numbers are only allowed') ||
+      error?.message?.includes('replica set') ||
+      error?.message?.includes('Transactions are not supported') ||
+      error?.message?.includes('Sessions are not supported');
+
+    if (!isUnsupported) {
+      throw error;
+    }
+  } finally {
+    if (session) {
+      try {
+        await session.endSession();
+      } catch {
+        // Session cleanup
+      }
+    }
   }
 
-  await TemplateVersion.deleteMany({ templateId: template._id });
-  await Template.deleteOne({ _id: template._id });
+  if (!transactionCommitted) {
+    if (batchIds.length > 0) {
+      await Promise.all([
+        DraftRow.deleteMany({ batchId: { $in: batchIds } }),
+        BatchImport.deleteMany({ batchId: { $in: batchIds } }),
+        Batch.deleteMany({ _id: { $in: batchIds } }),
+      ]);
+      deletedBatchesCount = batchIds.length;
+    }
+
+    await TemplateVersion.deleteMany({ templateId: template._id });
+    await Template.deleteOne({ _id: template._id });
+  }
 
   return {
     success: true,

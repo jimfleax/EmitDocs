@@ -1,3 +1,10 @@
+/**
+ * @file FloatingTopToolbar.tsx
+ * @description Floating top control panel and drawer for canvas tools, alignment controls, inspector tabs, and persistence.
+ * @architecture Top-level React Flow Panel component coordinating workspace interactions and configuration drawers.
+ * @agent_note Hosts pagination, zoom/fit-view, history undo/redo, alignment actions, and collapsible tabs for properties, tokens, and warnings.
+ */
+
 import React, { useState, useRef, useEffect } from "react";
 import { Panel } from "@xyflow/react";
 import { Button } from "@/components/ui/button";
@@ -89,6 +96,12 @@ export interface FloatingTopToolbarProps {
 
 type TabType = "properties" | "fields" | "tokens" | "warnings";
 
+/**
+ * @component FloatingTopToolbar
+ * @description Workspace header and inspector toolbar housing tool switches, pagination, alignment triggers, and status panels.
+ * @param {FloatingTopToolbarProps} props - Component properties.
+ * @returns {JSX.Element} React Flow floating panel with nested interactive drawers and controls.
+ */
 const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   templateName,
   versionNumber,

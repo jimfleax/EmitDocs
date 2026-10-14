@@ -1,3 +1,10 @@
+/**
+ * @file ColumnMappingTable.tsx
+ * @description Interactive mapping table linking template dynamic fields with spreadsheet column headers.
+ * @architecture Mapping configuration sub-view used during batch import step 2 and reimport workflows.
+ * @agent_note Includes heuristic auto-matching (runAutoSuggest) comparing normalized field keys/labels to headers, and date format hint pickers.
+ */
+
 import { useEffect, useCallback, useRef } from "react";
 import {
   ArrowsLeftRight,
@@ -25,6 +32,12 @@ interface ColumnMappingTableProps {
   ) => void;
 }
 
+/**
+ * @component ColumnMappingTable
+ * @description Table for binding spreadsheet columns to required/optional template fields with auto-suggest capabilities.
+ * @param {ColumnMappingTableProps} props - Component properties.
+ * @returns {JSX.Element} Mapping interface table with column dropdowns and date hint selectors.
+ */
 export function ColumnMappingTable({
   fields,
   availableHeaders,

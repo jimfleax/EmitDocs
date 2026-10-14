@@ -1,3 +1,10 @@
+/**
+ * @file FloatingFieldToolbar.tsx
+ * @description Floating contextual action bar pinned above or below an active field box in the overlay layer.
+ * @architecture Contextual micro-toolbar component for quick-toggle operations without opening the full inspector.
+ * @agent_note Provides fast 1-click transparency toggle, text/mask color pickers, field duplicate, and deletion.
+ */
+
 import React from "react";
 import type { IFieldMapping } from "./types";
 import type { DomRect } from "@/lib/pdf-engine/coordinate-transforms";
@@ -12,6 +19,17 @@ interface FloatingFieldToolbarProps {
   onDeleteField: (id: string) => void;
 }
 
+/**
+ * @component FloatingFieldToolbar
+ * @description Floating badge toolbar positioned relative to a selected field offering fast-action toggles.
+ * @param {FloatingFieldToolbarProps} props - Component properties.
+ * @param {IFieldMapping} props.field - Field mapping currently targeted.
+ * @param {DomRect} props.boxDomRect - Target field's DOM bounding rectangle for positioning.
+ * @param {(updated: IFieldMapping) => void} props.onUpdateField - Field update mutation callback.
+ * @param {(field: IFieldMapping) => void} props.onDuplicateField - Field clone callback.
+ * @param {(id: string) => void} props.onDeleteField - Field delete callback.
+ * @returns {JSX.Element} Floating micro-toolbar.
+ */
 export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({
   field,
   boxDomRect,

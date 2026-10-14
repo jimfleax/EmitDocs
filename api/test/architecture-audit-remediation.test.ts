@@ -9,11 +9,15 @@ import { DraftRow } from '../src/models/DraftRow.js';
 import {
   TemplateLifecycle,
   TemplateCascadeConfirmationRequiredError,
+  TemplateValidationError,
   computeMappingHash,
 } from '../src/services/template-lifecycle.js';
 import { BatchIntake } from '../src/services/batch-intake.js';
 import { deleteTemplate as deleteTemplateController } from '../src/controllers/templates.controller.js';
-import { deleteBatch as deleteBatchController } from '../src/controllers/batches.controller.js';
+import {
+  deleteBatch as deleteBatchController,
+  isTransactionUnsupportedError,
+} from '../src/controllers/batches.controller.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null, headers = {} }: any) {
   let responseData: any = null;
@@ -50,7 +54,8 @@ async function runTests() {
   const testOwner = `remediation_owner_${Date.now()}`;
   const mockUser = { id: testOwner, email: 'remediation@example.com' };
 
-  const sampleFieldMappings: IFieldMapping[] = [
+  try {
+    const sampleFieldMappings: IFieldMapping[] = [
     {
       id: 'f1',
       key: 'studentName',
@@ -167,10 +172,48 @@ async function runTests() {
   assert.strictEqual(resp409.data.dependentBatches[0].name, 'Dependent Batch 1');
   console.log('   ✓ 409 CASCADE_CONFIRMATION_REQUIRED error payload verified\n');
 
+  // 2c. Deleting template when dependent batch is in 'generating' status throws TemplateValidationError (HTTP 400)
+  b2.status = 'generating';
+  await b2.save();
+
+  await assert.rejects(
+    async () => TemplateLifecycle.deleteTemplate({ templateId: t2._id, ownerId: testOwner }),
+    (err: any) => {
+      assert.strictEqual(err instanceof TemplateValidationError, true);
+      assert.strictEqual(err.code, 'BATCH_GENERATING');
+      assert.ok(err.message.includes('generating'));
+      return true;
+    }
+  );
+
+  await assert.rejects(
+    async () => TemplateLifecycle.deleteTemplate({ templateId: t2._id, ownerId: testOwner, confirmCascade: true }),
+    (err: any) => {
+      assert.strictEqual(err instanceof TemplateValidationError, true);
+      assert.strictEqual(err.code, 'BATCH_GENERATING');
+      return true;
+    }
+  );
+
+  const ctrlCtxGen = createMockContext({
+    user: mockUser,
+    params: { id: t2._id.toString() },
+    query: { confirmCascade: 'true' },
+  });
+  await deleteTemplateController(ctrlCtxGen as any);
+  const respGen = ctrlCtxGen._getResponse();
+  assert.strictEqual(respGen.status, 400);
+  assert.ok(respGen.data.error.includes('generating'));
+  assert.ok((await Template.findById(t2._id)) !== null, 'Template must not be deleted');
+
+  // Reset b2 status to draft for cascade deletion test
+  b2.status = 'draft';
+  await b2.save();
+
   // =========================================================================
   // Requirement 3: Deleting template with confirmCascade=true cascades cleanup
   // =========================================================================
-  console.log('3. Testing delete template with confirmCascade=true permanently deletes template, batches, imports, rows...');
+  console.log('3. Testing delete template with confirmCascade=true permanently deletes template, batches, imports, rows in transaction...');
   const imp2 = await BatchImport.create({
     batchId: b2._id,
     ownerId: testOwner,
@@ -206,7 +249,86 @@ async function runTests() {
   assert.strictEqual(await Batch.findById(b2._id), null);
   assert.strictEqual((await BatchImport.find({ batchId: b2._id })).length, 0);
   assert.strictEqual((await DraftRow.find({ batchId: b2._id })).length, 0);
-  console.log('   ✓ Full cascade permanent deletion verified\n');
+
+  // 3b. Verify transaction rollback prevents partial commit if an operation fails
+  const tRollback = await Template.create({ ownerId: testOwner, name: 'Rollback Template' });
+  const vRollback = await TemplateVersion.create({
+    templateId: tRollback._id,
+    ownerId: testOwner,
+    version: 1,
+    sourceObjectKey: `templates/${testOwner}/doc_rb.pdf`,
+    bytes: 1024,
+    pageCount: 1,
+    status: 'active',
+    fieldMappings: sampleFieldMappings,
+    mappingHash: computeMappingHash(sampleFieldMappings),
+  });
+  tRollback.currentVersionId = vRollback._id as any;
+  await tRollback.save();
+
+  const bRollback = await Batch.create({
+    ownerId: testOwner,
+    templateId: tRollback._id,
+    templateVersionId: vRollback._id,
+    name: 'Rollback Batch',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 1,
+  });
+
+  const impRollback = await BatchImport.create({
+    batchId: bRollback._id,
+    ownerId: testOwner,
+    revision: 1,
+    sourceFileName: 'data.csv',
+    sourceFileSize: 100,
+    status: 'completed',
+  });
+
+  await DraftRow.create({
+    batchId: bRollback._id,
+    importId: impRollback._id,
+    ownerId: testOwner,
+    revision: 1,
+    rowKey: 'row_rb',
+    sourceRowNumber: 1,
+    importedData: { Name: 'Alice' },
+    status: 'valid',
+  });
+
+  const originalDeleteOne = Template.deleteOne;
+  Template.deleteOne = (async (..._args: any[]) => {
+    throw new Error('SIMULATED_TRANSACTION_FAILURE');
+  }) as any;
+
+  try {
+    await assert.rejects(
+      async () =>
+        TemplateLifecycle.deleteTemplate({
+          templateId: tRollback._id,
+          ownerId: testOwner,
+          confirmCascade: true,
+        }),
+      (err: any) => err.message === 'SIMULATED_TRANSACTION_FAILURE'
+    );
+
+    // Verify nothing partially committed (all records intact)
+    assert.ok(await Template.findById(tRollback._id));
+    assert.ok(await TemplateVersion.findById(vRollback._id));
+    assert.ok(await Batch.findById(bRollback._id));
+    assert.ok(await BatchImport.findById(impRollback._id));
+    assert.strictEqual((await DraftRow.find({ batchId: bRollback._id })).length, 1);
+  } finally {
+    Template.deleteOne = originalDeleteOne;
+    // Clean up rollback fixtures
+    await DraftRow.deleteMany({ batchId: bRollback._id });
+    await BatchImport.deleteMany({ batchId: bRollback._id });
+    await Batch.deleteOne({ _id: bRollback._id });
+    await TemplateVersion.deleteMany({ templateId: tRollback._id });
+    await Template.deleteOne({ _id: tRollback._id });
+  }
+
+  console.log('   ✓ Full cascade permanent deletion and transactional rollback verified\n');
 
   // =========================================================================
   // Requirement 4: Deleting batch in 'generating' status returns 400
@@ -285,6 +407,147 @@ async function runTests() {
   assert.strictEqual((await BatchImport.find({ batchId: bGenerating._id })).length, 0);
   assert.strictEqual((await DraftRow.find({ batchId: bGenerating._id })).length, 0);
   console.log('   ✓ Permanent batch and child records deletion verified\n');
+
+  // =========================================================================
+  // Requirement 5b: isTransactionUnsupportedError helper classification
+  // =========================================================================
+  console.log('5b. Testing isTransactionUnsupportedError classification...');
+  assert.strictEqual(isTransactionUnsupportedError({ code: 20 }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ codeName: 'IllegalOperation' }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ code: 263 }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ code: 148 }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ codeName: 'CommandNotSupported' }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ message: 'Transaction numbers are only allowed on a replica set member or mongos' }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ message: 'This MongoDB deployment does not support transactions' }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ message: 'sessions are not supported' }), true);
+  assert.strictEqual(isTransactionUnsupportedError({ message: 'Standalone' }), true);
+  assert.strictEqual(isTransactionUnsupportedError(new Error('WriteConflict')), false);
+  assert.strictEqual(isTransactionUnsupportedError(new Error('Network timeout')), false);
+  assert.strictEqual(isTransactionUnsupportedError(null), false);
+  console.log('   ✓ isTransactionUnsupportedError classification verified\n');
+
+  // =========================================================================
+  // Requirement 5c: deleteBatch recovery path & atomic claiming
+  // =========================================================================
+  console.log('5c. Testing deleteBatch recovery path, atomic claiming, and fallback safety...');
+  // 5c.1 Batch already claimed in 'deleting' (recovery path after partial child deletion)
+  const bRecover = await Batch.create({
+    ownerId: testOwner,
+    templateId: t3._id,
+    templateVersionId: v3._id,
+    name: 'Recover Batch',
+    status: 'deleting',
+    currentImportRevision: 0,
+    totalRows: 0,
+  });
+  const delRecoverCtx = createMockContext({
+    user: mockUser,
+    params: { id: bRecover._id.toString() },
+  });
+  await deleteBatchController(delRecoverCtx as any);
+  assert.strictEqual(delRecoverCtx._getResponse().status, 200);
+  assert.strictEqual(await Batch.findById(bRecover._id), null, 'Recovered batch deleted');
+
+  // 5c.2 Unsupported transaction error triggers fallback, but child failure preserves batch
+  const bFallback = await Batch.create({
+    ownerId: testOwner,
+    templateId: t3._id,
+    templateVersionId: v3._id,
+    name: 'Fallback Batch',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 0,
+  });
+  const impFallback = await BatchImport.create({
+    batchId: bFallback._id,
+    ownerId: testOwner,
+    revision: 1,
+    sourceFileName: 'fallback.csv',
+    sourceFileSize: 128,
+  });
+  await DraftRow.create({
+    batchId: bFallback._id,
+    importId: impFallback._id,
+    ownerId: testOwner,
+    revision: 1,
+    rowKey: 'row_fb',
+    sourceRowNumber: 1,
+    importedData: { Name: 'Carol' },
+  });
+
+  // Mock mongoose.startSession to throw code 20 (unsupported transaction)
+  const originalStartSession = mongoose.startSession;
+  mongoose.startSession = (async () => {
+    const err: any = new Error('Transaction numbers are only allowed on a replica set member or mongos');
+    err.code = 20;
+    err.codeName = 'IllegalOperation';
+    throw err;
+  }) as any;
+
+  // Simulate child deletion failure in fallback to verify recovery path preservation
+  const originalDraftRowDeleteMany = DraftRow.deleteMany;
+  DraftRow.deleteMany = (async (query: any, opts: any) => {
+    if (!opts?.session) {
+      throw new Error('SIMULATED_CHILD_CLEANUP_FAILURE');
+    }
+    return originalDraftRowDeleteMany.call(DraftRow, query, opts);
+  }) as any;
+
+  try {
+    const delFailCtx = createMockContext({
+      user: mockUser,
+      params: { id: bFallback._id.toString() },
+    });
+    await deleteBatchController(delFailCtx as any);
+    assert.strictEqual(delFailCtx._getResponse().status, 500);
+
+    // Verify batch was NOT removed, preserving the recovery path!
+    const batchStillExists = await Batch.findById(bFallback._id);
+    assert.ok(batchStillExists !== null, 'Batch must remain in DB when child deletion fails');
+  } finally {
+    DraftRow.deleteMany = originalDraftRowDeleteMany;
+  }
+
+  // Now retry deletion with normal child cleanup (still on unsupported transaction mock)
+  const delRetryCtx = createMockContext({
+    user: mockUser,
+    params: { id: bFallback._id.toString() },
+  });
+  await deleteBatchController(delRetryCtx as any);
+  assert.strictEqual(delRetryCtx._getResponse().status, 200);
+  assert.strictEqual(await Batch.findById(bFallback._id), null, 'Batch deleted after retry');
+  assert.strictEqual((await BatchImport.find({ batchId: bFallback._id })).length, 0);
+  assert.strictEqual((await DraftRow.find({ batchId: bFallback._id })).length, 0);
+
+  // 5c.3 Non-unsupported transaction error does NOT execute fallback
+  const bTxnError = await Batch.create({
+    ownerId: testOwner,
+    templateId: t3._id,
+    templateVersionId: v3._id,
+    name: 'Txn Error Batch',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 0,
+  });
+  mongoose.startSession = (async () => {
+    throw new Error('TRANSACTION_WRITE_CONFLICT');
+  }) as any;
+
+  const delTxnErrorCtx = createMockContext({
+    user: mockUser,
+    params: { id: bTxnError._id.toString() },
+  });
+  await deleteBatchController(delTxnErrorCtx as any);
+  assert.strictEqual(delTxnErrorCtx._getResponse().status, 500);
+  assert.strictEqual(delTxnErrorCtx._getResponse().data.error, 'TRANSACTION_WRITE_CONFLICT');
+  // Batch was not deleted by fallback
+  assert.ok((await Batch.findById(bTxnError._id)) !== null);
+
+  // Restore startSession and clean up bTxnError
+  mongoose.startSession = originalStartSession;
+  await Batch.deleteOne({ _id: bTxnError._id });
+
+  console.log('   ✓ Fallback safety, recovery path, and error restriction verified\n');
 
   // =========================================================================
   // Requirement 6: finalizeImport executes single consolidated DraftRow.bulkWrite
@@ -508,15 +771,16 @@ async function runTests() {
     DraftRow.prototype.save = originalSave;
   }
   console.log('   ✓ Batched updates in reconcileImportRevision verified\n');
-
-  // Cleanup fixtures
-  await Template.deleteMany({ ownerId: testOwner });
-  await TemplateVersion.deleteMany({ ownerId: testOwner });
-  await Batch.deleteMany({ ownerId: testOwner });
-  await BatchImport.deleteMany({ ownerId: testOwner });
-  await DraftRow.deleteMany({ ownerId: testOwner });
-  await mongoose.disconnect();
   console.log('🎉 ALL ARCHITECTURE AUDIT REMEDIATION TESTS PASSED CLEANLY!\n');
+  } finally {
+    // Cleanup fixtures
+    await Template.deleteMany({ ownerId: testOwner });
+    await TemplateVersion.deleteMany({ ownerId: testOwner });
+    await Batch.deleteMany({ ownerId: testOwner });
+    await BatchImport.deleteMany({ ownerId: testOwner });
+    await DraftRow.deleteMany({ ownerId: testOwner });
+    await mongoose.disconnect();
+  }
 }
 
 runTests().catch((err) => {

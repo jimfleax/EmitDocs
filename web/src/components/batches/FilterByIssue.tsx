@@ -1,3 +1,10 @@
+/**
+ * @file FilterByIssue.tsx
+ * @description Segmented issue filtering control for filtering draft records by validation outcome.
+ * @architecture Filter toolbar sub-component inside DraftGallery.
+ * @agent_note Filters across all, valid, invalid, duplicate, warning, and overridden facets with active counters.
+ */
+
 import { Funnel } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +27,12 @@ interface FilterByIssueProps {
   className?: string;
 }
 
+/**
+ * @component FilterByIssue
+ * @description Segmented tab buttons showing draft record totals categorized by validation status.
+ * @param {FilterByIssueProps} props - Component properties.
+ * @returns {JSX.Element} Filter button group with count badges.
+ */
 export function FilterByIssue({
   activeFilter,
   onSelectFilter,
