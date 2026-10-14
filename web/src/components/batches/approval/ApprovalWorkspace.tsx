@@ -64,8 +64,6 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
   // Fetch preflight metrics
   const loadPreflight = useCallback(async () => {
     try {
-      setError(null);
-
       const res = await fetch(`/api/batches/${batchId}/approval-preflight`, {
         credentials: "include",
       });
