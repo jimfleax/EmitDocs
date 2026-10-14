@@ -1,3 +1,10 @@
+/**
+ * @file select-component.test.ts
+ * @description Unit tests for Select component utility functions, text extraction helpers, and label caching.
+ * @architecture Validates React node text extraction in utils.ts and item lookup/caching mechanics in select-utils.ts for custom UI select inputs.
+ * @agent_note Run via `pnpm run test:ui`. Tests verify zero-DOM label resolution required for instant frame-1 rendering of selected select items.
+ */
+
 import assert from 'node:assert';
 import React from 'react';
 import { getReactNodeText } from '../web/src/lib/utils';

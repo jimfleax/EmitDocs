@@ -9,6 +9,7 @@ import "./index.css";
 
 const router = createRouter({
   routeTree,
+  trailingSlash: "preserve",
   context: {
     auth: undefined!, // This will be injected by the provider
   },

@@ -25,7 +25,7 @@ const SECTIONS = [
   { id: "contact", number: 10, title: "Contact Our Privacy Officer" },
 ];
 
-function PrivacyPage() {
+export function PrivacyPage() {
   return (
     <LegalLayout
       title="Privacy Policy"

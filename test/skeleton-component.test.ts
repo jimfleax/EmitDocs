@@ -1,3 +1,10 @@
+/**
+ * @file skeleton-component.test.ts
+ * @description Unit tests for the Skeleton loading placeholder primitive component.
+ * @architecture Validates React DOM element structure, accessibility attributes, Tailwind styling, and twMerge class overrides for web/src/components/ui/Skeleton.tsx.
+ * @agent_note Run via `pnpm run test:skeleton`. Tests run directly in Node via tsx using plain element props inspection without requiring a full browser DOM.
+ */
+
 import assert from 'node:assert';
 import { Skeleton } from '../web/src/components/ui/Skeleton';
 

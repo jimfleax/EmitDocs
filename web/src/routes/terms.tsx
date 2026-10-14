@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
 
@@ -27,7 +27,7 @@ const SECTIONS = [
   { id: "modifications", number: 14, title: "Modifications & Contact" },
 ];
 
-function TermsPage() {
+export function TermsPage() {
   return (
     <LegalLayout
       title="Terms of Service"
@@ -58,12 +58,12 @@ function TermsPage() {
           preview utilities, or APIs (collectively, the{" "}
           <strong>"Service"</strong>), you acknowledge that you have read,
           understood, and agree to be bound by these Terms and our{" "}
-          <a
-            href="/privacy"
+          <Link
+            to="/privacy"
             className="text-blue-600 hover:underline font-medium"
           >
             Privacy Policy
-          </a>
+          </Link>
           . If you do not agree to these Terms, you must immediately discontinue
           using the Service.
         </p>

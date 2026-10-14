@@ -1,11 +1,7 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { TermsPage } from "./terms";
 
 export const Route = createFileRoute("/terms-of-service")({
-  beforeLoad: () => {
-    throw redirect({
-      to: "/terms",
-      replace: true,
-    });
-  },
-  component: () => null,
+  component: TermsPage,
 });
+

@@ -1,3 +1,10 @@
+/**
+ * @file generate-fixtures.ts
+ * @description Generates synthetic PDF test fixtures with tokens, rotation variants, and multi-page layouts for the test suite.
+ * @architecture Used offline or during test setup to produce binary test PDFs stored in test/fixtures/ consumed by acceptance tests.
+ * @agent_note Run via `npx tsx test/fixtures/generate-fixtures.ts` whenever PDF fixture templates need regeneration or new test cases are added.
+ */
+
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,6 +13,11 @@ import { PDFDocument, StandardFonts, degrees } from 'pdf-lib';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * @desc    Generates four standard PDF test fixtures: single page with tokens, fragmented drawing tokens, multi-angle rotated pages (0°, 90°, 180°, 270°), and multipage documents.
+ * @returns {Promise<void>} Resolves when all PDF files are written to test/fixtures/
+ * @throws  {Error} If file system write operations or PDF generation fail
+ */
 async function generateFixtures() {
   console.log('Generating test PDF fixtures in test/fixtures/...');
 

@@ -55,19 +55,19 @@ function SignIn() {
           <div className="mt-8 pt-6 border-t border-slate-100">
             <p className="text-xs text-slate-400 text-center leading-relaxed">
               By continuing, you agree to EmitDocs'{" "}
-              <a
-                href="/terms"
+              <Link
+                to="/terms"
                 className="text-slate-600 hover:text-blue-600 underline underline-offset-2 transition-colors"
               >
                 Terms of Service
-              </a>{" "}
+              </Link>{" "}
               and{" "}
-              <a
-                href="/privacy"
+              <Link
+                to="/privacy"
                 className="text-slate-600 hover:text-blue-600 underline underline-offset-2 transition-colors"
               >
                 Privacy Policy
-              </a>
+              </Link>
               .
             </p>
           </div>

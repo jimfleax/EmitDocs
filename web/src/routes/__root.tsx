@@ -26,7 +26,7 @@ function RootComponent() {
       <TooltipProvider delayDuration={150}>
         <Outlet />
         <SpeedInsights route={pathname} />
-        <TanStackRouterDevtools />
+        {import.meta.env.DEV && <TanStackRouterDevtools />}
       </TooltipProvider>
     </ToastProvider>
   );
