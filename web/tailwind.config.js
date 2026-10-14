@@ -1,3 +1,10 @@
+/**
+ * @file tailwind.config.js
+ * @description Tailwind CSS theme and styling configuration for EmitDocs web client.
+ * @architecture Defines CSS variables, color palettes, and radius tokens mapped from HSL variables.
+ * @agent_note Token updates must maintain harmony with styles defined in src/index.css.
+ */
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],

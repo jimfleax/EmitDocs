@@ -1,3 +1,10 @@
+/**
+ * @file acceptance-matrix.test.ts
+ * @description Acceptance criteria test matrix for PRD-CORE-03: PDF Token Detection and Visual Coordinate Mapping.
+ * @architecture End-to-end verification linking web PDF engine modules (coordinate transforms, token detection, fit-then-flag, glyph validator, preview overlay) with backend template versioning models and hashing.
+ * @agent_note Run via `pnpm run test:ac`. Validates all 8 acceptance criteria (AC1 - AC8) ensuring byte-level parity between preview generation and batch issuance.
+ */
+
 import assert from 'assert';
 import fs from 'fs';
 import path from 'path';
@@ -17,6 +24,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const fixturesDir = path.join(__dirname, 'fixtures');
 
+/**
+ * @desc    Executes the comprehensive PRD-CORE-03 acceptance criteria matrix (AC1 through AC8).
+ * @returns {Promise<void>} Resolves when all acceptance tests succeed
+ * @throws  {AssertionError} If any acceptance criterion verification fails
+ */
 async function runAcceptanceCriteriaMatrix() {
   console.log('===========================================================');
   console.log('  PRD-CORE-03 ACCEPTANCE CRITERIA MATRIX VERIFICATION');

@@ -1,3 +1,10 @@
+/**
+ * @file PdfUploadDropzone.tsx
+ * @description Drag-and-drop PDF upload component with signed Cloudinary direct upload integration.
+ * @architecture Presentation and upload coordinator component for template ingestion within the templates feature.
+ * @agent_note Handles client-side PDF validation (type, 25MB limit), requests upload signatures from /api/templates/sign-upload, performs direct upload to Cloudinary, and persists the template.
+ */
+
 import { useState, useRef } from "react";
 import type { ChangeEvent, DragEvent, FormEvent } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -34,6 +41,19 @@ interface TemplateCreateResponse {
   message?: string;
 }
 
+/**
+ * @component PdfUploadDropzone
+ * @description Provides drag-and-drop zone, file validation, Cloudinary direct upload with progress tracking, and template initialization.
+ * @state {File | null} file - Currently selected PDF file.
+ * @state {string} name - User-defined template name (defaults to sanitized file name).
+ * @state {boolean} isUploading - Whether upload and creation are in flight.
+ * @state {number} uploadProgress - Percent progress (0-100) of binary upload.
+ * @state {string} error - Validation or network error message.
+ * @state {boolean} isDragging - Visual drag-over active state.
+ * @api {POST} /api/templates/sign-upload - Retrieves Cloudinary signature and upload credentials.
+ * @api {POST} /api/templates - Persists template record and assigns initial version.
+ * @returns {JSX.Element} Interactive file upload dropzone and configuration form.
+ */
 export function PdfUploadDropzone() {
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");

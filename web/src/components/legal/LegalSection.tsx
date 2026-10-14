@@ -1,3 +1,9 @@
+/**
+ * @file LegalSection.tsx
+ * @description Policy section container with numbered headings, anchor deep-links, and plain-English TL;DR callouts.
+ * @architecture Reusable statutory legal clause wrapper used inside LegalLayout.
+ */
+
 import React from "react";
 import { LinkSimple, Info } from "@phosphor-icons/react";
 
@@ -9,6 +15,15 @@ export interface LegalSectionProps {
   children: React.ReactNode;
 }
 
+/**
+ * @component LegalSection
+ * @description Formats a single policy clause with anchor link, summary box, and body paragraphs.
+ * @param {LegalSectionProps} props - Component properties.
+ * @param {string} props.id - HTML section id for deep-linking.
+ * @param {string | number} [props.sectionNumber] - Numeric section prefix.
+ * @param {string} props.title - Section title.
+ * @param {string} [props.tldr] - Plain English summary callout text.
+ */
 export function LegalSection({
   id,
   sectionNumber,

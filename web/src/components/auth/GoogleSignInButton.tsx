@@ -1,3 +1,9 @@
+/**
+ * @file GoogleSignInButton.tsx
+ * @description Google OAuth single sign-on trigger button with loading feedback.
+ * @architecture Dispatches Better Auth social authentication flow with configurable callback redirects.
+ */
+
 import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { authClient } from "../../lib/auth-client";
@@ -8,6 +14,13 @@ interface GoogleSignInButtonProps extends React.ButtonHTMLAttributes<HTMLButtonE
   callbackURL?: string;
 }
 
+/**
+ * @component GoogleSignInButton
+ * @description Triggers Google OAuth sign-in flow via Better Auth client.
+ * @param {GoogleSignInButtonProps} props - Button HTML properties and optional callbackURL.
+ * @state Manages pending authentication connection state.
+ * @api Calls authClient.signIn.social({ provider: "google" }).
+ */
 export function GoogleSignInButton({
   className,
   callbackURL,

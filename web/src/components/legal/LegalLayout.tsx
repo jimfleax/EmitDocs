@@ -1,3 +1,9 @@
+/**
+ * @file LegalLayout.tsx
+ * @description Public legal document layout with table of contents scrollspy, filter search, and print optimization.
+ * @architecture Wraps Terms of Service and Privacy Policy pages with sticky sidebar navigation, tab switcher, and header/footer chrome.
+ */
+
 import React, { useState, useEffect } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -27,6 +33,18 @@ export interface LegalLayoutProps {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/**
+ * @component LegalLayout
+ * @description Master layout for public legal pages with interactive table of contents and print styles.
+ * @param {LegalLayoutProps} props - Component properties.
+ * @param {string} props.title - Document heading.
+ * @param {string} props.subtitle - Document summary subtitle.
+ * @param {string} props.lastUpdated - Effective date string.
+ * @param {string} props.version - Policy version identifier.
+ * @param {"terms" | "privacy"} props.activeDoc - Active document tab selector.
+ * @param {Array<{ id: string; title: string; number?: string | number }>} props.sections - Table of contents sections.
+ * @state Manages search filter query, active section scrollspy ID, and print commands.
+ */
 export function LegalLayout({
   title,
   subtitle,

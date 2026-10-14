@@ -1,3 +1,10 @@
+/**
+ * @file diff.ts
+ * @description Type definitions for batch re-import difference comparison and conflict resolution.
+ * @architecture Defines data transfer contracts between backend reconciliation endpoints and frontend diff review components.
+ * @agent_note Used by ReimportDiffReview, BatchImportWorkspace, and duplicate detection utilities.
+ */
+
 export interface DiffSummary {
   addedCount: number;
   removedCount: number;

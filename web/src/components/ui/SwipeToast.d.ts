@@ -1,3 +1,9 @@
+/**
+ * @file SwipeToast.d.ts
+ * @description TypeScript interface declarations for the swipe-to-dismiss toast component.
+ * @architecture Defines prop interfaces, variant constants, and dismiss reason types for SwipeToast.jsx.
+ */
+
 import type { FC, ReactNode } from "react";
 
 export type SwipeToastVariant =

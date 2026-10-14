@@ -1,3 +1,9 @@
+/**
+ * @file Alert.tsx
+ * @description Contextual feedback callout component with icons, status badges, retry actions, and dismiss controls.
+ * @architecture Base design system UI primitive providing error, warning, info, and success variants via class-variance-authority.
+ */
+
 import * as React from "react";
 import {
   WarningCircle,
@@ -64,6 +70,16 @@ export interface AlertProps
   onDismiss?: () => void;
 }
 
+/**
+ * @component Alert
+ * @description Renders a styled alert banner with leading status icon, message content, and action buttons.
+ * @param {AlertProps} props - Component properties.
+ * @param {"error" | "warning" | "info" | "success"} [props.variant="info"] - Alert semantic color and icon scheme.
+ * @param {string} [props.title] - Optional bold alert heading.
+ * @param {React.ReactNode} [props.icon] - Optional custom leading icon override.
+ * @param {() => void} [props.onRetry] - Callback invoked when retry button is clicked.
+ * @param {() => void} [props.onDismiss] - Callback invoked when dismiss close icon is clicked.
+ */
 function Alert({
   className,
   variant = "info",

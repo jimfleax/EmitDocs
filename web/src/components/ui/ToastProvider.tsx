@@ -1,7 +1,21 @@
+/**
+ * @file ToastProvider.tsx
+ * @description Context provider and portal container displaying active floating toast notifications.
+ * @architecture Subscribes to the useToast store and renders a fixed stack of SwipeToast instances.
+ * @agent_note Mounts in the root application layout to capture all global toast events.
+ */
+
 import type { ReactNode } from "react";
 import SwipeToast from "./SwipeToast";
 import { useToast } from "./toast";
 
+/**
+ * @component ToastProvider
+ * @description Renders child application elements and mounts a fixed toast container at the bottom-right.
+ * @param {Object} props - Component properties.
+ * @param {ReactNode} props.children - Application element subtree.
+ * @state Subscribes to active toast collection from useToast hook.
+ */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const { toasts, dismiss } = useToast();
 

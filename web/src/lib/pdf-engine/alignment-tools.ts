@@ -1,3 +1,10 @@
+/**
+ * @file alignment-tools.ts
+ * @description Batch geometric alignment and distribution algorithms for template mapping fields.
+ * @architecture Computes alignments (left, center, right, top, middle, bottom, distribute, center-on-page) in DOM space and reprojects back to PDF coordinates.
+ * @agent_note Minimum 2 items required for edge alignment; minimum 3 items required for distribution.
+ */
+
 import type { DomRect, ViewportConfig } from "./coordinate-transforms";
 import { domToPdfRect, pdfToDomRect } from "./coordinate-transforms";
 import type { IFieldMapping } from "@/components/templates/mapping/types";
@@ -19,6 +26,15 @@ interface FieldWithDom {
   dom: DomRect;
 }
 
+/**
+ * @desc Aligns or distributes selected field bounding boxes according to the specified action.
+ * @param {string[]} selectedIds - Array of mapping field IDs to align.
+ * @param {IFieldMapping[]} allFields - Full list of fields on the current template.
+ * @param {AlignmentAction} action - Alignment operation type (e.g. alignLeft, distributeH, centerOnPageH).
+ * @param {ViewportConfig} viewport - Active viewport configuration for coordinate conversions.
+ * @param {{ width: number; height: number }} pageSize - PDF page size dimensions in points.
+ * @returns {IFieldMapping[]} New array of field mappings with updated coordinates for selected items.
+ */
 export function applyAlignmentToFields(
   selectedIds: string[],
   allFields: IFieldMapping[],

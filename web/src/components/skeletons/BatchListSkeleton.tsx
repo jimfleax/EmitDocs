@@ -1,5 +1,15 @@
+/**
+ * @file BatchListSkeleton.tsx
+ * @description Loading placeholder for the batches overview list and search filter bar.
+ * @architecture Used during Suspense loading on the /app/batches route.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
+/**
+ * @component BatchListSkeleton
+ * @description Renders simulated rows with status pills, avatar icons, and action buttons for batches.
+ */
 export function BatchListSkeleton() {
   return (
     <div className="space-y-4 w-full animate-pulse">

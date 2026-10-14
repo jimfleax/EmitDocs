@@ -1,3 +1,10 @@
+/**
+ * @file row-validator.ts
+ * @description Schema validation engine evaluating spreadsheet rows against mapped template fields.
+ * @architecture Validates required fields, invokes type normalizers (text, date, number), and returns aggregated row errors and normalized data.
+ * @agent_note Unmapped required fields produce UNMAPPED_FIELD errors; blank required values produce REQUIRED_FIELD_MISSING.
+ */
+
 import {
   normalizeDateValue,
   normalizeNumberValue,
@@ -35,6 +42,9 @@ export interface ValidateDraftRowResult {
 /**
  * Validates a single spreadsheet row against template field definitions and selected column mappings.
  * Generates actionable error codes (REQUIRED_FIELD_MISSING, INVALID_DATE, AMBIGUOUS_DATE, etc.).
+ * @desc Evaluates a single record against schema rules and produces normalized values and field error lists.
+ * @param {ValidateDraftRowParams} params - Row data, mappings, column assignments, and date format hints.
+ * @returns {ValidateDraftRowResult} Valid/invalid status, transformed record data, and specific field errors.
  */
 export function validateDraftRow({
   rowData,

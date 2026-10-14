@@ -1,3 +1,9 @@
+/**
+ * @file Spinner.tsx
+ * @description Circular spinning indicator icon for buttons and inline asynchronous operations.
+ * @architecture Micro-loading indicator primitive wrapping Phosphor CircleNotch icon.
+ */
+
 import * as React from "react";
 import { CircleNotch } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -19,6 +25,13 @@ const variantMap = {
   muted: "text-slate-400",
 } as const;
 
+/**
+ * @component Spinner
+ * @description Displays a rotating circle notch animation for inline loading states.
+ * @param {SpinnerProps} props - Component properties.
+ * @param {"sm" | "md" | "lg"} [props.size="md"] - Size preset (sm: 14px, md: 18px, lg: 24px).
+ * @param {"default" | "current" | "muted"} [props.variant="default"] - Color preset.
+ */
 function Spinner({
   size = "md",
   variant = "default",

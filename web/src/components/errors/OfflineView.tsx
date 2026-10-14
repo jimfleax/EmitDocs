@@ -1,3 +1,9 @@
+/**
+ * @file OfflineView.tsx
+ * @description Network disconnection presentation component with auto-reconnection listeners.
+ * @architecture Pre-configured wrapper around ErrorView displayed when navigator.onLine is false.
+ */
+
 import { ErrorView, type ErrorVariant } from "./ErrorView";
 
 export interface OfflineViewProps {
@@ -7,6 +13,11 @@ export interface OfflineViewProps {
   message?: string;
 }
 
+/**
+ * @component OfflineView
+ * @description Displays an offline notice that auto-retries when the browser re-establishes internet connectivity.
+ * @param {OfflineViewProps} props - Component properties.
+ */
 export function OfflineView({
   reset,
   variant,

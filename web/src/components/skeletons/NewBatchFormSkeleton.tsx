@@ -1,5 +1,15 @@
+/**
+ * @file NewBatchFormSkeleton.tsx
+ * @description Form loading skeleton for new batch configuration and template selection.
+ * @architecture Suspense boundary placeholder for the /app/batches/new route.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
+/**
+ * @component NewBatchFormSkeleton
+ * @description Renders placeholder inputs for batch name, template dropdown, and card selections.
+ */
 export function NewBatchFormSkeleton() {
   return (
     <div className="space-y-6 w-full">

@@ -1,3 +1,9 @@
+/**
+ * @file button.tsx
+ * @description Polymorphic action button component supporting variants, sizes, and Radix Slot delegation.
+ * @architecture Base design system interactive primitive configured with class-variance-authority tokens.
+ */
+
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -41,6 +47,14 @@ export interface ButtonProps
   asChild?: boolean;
 }
 
+/**
+ * @component Button
+ * @description Interactive button supporting default, destructive, outline, secondary, ghost, and link styles.
+ * @param {ButtonProps} props - Component properties.
+ * @param {boolean} [props.asChild=false] - When true, delegates rendering to its child via Radix Slot.
+ * @param {"default" | "destructive" | "outline" | "secondary" | "ghost" | "link"} [props.variant="default"] - Visual style.
+ * @param {"default" | "sm" | "lg" | "icon"} [props.size="default"] - Size and padding preset.
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button";

@@ -1,3 +1,10 @@
+/**
+ * @file token-detector.ts
+ * @description Automatic placeholder token detection and spatial bounding box extraction from PDF text items.
+ * @architecture Scans text extracted by PDF.js for placeholder patterns ({{key}}, {key}, [key], <key>, $key) and calculates accurate typography boundaries.
+ * @agent_note Provides padded bounding boxes for solid white background masking and unpadded rawRects.
+ */
+
 import type { PdfRect } from "./coordinate-transforms";
 
 export interface TextItemLike {
@@ -108,6 +115,14 @@ function computeCharAdvances(
   return new Array(len).fill(avg);
 }
 
+/**
+ * @desc Inspects PDF.js text items on a page, reconstructs lines, and extracts placeholder token bounding boxes.
+ * @param {TextItemLike[]} items - PDF.js text items extracted via page.getTextContent().
+ * @param {number} pageIndex - Zero-indexed page number where items reside.
+ * @param {Record<string, TextStyleLike>} [styles] - Optional font style descriptors map from PDF.js.
+ * @param {number} [yTolerance=2.5] - Maximum vertical point delta to group characters into the same line.
+ * @returns {DetectedToken[]} List of detected placeholder tokens with coordinates and typographic metrics.
+ */
 export function detectTokensInTextItems(
   items: TextItemLike[],
   pageIndex: number,

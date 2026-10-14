@@ -1,3 +1,9 @@
+/**
+ * @file AccessDeniedView.tsx
+ * @description 403 Forbidden error presentation component.
+ * @architecture Pre-configured wrapper around ErrorView for permission denial and expired auth sessions.
+ */
+
 import { ErrorView, type ErrorVariant } from "./ErrorView";
 
 export interface AccessDeniedViewProps {
@@ -6,6 +12,11 @@ export interface AccessDeniedViewProps {
   message?: string;
 }
 
+/**
+ * @component AccessDeniedView
+ * @description Displays a 403 Access Restricted view with instructions to switch accounts or check permissions.
+ * @param {AccessDeniedViewProps} props - Component properties.
+ */
 export function AccessDeniedView({
   variant,
   title = "Access Restricted",

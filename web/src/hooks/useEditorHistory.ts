@@ -1,3 +1,10 @@
+/**
+ * @file useEditorHistory.ts
+ * @description Immutable undo/redo history management for template field mappings.
+ * @architecture Encapsulates stack transitions with history depth limits for the template mapping editor.
+ * @agent_note Updates to mapping nodes should dispatch snapshots through pushSnapshot to preserve undoability.
+ */
+
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { IFieldMapping } from "@/components/templates/mapping/types";
 
@@ -16,6 +23,10 @@ export interface EditorHistoryCore<T> {
 /**
  * Pure state machine implementation of an undo/redo stack.
  * Independent of React for unit testing and deterministic transitions.
+ * @desc Creates a decoupled undo/redo history manager state machine.
+ * @param {T} initialPresent - Initial state snapshot.
+ * @param {number} [maxDepth=MAX_HISTORY_DEPTH] - Maximum number of history entries to retain.
+ * @returns {EditorHistoryCore<T>} History manager controls and accessor methods.
  */
 export function createEditorHistory<T>(
   initialPresent: T,
@@ -80,6 +91,11 @@ export interface UseEditorHistoryReturn {
 
 /**
  * React hook wrapping the immutable undo/redo history stack for template field mappings.
+ * @hook useEditorHistory
+ * @description Manages undo, redo, and snapshot history states for template field mappings.
+ * @param {IFieldMapping[]} [initialMappings=[]] - Default initial field mappings array.
+ * @returns {UseEditorHistoryReturn} Mapping state, undo/redo triggers, and history manipulators.
+ * @state Manages past, present, and future mapping snapshot arrays.
  */
 export function useEditorHistory(
   initialMappings: IFieldMapping[] = [],

@@ -1,3 +1,10 @@
+/**
+ * @file glyph-validator.ts
+ * @description Validates text strings against WinAnsi (CP1252) character sets supported by standard 14 PDF fonts.
+ * @architecture Pre-flight glyph safety check for PDF rendering to detect characters requiring fallback or custom fonts.
+ * @agent_note Used by PDF preview engine and fit-then-flag logic to flag un-encodable characters.
+ */
+
 export interface GlyphValidationResult {
   valid: boolean;
   missingGlyphs: string[];
@@ -35,6 +42,11 @@ const WIN_ANSI_EXTRA_CHARS = new Set([
   "\u0178", // Latin capital letter Y with diaeresis
 ]);
 
+/**
+ * @desc Checks if a string contains characters unsupported by standard PDF WinAnsi fonts.
+ * @param {string} text - The input string to inspect.
+ * @returns {GlyphValidationResult} Validation result including list of missing and unsupported glyphs.
+ */
 export function validateStandardFontGlyphs(
   text: string,
 ): GlyphValidationResult {

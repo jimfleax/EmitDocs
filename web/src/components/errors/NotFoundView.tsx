@@ -1,3 +1,9 @@
+/**
+ * @file NotFoundView.tsx
+ * @description 404 Not Found error presentation component.
+ * @architecture Pre-configured wrapper around ErrorView for non-existent routes, deleted templates, or missing batches.
+ */
+
 import { ErrorView, type ErrorVariant } from "./ErrorView";
 
 export interface NotFoundViewProps {
@@ -6,6 +12,11 @@ export interface NotFoundViewProps {
   message?: string;
 }
 
+/**
+ * @component NotFoundView
+ * @description Displays a 404 Page Not Found card with navigation links back to the dashboard.
+ * @param {NotFoundViewProps} props - Component properties.
+ */
 export function NotFoundView({
   variant,
   title = "Page Not Found",

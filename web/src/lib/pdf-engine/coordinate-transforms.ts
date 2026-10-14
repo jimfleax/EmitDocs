@@ -1,3 +1,10 @@
+/**
+ * @file coordinate-transforms.ts
+ * @description Bidirectional coordinate conversions between browser DOM pixels and PDF points.
+ * @architecture Handles rotation (0, 90, 180, 270 deg) and viewport zoom scaling between top-left DOM and bottom-left PDF coordinate spaces.
+ * @agent_note Essential for mapping editor interactive overlays and bounding box positioning.
+ */
+
 export interface PdfRect {
   x: number; // bottom-left X in PDF points
   y: number; // bottom-left Y in PDF points
@@ -21,6 +28,10 @@ export interface ViewportConfig {
 
 /**
  * Converts DOM viewport CSS pixels (origin top-left) to canonical PDF points (origin bottom-left).
+ * @desc Transforms DOM bounding box to canonical PDF coordinate space taking rotation and scale into account.
+ * @param {DomRect} dom - Bounding box in DOM pixels.
+ * @param {ViewportConfig} vp - Viewport scale, rotation, and dimensions.
+ * @returns {PdfRect} Bounding rectangle in PDF points.
  */
 export function domToPdfRect(dom: DomRect, vp: ViewportConfig): PdfRect {
   const { scale, rotation } = vp;
@@ -64,6 +75,10 @@ export function domToPdfRect(dom: DomRect, vp: ViewportConfig): PdfRect {
 
 /**
  * Converts canonical PDF points (origin bottom-left) to DOM viewport CSS pixels (origin top-left).
+ * @desc Transforms PDF bounding box in points to DOM pixel coordinates taking rotation and scale into account.
+ * @param {PdfRect} pdf - Bounding rectangle in PDF points.
+ * @param {ViewportConfig} vp - Viewport scale, rotation, and dimensions.
+ * @returns {DomRect} Bounding box in DOM pixels.
  */
 export function pdfToDomRect(pdf: PdfRect, vp: ViewportConfig): DomRect {
   const { scale, rotation } = vp;

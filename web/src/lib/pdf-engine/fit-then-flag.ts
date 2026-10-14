@@ -1,3 +1,10 @@
+/**
+ * @file fit-then-flag.ts
+ * @description Dynamic typography fitting, word-wrapping, and overflow detection engine for PDF text fields.
+ * @architecture Implements shrink-to-fit, fixed, and multi-line wrapping font sizing algorithms to prevent clipped text.
+ * @agent_note Returns overflow status and pixel calculations for UI warning indicators.
+ */
+
 export interface MeasurableFont {
   widthOfTextAtSize: (text: string, size: number) => number;
   heightAtSize: (size: number) => number;
@@ -22,6 +29,17 @@ export interface MultiLineFitResult {
   totalHeight: number;
 }
 
+/**
+ * @desc Wraps text into lines and scales font size down until it fits within bounding box or hits minFontSize.
+ * @param {string} text - Text to wrap.
+ * @param {MeasurableFont} font - Font object with text width and height measurement capabilities.
+ * @param {{ width: number; height: number }} box - Available bounding box dimensions.
+ * @param {number} [fontSize=12] - Target starting font size.
+ * @param {number} [lineHeightMultiplier=1.25] - Line height scaling factor.
+ * @param {number} [minFontSize=8] - Minimum allowed font size before overflow is flagged.
+ * @param {number} [maxFontSize=24] - Maximum allowed font size.
+ * @returns {MultiLineFitResult} Wrapped lines, fitted font size, and overflow metadata.
+ */
 export function calculateMultiLineWrap(
   text: string,
   font: MeasurableFont,
@@ -115,6 +133,16 @@ export function calculateMultiLineWrap(
   };
 }
 
+/**
+ * @desc Calculates fitted font size and overflow metrics according to selected fit mode.
+ * @param {string} text - String content to measure and fit.
+ * @param {MeasurableFont} font - Font object with measurement capabilities.
+ * @param {{ width: number; height: number }} box - Bounding box dimensions.
+ * @param {number} [minFontSize=8] - Lower bound font size.
+ * @param {number} [maxFontSize=24] - Upper bound font size.
+ * @param {"shrink-to-fit" | "fixed" | "multi-line"} [fitMode="shrink-to-fit"] - Fitting algorithm.
+ * @returns {FitResult} Fitting calculation output including fitted size, status, and dimensions.
+ */
 export function calculateFit(
   text: string,
   font: MeasurableFont,

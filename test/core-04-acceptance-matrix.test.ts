@@ -1,3 +1,10 @@
+/**
+ * @file core-04-acceptance-matrix.test.ts
+ * @description Acceptance criteria test matrix and 5,000-row performance benchmark for PRD-CORE-04: Spreadsheet Ingestion & Validation.
+ * @architecture End-to-end verification exercising client-side spreadsheet parsing/normalization and server-side batch import controllers, chunk ingestion, duplicate detection, and MongoDB storage.
+ * @agent_note Run via `pnpm run test:core04`. Requires active MongoDB instance via MONGODB_URI in api/.env. Automatically provisions and cleans up test collections in emitdocs_ac_test database.
+ */
+
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -25,6 +32,15 @@ import {
   finalizeImport,
 } from '../api/src/controllers/batches.controller.js';
 
+/**
+ * @desc    Creates a mock Hono/Express-style context object for invoking batch controller handlers in tests.
+ * @param   {Object} options - Mock context options
+ * @param   {Object} options.user - Authenticated user object returned by ctx.get('user')
+ * @param   {Object} [options.params] - URL path parameters for req.param()
+ * @param   {Object} [options.query] - Query string parameters for req.query()
+ * @param   {any}    [options.body] - Request JSON payload returned by req.json()
+ * @returns {Object} Mock context with get, req, json, and _getResponse helpers
+ */
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -44,6 +60,11 @@ function createMockContext({ user, params = {}, query = {}, body = null }: any) 
   };
 }
 
+/**
+ * @desc    Executes the comprehensive PRD-CORE-04 acceptance criteria matrix (AC1 through AC8) and the 5,000-row chunked ingestion benchmark.
+ * @returns {Promise<void>} Resolves when all acceptance criteria and benchmark assertions pass
+ * @throws  {AssertionError} If any acceptance criterion or performance threshold fails
+ */
 async function runAcceptanceCriteriaMatrix() {
   console.log('===========================================================');
   console.log('  PRD-CORE-04 ACCEPTANCE CRITERIA MATRIX & BENCHMARK');

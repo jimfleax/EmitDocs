@@ -1,3 +1,10 @@
+/**
+ * @file select.tsx
+ * @description Accessible custom select dropdown system with portal support and keyboard navigation.
+ * @architecture Implements headless select state management (open state, label caching, selected value) with portal rendering and scroll buttons.
+ * @agent_note Uses selectItemCache to look up rich labels for selected values.
+ */
+
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
@@ -33,6 +40,16 @@ export interface SelectProps {
   getLabel?: (value: string) => React.ReactNode;
 }
 
+/**
+ * @component Select
+ * @description Root container for custom select dropdown, managing selection state and item registry.
+ * @param {SelectProps} props - Component properties.
+ * @param {string} [props.value] - Controlled selected value.
+ * @param {string} [props.defaultValue] - Initial uncontrolled value.
+ * @param {(value: string) => void} [props.onValueChange] - Selection change handler.
+ * @param {boolean} [props.open] - Controlled open state.
+ * @state Manages open/closed status, active item registry, and trigger element bounding rects.
+ */
 const Select = ({
   value: controlledValue,
   defaultValue,

@@ -1,3 +1,15 @@
+/**
+ * @file batch-intake.ts
+ * @description Core domain service managing spreadsheet chunk ingestion, import finalization, row overrides, and revision reconciliation.
+ * @architecture Implements the transactional backend for bulk document issuance:
+ *               1. Streaming idempotent chunk ingestion (`ingestChunk`) with DraftRow upserts.
+ *               2. Revision finalization (`finalizeImport`) verifying chunk/row counts and running batch-wide duplicate detection.
+ *               3. Concurrency-safe CAS row overrides (`patchRowOverride`) updating effective values and recomputing batch metrics.
+ *               4. 4-way re-import reconciliation (`reconcileImportRevision`) transferring overrides across uploaded revisions.
+ * @agent_note Optimistic concurrency is strictly enforced: `patchRowOverride` requires matching row `version`
+ *             and batch `currentImportRevision`. Batch metrics must always be updated via `recalculateBatchCounters`.
+ */
+
 import mongoose from 'mongoose';
 import { Batch, IBatch } from '../models/Batch.js';
 import { BatchImport, IBatchImport } from '../models/BatchImport.js';
@@ -13,6 +25,8 @@ import { calculateReimportDiff } from './spreadsheet/diff-calculator.js';
 
 /**
  * Thrown when a Batch or BatchImport entity cannot be found or does not belong to the user.
+ * @class BatchNotFoundError
+ * @extends {Error}
  */
 export class BatchNotFoundError extends Error {
   code: string;
@@ -26,6 +40,8 @@ export class BatchNotFoundError extends Error {
 
 /**
  * Thrown when optimistic concurrency control fails (version or revision mismatch).
+ * @class ConcurrencyConflictError
+ * @extends {Error}
  */
 export class ConcurrencyConflictError extends Error {
   code: string;
@@ -39,6 +55,8 @@ export class ConcurrencyConflictError extends Error {
 
 /**
  * Thrown when chunk counts or row counts do not match expected totals on finalization.
+ * @class ChunkMismatchError
+ * @extends {Error}
  */
 export class ChunkMismatchError extends Error {
   code: string;
@@ -52,6 +70,8 @@ export class ChunkMismatchError extends Error {
 
 /**
  * Thrown when intake payload parameters fail validation.
+ * @class BatchIntakeValidationError
+ * @extends {Error}
  */
 export class BatchIntakeValidationError extends Error {
   code: string;
@@ -120,6 +140,12 @@ export interface FinalizeImportResult {
 /**
  * Ingests a single chunk of spreadsheet rows with authoritative validation and DraftRow upsert.
  * Performs idempotent deduplication if chunkId was already recorded.
+ * 
+ * @desc Ingests a chunk of raw rows, validates each against template rules, and upserts DraftRow documents.
+ * @param {IngestChunkInput} input - Parameters containing batchId, importId, chunkId, and row data items.
+ * @returns {Promise<IngestChunkResult>} Ingestion result with processed count and idempotency flag.
+ * @throws {BatchIntakeValidationError} If chunkId or rows payload are missing or malformed.
+ * @throws {BatchNotFoundError} If the batch or import revision does not exist or access is unauthorized.
  */
 export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkResult> {
   const { batchId, importId, ownerId, chunkId, totalChunks, rows } = input;
@@ -227,6 +253,12 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
 /**
  * Finalizes chunked import: validates expected totals, runs batch-wide duplicate detection,
  * recalculates authoritative counters, and transitions batch to 'review' status.
+ * 
+ * @desc Finalizes spreadsheet intake session, verifies row/chunk integrity, runs duplicate checks, and rolls up metrics.
+ * @param {FinalizeImportInput} input - Parameters containing batchId, importId, expected counts, and column map.
+ * @returns {Promise<FinalizeImportResult>} Updated batch, finalized batchImport, and calculated counters summary.
+ * @throws {BatchNotFoundError} If batch or import does not exist or access is unauthorized.
+ * @throws {ChunkMismatchError} If actual received chunks or persisted rows do not match declared totals.
  */
 export async function finalizeImport(input: FinalizeImportInput): Promise<FinalizeImportResult> {
   const { batchId, importId, ownerId, totalExpectedRows, totalExpectedChunks, columnMap, dateFormatHints, promote } = input;
@@ -287,47 +319,42 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
   const allRows = await DraftRow.find({ importId: batchImport._id })
     .sort({ sourceRowNumber: 1 });
 
-  if (allRows.length > 0) {
-    const revalidateBulkOps = [];
-    for (const row of allRows) {
-      const validation = validateDraftRow({
-        rowData: row.importedData || {},
-        sourceRowNumber: row.sourceRowNumber,
-        fieldMappings,
-        columnMap: effectiveColumnMap,
-        dateFormatHints: effectiveDateHints,
-      });
-      row.effectiveData = validation.effectiveData;
-      row.status = validation.status;
-      row.errors = validation.errors as any;
-      revalidateBulkOps.push({
-        updateOne: {
-          filter: { _id: row._id },
-          update: {
-            $set: {
-              effectiveData: validation.effectiveData,
-              status: validation.status,
-              errors: validation.errors,
-            },
-          },
-        },
-      });
-    }
-    if (revalidateBulkOps.length > 0) {
-      await DraftRow.bulkWrite(revalidateBulkOps, { ordered: false });
-    }
-  }
+  // 1. Run authoritative validation in memory
+  const validatedRowsInMemory = allRows.map((row) => {
+    const validation = validateDraftRow({
+      rowData: row.importedData || {},
+      sourceRowNumber: row.sourceRowNumber,
+      fieldMappings,
+      columnMap: effectiveColumnMap,
+      dateFormatHints: effectiveDateHints,
+    });
+    row.effectiveData = validation.effectiveData;
+    row.status = validation.status;
+    row.errors = validation.errors as any;
+    return {
+      _id: row._id,
+      sourceRowNumber: row.sourceRowNumber,
+      importedData: row.importedData,
+      effectiveData: validation.effectiveData,
+      status: validation.status,
+      errors: validation.errors,
+    };
+  });
 
-  // Run batch-wide duplicate detection
-  const duplicateChecked = detectDuplicatesAcrossRows(allRows.map((r) => r.toObject()));
+  // 2. Run batch-wide duplicate detection in memory
+  const duplicateChecked = detectDuplicatesAcrossRows(validatedRowsInMemory as any[]);
 
-  const duplicateBulkOps = [];
+  // 3. Single consolidated DraftRow.bulkWrite
+  const consolidatedBulkOps = [];
   for (const r of duplicateChecked) {
-    duplicateBulkOps.push({
+    consolidatedBulkOps.push({
       updateOne: {
         filter: { _id: r._id },
         update: {
           $set: {
+            effectiveData: r.effectiveData,
+            status: r.status,
+            errors: r.errors,
             isDuplicate: r.isDuplicate,
             duplicateReferences: r.duplicateReferences || [],
             warnings: r.warnings || [],
@@ -337,8 +364,8 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
     });
   }
 
-  if (duplicateBulkOps.length > 0) {
-    await DraftRow.bulkWrite(duplicateBulkOps, { ordered: false });
+  if (consolidatedBulkOps.length > 0) {
+    await DraftRow.bulkWrite(consolidatedBulkOps, { ordered: false });
   }
 
   // Authoritative counters calculation
@@ -405,6 +432,11 @@ export interface PatchRowOverrideResult {
 
 /**
  * Authoritatively recomputes all four batch summary counters directly from DraftRow collection.
+ * 
+ * @desc Counts valid, invalid, duplicate, and total draft rows for a batch revision.
+ * @param {mongoose.Types.ObjectId | string} batchId - Batch document ID.
+ * @param {number} revision - Import revision number to query.
+ * @returns {Promise<{ validRows: number; invalidRows: number; duplicateRows: number; totalRows: number }>} Aggregated counts.
  */
 async function recalculateBatchCounters(
   batchId: mongoose.Types.ObjectId | string,
@@ -427,6 +459,12 @@ async function recalculateBatchCounters(
 /**
  * Applies manual overrides to a draft row with CAS revision and version protection,
  * re-validates effective data, invalidates stale approvals, and recomputes batch counters.
+ * 
+ * @desc Updates a draft row with human cell overrides under optimistic concurrency locks.
+ * @param {PatchRowOverrideInput} input - Parameters containing rowId, overrides dictionary, expectedRevision, and expectedVersion.
+ * @returns {Promise<PatchRowOverrideResult>} Updated DraftRow, parent Batch, and fresh metric summary.
+ * @throws {BatchNotFoundError} If the batch or draft row is not found.
+ * @throws {ConcurrencyConflictError} If revision or row version CAS check fails (409 conflict).
  */
 export async function patchRowOverride(input: PatchRowOverrideInput): Promise<PatchRowOverrideResult> {
   const { batchId, rowId, ownerId, overrides, expectedRevision, expectedVersion } = input;
@@ -536,24 +574,38 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
 
   const duplicateChecked = detectDuplicatesAcrossRows(currentRevisionRows as any[]);
 
-  const duplicateBulkOps = [];
-  for (const r of duplicateChecked) {
-    duplicateBulkOps.push({
-      updateOne: {
-        filter: { _id: r._id },
-        update: {
-          $set: {
-            isDuplicate: r.isDuplicate,
-            duplicateReferences: r.duplicateReferences || [],
-            warnings: r.warnings || [],
-          },
-        },
-      },
-    });
+  const oldRowMap = new Map<string, any>();
+  for (const row of currentRevisionRows) {
+    oldRowMap.set(String(row._id), row);
   }
 
-  if (duplicateBulkOps.length > 0) {
-    await DraftRow.bulkWrite(duplicateBulkOps, { ordered: false });
+  const selectiveBulkOps = [];
+  for (const r of duplicateChecked) {
+    const oldR = oldRowMap.get(String(r._id));
+    const isDuplicateChanged = !oldR || Boolean(oldR.isDuplicate) !== Boolean(r.isDuplicate);
+    const duplicateRefsChanged =
+      !oldR || JSON.stringify(oldR.duplicateReferences || []) !== JSON.stringify(r.duplicateReferences || []);
+    const warningsChanged =
+      !oldR || JSON.stringify(oldR.warnings || []) !== JSON.stringify(r.warnings || []);
+
+    if (isDuplicateChanged || duplicateRefsChanged || warningsChanged) {
+      selectiveBulkOps.push({
+        updateOne: {
+          filter: { _id: r._id },
+          update: {
+            $set: {
+              isDuplicate: r.isDuplicate,
+              duplicateReferences: r.duplicateReferences || [],
+              warnings: r.warnings || [],
+            },
+          },
+        },
+      });
+    }
+  }
+
+  if (selectiveBulkOps.length > 0) {
+    await DraftRow.bulkWrite(selectiveBulkOps, { ordered: false });
   }
 
   const thisRowChecked = duplicateChecked.find((r) => r._id.toString() === rowId.toString());
@@ -619,6 +671,14 @@ export interface ReconcileImportRevisionResult {
  * Reconciles a newly uploaded import revision against the current batch revision,
  * transferring overrides, resolving conflicts/ambiguities, running duplicate checks,
  * and authoritatively updating batch and import counters.
+ * 
+ * @desc Executes multi-revision reconciliation: applies conflict decisions, transfers prior overrides,
+ *       revalidates rows, checks duplicates, and atomically switches the batch's active revision.
+ * @param {ReconcileImportRevisionInput} input - Parameters containing batchId, importId, reconciliationKey, and resolutions.
+ * @returns {Promise<ReconcileImportRevisionResult>} Updated Batch, new BatchImport, and rolled-up metric summary.
+ * @throws {BatchNotFoundError} If batch or import does not exist.
+ * @throws {ChunkMismatchError} If new import is incomplete.
+ * @throws {ConcurrencyConflictError} If new import revision is not strictly greater than current batch revision.
  */
 export async function reconcileImportRevision(
   input: ReconcileImportRevisionInput
@@ -759,6 +819,7 @@ export async function reconcileImportRevision(
     });
   }
 
+  const reconcileBulkOps = [];
   for (const newRowId of affectedNewRows) {
     const newRow = newRowMap.get(newRowId);
     if (!newRow || rowsToDelete.has(newRowId)) continue;
@@ -787,13 +848,30 @@ export async function reconcileImportRevision(
       dateFormatHints: (newImport as any).dateFormatHints || {},
     });
 
+    const updatedVersion = (newRow.version || 1) + 1;
     newRow.effectiveData = validation.effectiveData;
-    newRow.markModified('effectiveData');
     newRow.errors = validation.errors as any;
-    newRow.markModified('errors');
     newRow.status = validation.status;
-    newRow.version = (newRow.version || 1) + 1;
-    await newRow.save();
+    newRow.version = updatedVersion;
+
+    reconcileBulkOps.push({
+      updateOne: {
+        filter: { _id: newRow._id },
+        update: {
+          $set: {
+            overrides: newRow.overrides,
+            effectiveData: validation.effectiveData,
+            errors: validation.errors,
+            status: validation.status,
+            version: updatedVersion,
+          },
+        },
+      },
+    });
+  }
+
+  if (reconcileBulkOps.length > 0) {
+    await DraftRow.bulkWrite(reconcileBulkOps, { ordered: false });
   }
 
   // Duplicate detection on surviving rows for new revision
@@ -862,6 +940,11 @@ export interface GetReimportDiffInput {
 /**
  * Calculates a 4-way diff classification (unchanged, changed, conflicted, added, removed, ambiguous)
  * between the current revision and a prospective new import revision without persisting changes.
+ * 
+ * @desc Previews structural and content differences between active and prospective import revisions.
+ * @param {GetReimportDiffInput} input - Parameters containing batchId, importId, ownerId, and reconciliationKey.
+ * @returns {Promise<import('./spreadsheet/diff-calculator.js').ReimportDiffResult>} Categorized reconciliation diff sets.
+ * @throws {BatchNotFoundError} If batch or import revision is not found.
  */
 export async function getReimportDiff(input: GetReimportDiffInput) {
   const { batchId, importId, ownerId, reconciliationKey: reqKey } = input;
@@ -894,6 +977,10 @@ export async function getReimportDiff(input: GetReimportDiffInput) {
   );
 }
 
+/**
+ * @module BatchIntake
+ * @description Domain service namespace packaging bulk spreadsheet intake and reconciliation operations.
+ */
 export const BatchIntake = {
   ingestChunk,
   finalizeImport,
@@ -901,3 +988,4 @@ export const BatchIntake = {
   reconcileImportRevision,
   getReimportDiff,
 };
+

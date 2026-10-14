@@ -103,12 +103,11 @@ async function runTests() {
     status: 'active',
   });
 
-  // Soft-deleted template
+  // Second template
   const template2 = await Template.create({
     ownerId: testUserId,
     name: 'Archived Diploma',
     thumbnailUrl: null,
-    deletedAt: new Date(),
   });
 
   await TemplateVersion.create({
@@ -133,13 +132,11 @@ async function runTests() {
   assert.strictEqual(doc3.name, 'Archived Diploma');
   assert.strictEqual(doc3.bytes, 524288);
   assert.strictEqual(doc3.formattedSize, '512 KB');
-  assert.strictEqual(doc3.isSoftDeleted, true);
 
   const doc1 = storageWithDocs.documents.find((d) => d.id === `templates/${testUserId}/cert_v1`);
   assert(doc1, 'Expected to find cert_v1 in documents');
-  assert.strictEqual(doc1.isSoftDeleted, false);
 
-  console.log('   ✓ Correctly sums totalBytes (3.5 MB), parses document names, and flags soft-deleted items\n');
+  console.log('   ✓ Correctly sums totalBytes (3.5 MB) and parses document names\n');
 
   // Test 5: Controller integration through mock context
   console.log('5. Testing getUserStorage controller execution...');

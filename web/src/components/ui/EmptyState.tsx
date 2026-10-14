@@ -1,3 +1,9 @@
+/**
+ * @file EmptyState.tsx
+ * @description Zero-data placeholder container with centered icon, message, and call-to-action button slot.
+ * @architecture Reusable presentation component displayed when collections (templates, batches, drafts) are empty.
+ */
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +16,17 @@ export interface EmptyStateProps extends React.HTMLAttributes<HTMLDivElement> {
   size?: "default" | "compact";
 }
 
+/**
+ * @component EmptyState
+ * @description Renders a placeholder card with an illustrative icon, title, description, and action button.
+ * @param {EmptyStateProps} props - Component properties.
+ * @param {React.ReactNode} props.icon - Primary illustration or icon element.
+ * @param {string} props.title - Primary empty state title.
+ * @param {string} [props.description] - Explanatory helper text.
+ * @param {React.ReactNode} [props.action] - Optional CTA button or action element.
+ * @param {"dashed" | "solid"} [props.variant="dashed"] - Border styling.
+ * @param {"default" | "compact"} [props.size="default"] - Card padding size.
+ */
 function EmptyState({
   icon,
   title,

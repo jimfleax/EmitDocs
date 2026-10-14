@@ -1,5 +1,18 @@
+/**
+ * @file format-engine.ts
+ * @description Field formatting engine supporting dates, currencies, numbers, and text case transformations.
+ * @architecture Used during PDF generation and template preview to format raw data before rendering onto documents.
+ * @agent_note Token placeholders matching {{token}} bypass number/date formatting and only receive text transforms.
+ */
+
 import type { TextTransformMode } from "@/components/templates/mapping/types";
 
+/**
+ * @desc Applies case transformations (uppercase, lowercase, capitalize) to a text string.
+ * @param {string} text - Source string.
+ * @param {TextTransformMode} [transform] - Transformation mode to apply.
+ * @returns {string} Transformed text string.
+ */
 export function applyTextTransform(
   text: string,
   transform?: TextTransformMode,
@@ -17,6 +30,12 @@ export function applyTextTransform(
   }
 }
 
+/**
+ * @desc Formats a date value according to supported pattern strings (e.g. YYYY-MM-DD, MMMM D, YYYY).
+ * @param {string | number | Date} val - Input date or date-parseable string/number.
+ * @param {string} pattern - Format pattern.
+ * @returns {string} Formatted date string.
+ */
 export function formatDate(
   val: string | number | Date,
   pattern: string,
@@ -84,6 +103,12 @@ export function formatDate(
   }
 }
 
+/**
+ * @desc Formats a numeric value with currency symbols, decimal precision, or percentage notation.
+ * @param {string | number} val - Number or numeric string to format.
+ * @param {string} pattern - Pattern specifying formatting (e.g. "currency:USD", "decimal:2", "percent:1").
+ * @returns {string} Formatted number string.
+ */
 export function formatNumber(val: string | number, pattern: string): string {
   const num =
     typeof val === "number"
@@ -124,6 +149,14 @@ export function formatNumber(val: string | number, pattern: string): string {
   return new Intl.NumberFormat("en-US").format(num);
 }
 
+/**
+ * @desc High-level field formatter applying type-specific format patterns and text transforms.
+ * @param {string | number | undefined | null} value - Raw field value.
+ * @param {"text" | "date" | "number"} [type] - Value data type.
+ * @param {string} [formatPattern] - Pattern format to apply for date or number types.
+ * @param {TextTransformMode} [textTransform] - Case transformation mode.
+ * @returns {string} Formatted string ready for PDF rendering.
+ */
 export function formatFieldValue(
   value: string | number | undefined | null,
   type?: "text" | "date" | "number",

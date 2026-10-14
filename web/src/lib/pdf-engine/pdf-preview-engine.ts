@@ -1,3 +1,10 @@
+/**
+ * @file pdf-preview-engine.ts
+ * @description High-fidelity PDF overlay generation engine using pdf-lib and fontkit.
+ * @architecture Loads base PDF documents, handles custom and standard fonts, applies solid/custom masks, renders formatted field overlays, and emits diagnostic warnings.
+ * @agent_note Supports hex color parsing, AcroForm flattening, and multi-line text wrapping.
+ */
+
 import {
   PDFDocument,
   StandardFonts,
@@ -53,6 +60,11 @@ export interface OverlayOptions {
   flattenAcroForms?: boolean;
 }
 
+/**
+ * @desc Converts a 3-digit or 6-digit hex color string into a pdf-lib RGB Color object.
+ * @param {string} hex - Hex color code (e.g. "#FF0000", "#FFF").
+ * @returns {Color} pdf-lib Color representation.
+ */
 export function parseHexColor(hex: string): Color {
   if (!hex || typeof hex !== "string") return rgb(0, 0, 0);
   const cleanHex = hex.replace("#", "").trim();
@@ -88,6 +100,15 @@ function decodeBase64(base64: string): Uint8Array {
   return new Uint8Array(0);
 }
 
+/**
+ * @desc Overlays dynamic fields, custom masks, and typography onto a PDF document returning byte array and diagnostics.
+ * @param {Uint8Array | ArrayBuffer} sourcePdfBytes - Source PDF document binary data.
+ * @param {FieldMappingConfig[]} fieldMappings - Field configurations, typography settings, coordinates, and sample values.
+ * @param {Record<string, string>} [data={}] - Key-value map providing replacement values for fields.
+ * @param {OverlayOptions} [options={}] - Debug borders and AcroForm flattening toggles.
+ * @returns {Promise<{ pdfBytes: Uint8Array; warnings: EngineWarning[] }>} Serialized output PDF and any formatting/overflow warnings.
+ * @throws {Error} If document cannot be parsed by pdf-lib.
+ */
 export async function generatePdfWithOverlay(
   sourcePdfBytes: Uint8Array | ArrayBuffer,
   fieldMappings: FieldMappingConfig[],

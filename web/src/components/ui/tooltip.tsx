@@ -1,3 +1,9 @@
+/**
+ * @file tooltip.tsx
+ * @description Lightweight hover and focus tooltip component rendered via document portal.
+ * @architecture Computes anchor bounding rects on hover/focus and projects floating tooltips into document.body with collision avoidance.
+ */
+
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
@@ -13,6 +19,17 @@ export interface TooltipProps {
   children: React.ReactNode;
 }
 
+/**
+ * @component Tooltip
+ * @description Floating tooltip bubble triggered on hover or focus with configurable delay and positioning.
+ * @param {TooltipProps} props - Component properties.
+ * @param {React.ReactNode} props.content - Tooltip text or node content.
+ * @param {React.ReactNode} props.children - Target element that triggers the tooltip.
+ * @param {"top" | "right" | "bottom" | "left"} [props.side="top"] - Placement side.
+ * @param {"start" | "center" | "end"} [props.align="center"] - Alignment along the chosen side.
+ * @param {number} [props.delayDuration=200] - Delay in milliseconds before showing tooltip.
+ * @state Manages visibility timer and viewport pixel coordinates.
+ */
 const Tooltip = ({
   content,
   children,

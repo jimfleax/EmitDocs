@@ -1,5 +1,15 @@
 /**
+ * @file header-extractor.ts
+ * @description Spreadsheet grid analysis, blank header disambiguation, and empty row stripping.
+ * @architecture Detects the first non-empty header row, generates unique column keys (e.g. Column_A, Title_2), and normalizes row cell lengths.
+ * @agent_note Ensures 1-to-1 parity with source column count without dropping empty headers.
+ */
+
+/**
  * Converts a 0-indexed column number to Excel column letters (0 -> A, 25 -> Z, 26 -> AA).
+ * @desc Converts numeric 0-indexed column position into Excel-style alphabetic notation.
+ * @param {number} colIndex - Zero-based column index.
+ * @returns {string} Column letters (e.g. "A", "Z", "AA").
  */
 export function getColumnLetter(colIndex: number): string {
   let letter = "";
@@ -22,6 +32,9 @@ export interface ExtractedGrid {
 /**
  * Inspects 2D grid of values, skips leading empty rows, selects first non-empty row as header,
  * and disambiguates blank and duplicate headers without merging or dropping columns.
+ * @desc Analyzes raw cell grid to determine headers and row slices while disambiguating duplicates.
+ * @param {any[][]} grid - 2D matrix of cell values.
+ * @returns {ExtractedGrid} Extracted headers, rows, and row index pointers.
  */
 export function extractHeadersAndRows(grid: any[][]): ExtractedGrid {
   if (!grid || grid.length === 0) {

@@ -1,8 +1,22 @@
+/**
+ * @file AppShell.tsx
+ * @description Primary application shell layout with responsive sidebar navigation, user session badge, and route container.
+ * @architecture Wraps all authenticated routes under /app/*, providing fixed navigation planes and sign-out controls.
+ */
+
 import React, { useState } from "react";
 import { useLocation, Link } from "@tanstack/react-router";
 import { SignOut, House, FileText, Stack } from "@phosphor-icons/react";
 import { authClient } from "../../lib/auth-client";
 
+/**
+ * @component AppShell
+ * @description Master authenticated layout frame with responsive navigation planes and session profile controls.
+ * @param {Object} props - Component properties.
+ * @param {React.ReactNode} [props.children] - Page content rendered in the main scrollable workspace canvas.
+ * @state Tracks active sign-out progress and resolves current route pathnames.
+ * @api Interacts with authClient.useSession() and authClient.signOut().
+ */
 export function AppShell({ children }: { children?: React.ReactNode }) {
   const { data: session } = authClient.useSession();
   const [isSigningOut, setIsSigningOut] = useState(false);

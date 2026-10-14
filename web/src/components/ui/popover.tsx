@@ -1,3 +1,9 @@
+/**
+ * @file popover.tsx
+ * @description Radix UI Popover primitive wrappers with animated overlay content.
+ * @architecture Encapsulates @radix-ui/react-popover primitives with project design system styling.
+ */
+
 import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { cn } from "@/lib/utils";
@@ -8,6 +14,11 @@ const PopoverTrigger = PopoverPrimitive.Trigger;
 
 const PopoverAnchor = PopoverPrimitive.Anchor;
 
+/**
+ * @component PopoverContent
+ * @description Animated floating popover content panel anchored to PopoverTrigger.
+ * @param {React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>} props - Radix popover content properties.
+ */
 const PopoverContent = React.forwardRef<
   React.ElementRef<typeof PopoverPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Content>

@@ -1,3 +1,9 @@
+/**
+ * @file LegalSubprocessorTable.tsx
+ * @description Searchable table of infrastructure sub-processors, roles, transferred data, and security safeguards.
+ * @architecture GDPR/privacy compliance component listing cloud partners (MongoDB, Cloudflare, Google, Cloudinary, Vercel).
+ */
+
 import { useState } from "react";
 import {
   Database,
@@ -72,6 +78,11 @@ const SUBPROCESSORS: Subprocessor[] = [
   },
 ];
 
+/**
+ * @component LegalSubprocessorTable
+ * @description Renders a searchable data table of third-party vendors and data processors.
+ * @state Manages local vendor query search filtering.
+ */
 export function LegalSubprocessorTable() {
   const [query, setQuery] = useState("");
 

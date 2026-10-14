@@ -1,5 +1,20 @@
+/**
+ * @file Batch.ts
+ * @description Mongoose schema and interface for bulk document issuance batches.
+ * @architecture Central coordination model for the bulk issuance workflow. Links a user to a specific
+ *               `templateId` and `templateVersionId`, tracks revision progress (`currentImportRevision`),
+ *               aggregates authoritatively calculated row metrics (valid, invalid, duplicates), and tracks
+ *               overall lifecycle status from 'draft' through 'generating' to 'ready_for_download'.
+ * @agent_note When updating draft rows or imports, never manually increment row counters on Batch directly;
+ *             always use `recalculateBatchCounters` in `batch-intake.ts` to maintain transactional truth.
+ */
+
 import mongoose, { Schema, Document } from 'mongoose';
 
+/**
+ * @typedef {('draft' | 'importing' | 'review' | 'awaiting_approval' | 'approved' | 'generating' | 'ready_for_download' | 'paused' | 'cancelled' | 'failed')} BatchStatus
+ * @description Represents the lifecycle state machine status of a bulk generation batch.
+ */
 export type BatchStatus =
   | 'draft'
   | 'importing'
@@ -12,6 +27,25 @@ export type BatchStatus =
   | 'cancelled'
   | 'failed';
 
+/**
+ * @interface IBatch
+ * @description Mongoose document interface for a bulk issuance batch.
+ * @property {string} ownerId - Better-Auth user ID of the batch owner.
+ * @property {mongoose.Types.ObjectId} templateId - Reference to the target Template.
+ * @property {mongoose.Types.ObjectId} templateVersionId - Reference to the locked TemplateVersion.
+ * @property {string} name - User-defined batch name.
+ * @property {BatchStatus} status - Current progression state of the batch.
+ * @property {number} currentImportRevision - Active revision number of spreadsheet data.
+ * @property {mongoose.Types.ObjectId} [approvedSnapshotId] - Reference to the approved snapshot if frozen.
+ * @property {number} totalRows - Total count of draft rows in the active revision.
+ * @property {number} validRows - Count of rows passing all schema and format constraints.
+ * @property {number} invalidRows - Count of rows containing validation or mapping errors.
+ * @property {number} duplicateRows - Count of rows identified as duplicate records.
+ * @property {number} version - Concurrency control version number.
+ * @property {number} retentionHours - Retention period in hours before data cleanup.
+ * @property {Date} createdAt - Creation timestamp.
+ * @property {Date} updatedAt - Last modified timestamp.
+ */
 export interface IBatch extends Document {
   ownerId: string;
   templateId: mongoose.Types.ObjectId;
@@ -67,4 +101,8 @@ const BatchSchema = new Schema<IBatch>(
 BatchSchema.index({ ownerId: 1, createdAt: -1 });
 BatchSchema.index({ templateId: 1, createdAt: -1 });
 
+/**
+ * @module Batch
+ * @description Compiled Mongoose model for Batch documents.
+ */
 export const Batch = mongoose.models.Batch || mongoose.model<IBatch>('Batch', BatchSchema);

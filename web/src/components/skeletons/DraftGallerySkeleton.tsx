@@ -1,9 +1,21 @@
+/**
+ * @file DraftGallerySkeleton.tsx
+ * @description Compact list placeholder for recipient draft rows during review.
+ * @architecture Child loading skeleton embedded within DraftReviewSkeleton.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface DraftGallerySkeletonProps {
   count?: number;
 }
 
+/**
+ * @component DraftGallerySkeleton
+ * @description Renders placeholder rows for recipient draft list items.
+ * @param {DraftGallerySkeletonProps} props - Component properties.
+ * @param {number} [props.count=6] - Number of skeleton rows to render.
+ */
 export function DraftGallerySkeleton({ count = 6 }: DraftGallerySkeletonProps) {
   return (
     <div className="divide-y divide-slate-100 dark:divide-slate-800 w-full">

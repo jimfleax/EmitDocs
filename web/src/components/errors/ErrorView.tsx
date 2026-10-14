@@ -1,3 +1,10 @@
+/**
+ * @file ErrorView.tsx
+ * @description Configurable unified error boundary and status view with embedded and standalone layouts.
+ * @architecture Handles 404, 500, 403, and offline states with retry actions, routing links, and developer diagnostics drawer.
+ * @agent_note When variant is omitted, automatically resolves embedded inside /app and standalone for external routes.
+ */
+
 import { useState, useEffect } from "react";
 import { Link, useRouter, useLocation } from "@tanstack/react-router";
 import {
@@ -28,6 +35,18 @@ export interface ErrorViewProps {
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/**
+ * @component ErrorView
+ * @description Renders an error presentation card with action buttons and optional developer diagnostics.
+ * @param {ErrorViewProps} props - Component properties.
+ * @param {ErrorType} [props.type="404"] - Status type (404, 500, 403, offline, generic).
+ * @param {ErrorVariant} [props.variant] - Embedded card layout or full-screen standalone layout.
+ * @param {string} [props.title] - Custom heading title.
+ * @param {string} [props.message] - Custom error explanation.
+ * @param {unknown} [props.error] - Underlying exception object or error string.
+ * @param {() => void} [props.reset] - Retry handler callback to re-attempt execution.
+ * @state Manages clipboard copy feedback and window online/offline listeners.
+ */
 export function ErrorView({
   type = "404",
   variant,

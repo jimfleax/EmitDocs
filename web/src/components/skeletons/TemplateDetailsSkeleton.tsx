@@ -1,5 +1,15 @@
+/**
+ * @file TemplateDetailsSkeleton.tsx
+ * @description Loading skeleton for the template details and version history screen.
+ * @architecture Suspense fallback for the /app/templates/$templateId route.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
+/**
+ * @component TemplateDetailsSkeleton
+ * @description Renders a two-column layout skeleton for document preview card and version history list.
+ */
 export function TemplateDetailsSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">

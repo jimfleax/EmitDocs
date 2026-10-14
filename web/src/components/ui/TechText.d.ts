@@ -1,3 +1,9 @@
+/**
+ * @file TechText.d.ts
+ * @description Type definitions for the interactive vector-outline TechText component.
+ * @architecture Interface declarations defining props for customizable technical typography displays.
+ */
+
 import type { CSSProperties, FC } from "react";
 
 export interface TechTextProps {

@@ -1,3 +1,10 @@
+/**
+ * @file core-05-acceptance-matrix.test.ts
+ * @description Acceptance criteria test matrix for PRD-CORE-05: Batch Review, Inline Corrections, Re-import Reconciliation, & Approval Gating.
+ * @architecture End-to-end verification covering draft row retrieval, inline edits with optimistic concurrency, diff calculation, 404 tenant isolation, and approval state invalidation.
+ * @agent_note Run via `pnpm run test:core05`. Requires active MongoDB instance via MONGODB_URI in api/.env. Automatically tests cross-tenant isolation and cleans up test data upon completion.
+ */
+
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -23,6 +30,15 @@ import {
 import { calculateReimportDiff } from '../api/src/services/spreadsheet/diff-calculator.js';
 import { generatePdfWithOverlay, type FieldMappingConfig } from '../web/src/lib/pdf-engine/pdf-preview-engine.js';
 
+/**
+ * @desc    Creates a mock Hono/Express-style context object for invoking batch controller handlers in tests.
+ * @param   {Object} options - Mock context options
+ * @param   {Object} options.user - Authenticated user object returned by ctx.get('user')
+ * @param   {Object} [options.params] - URL path parameters for req.param()
+ * @param   {Object} [options.query] - Query string parameters for req.query()
+ * @param   {any}    [options.body] - Request JSON payload returned by req.json()
+ * @returns {Object} Mock context with get, req, json, and _getResponse helpers
+ */
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -42,6 +58,11 @@ function createMockContext({ user, params = {}, query = {}, body = null }: any) 
   };
 }
 
+/**
+ * @desc    Executes the comprehensive PRD-CORE-05 acceptance criteria matrix (AC1 through AC8).
+ * @returns {Promise<void>} Resolves when all acceptance criteria assertions pass
+ * @throws  {AssertionError} If any acceptance criterion fails
+ */
 async function runAcceptanceCriteriaMatrix() {
   console.log('===========================================================');
   console.log('  PRD-CORE-05 ACCEPTANCE CRITERIA MATRIX (AC1 - AC8)');
@@ -152,7 +173,7 @@ async function runAcceptanceCriteriaMatrix() {
   const bulkRows = [];
   for (let i = 1; i <= TOTAL_RECORDS; i++) {
     const isInvalid = i === 42 || i === 100;
-    const isDuplicate = i === 200 || i === 201;
+    const isDuplicate = i === 201 || i === 202;
     const isOverridden = i === 300;
 
     bulkRows.push({
@@ -164,20 +185,20 @@ async function runAcceptanceCriteriaMatrix() {
       rowKey: `row_${i}`,
       status: isInvalid ? 'invalid' : 'valid',
       importedData: {
-        ID: `STU_${i.toString().padStart(5, '0')}`,
-        Name: isInvalid ? '' : `Student_${i}`,
+        ID: isDuplicate ? 'STU_00200' : `STU_${i.toString().padStart(5, '0')}`,
+        Name: isInvalid ? '' : isDuplicate ? 'Student_200' : `Student_${i}`,
         Grade: 'A',
       },
       effectiveData: {
-        studentId: `STU_${i.toString().padStart(5, '0')}`,
-        studentName: isInvalid ? '' : (isOverridden ? 'Overridden Name' : `Student_${i}`),
+        studentId: isDuplicate ? 'STU_00200' : `STU_${i.toString().padStart(5, '0')}`,
+        studentName: isInvalid ? '' : isOverridden ? 'Overridden Name' : isDuplicate ? 'Student_200' : `Student_${i}`,
         grade: 'A',
       },
       overrides: isOverridden ? { studentName: 'Overridden Name' } : {},
       isDuplicate: isDuplicate,
-      duplicateReferences: isDuplicate ? [200, 201] : [],
+      duplicateReferences: isDuplicate ? [200] : [],
       errors: isInvalid ? [{ field: 'studentName', code: 'REQUIRED_FIELD_EMPTY', message: 'Student Name is required' }] : [],
-      warnings: isDuplicate ? [{ field: 'studentId', code: 'DUPLICATE_ROW', message: 'Duplicate record' }] : [],
+      warnings: isDuplicate ? [{ field: 'studentId', code: 'DUPLICATE_ROW', message: 'Duplicate record matches earlier row(s): 200', referenceRowNumbers: [200] }] : [],
       version: 1,
     });
   }

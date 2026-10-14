@@ -1,5 +1,15 @@
+/**
+ * @file LegalRetentionDiagram.tsx
+ * @description Visual four-stage data retention and automated purging lifecycle diagram.
+ * @architecture Illustrates data retention guarantees (PRD-CORE-09) from job completion to physical R2/MongoDB deletion.
+ */
+
 import { Clock, ShieldSlash, Trash, ChartBar } from "@phosphor-icons/react";
 
+/**
+ * @component LegalRetentionDiagram
+ * @description Displays a 4-step card sequence outlining EmitDocs data retention and zero permanent PII policy.
+ */
 export function LegalRetentionDiagram() {
   const steps = [
     {

@@ -1,8 +1,21 @@
+/**
+ * @file template-lifecycle.ts
+ * @description Core domain service orchestrating template CRUD, versioning, asset streaming, and thumbnail health.
+ * @architecture Encapsulates business logic for PDF template publishing. Manages optimistic concurrency checks (CAS)
+ *               when saving field mappings, computes deterministic SHA-256 mapping hashes, auto-heals authenticated Cloudinary
+ *               thumbnail URLs, verifies storage asset accessibility, and coordinates version supersession.
+ * @agent_note When modifying or updating field mappings, always use `publishVersion` to enforce version incrementing
+ *             and concurrency protection rather than mutating `TemplateVersion` documents directly.
+ */
+
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import cloudinary from '../lib/cloudinary.js';
 import { Template, ITemplate } from '../models/Template.js';
 import { TemplateVersion, ITemplateVersion, IFieldMapping } from '../models/TemplateVersion.js';
+import { Batch } from '../models/Batch.js';
+import { BatchImport } from '../models/BatchImport.js';
+import { DraftRow } from '../models/DraftRow.js';
 
 /* -------------------------------------------------------------------------- */
 /*                               Typed Domain Errors                          */
@@ -10,6 +23,8 @@ import { TemplateVersion, ITemplateVersion, IFieldMapping } from '../models/Temp
 
 /**
  * Thrown when a Template or TemplateVersion cannot be found or access is denied.
+ * @class TemplateNotFoundError
+ * @extends {Error}
  */
 export class TemplateNotFoundError extends Error {
   code: string;
@@ -23,6 +38,8 @@ export class TemplateNotFoundError extends Error {
 
 /**
  * Thrown when an optimistic concurrency CAS check fails on template version bump.
+ * @class VersionConflictError
+ * @extends {Error}
  */
 export class VersionConflictError extends Error {
   code: string;
@@ -38,6 +55,8 @@ export class VersionConflictError extends Error {
 
 /**
  * Thrown when template parameters or field mappings fail schema validation.
+ * @class TemplateValidationError
+ * @extends {Error}
  */
 export class TemplateValidationError extends Error {
   code: string;
@@ -51,6 +70,8 @@ export class TemplateValidationError extends Error {
 
 /**
  * Thrown when storage asset fetching, signature, or thumbnail processing fails.
+ * @class StorageAssetError
+ * @extends {Error}
  */
 export class StorageAssetError extends Error {
   code: string;
@@ -59,6 +80,25 @@ export class StorageAssetError extends Error {
     this.name = 'StorageAssetError';
     this.code = code;
     Object.setPrototypeOf(this, StorageAssetError.prototype);
+  }
+}
+
+/**
+ * Thrown when deleting a template that has dependent issuance batches without explicit cascade confirmation.
+ * @class TemplateCascadeConfirmationRequiredError
+ * @extends {Error}
+ */
+export class TemplateCascadeConfirmationRequiredError extends Error {
+  code: string;
+  dependentBatchesCount: number;
+  dependentBatches: Array<{ _id: any; name: string; status: string; totalRows: number }>;
+  constructor(dependentBatches: Array<{ _id: any; name: string; status: string; totalRows: number }>) {
+    super(`Template has ${dependentBatches.length} dependent batch(es). Confirmation required to cascade deletion.`);
+    this.name = 'TemplateCascadeConfirmationRequiredError';
+    this.code = 'CASCADE_CONFIRMATION_REQUIRED';
+    this.dependentBatchesCount = dependentBatches.length;
+    this.dependentBatches = dependentBatches;
+    Object.setPrototypeOf(this, TemplateCascadeConfirmationRequiredError.prototype);
   }
 }
 
@@ -126,11 +166,13 @@ export interface GetTemplateInput {
 export interface DeleteTemplateInput {
   templateId?: string | mongoose.Types.ObjectId;
   ownerId: string;
+  confirmCascade?: boolean;
 }
 
 export interface DeleteTemplateResult {
   success: boolean;
   message: string;
+  deletedBatchesCount?: number;
 }
 
 export interface StreamAssetInput {
@@ -152,6 +194,10 @@ export interface StreamAssetResult {
 /**
  * Computes a canonical, deterministic SHA-256 hash of field mappings.
  * Mappings are sorted by pageIndex -> rect.y -> rect.x -> id before digesting.
+ * 
+ * @desc Calculates deterministic SHA-256 fingerprint for a list of visual field mappings.
+ * @param {IFieldMapping[]} mappings - Field definitions to hash.
+ * @returns {string} Hex-encoded SHA-256 hash.
  */
 export function computeMappingHash(mappings: IFieldMapping[]): string {
   if (!mappings || mappings.length === 0) {
@@ -169,6 +215,13 @@ export function computeMappingHash(mappings: IFieldMapping[]): string {
 /**
  * Publishes a new template version with optimistic CAS concurrency protection.
  * Marks the previous active version as 'superseded' and updates template.currentVersionId.
+ * 
+ * @desc Atomically publishes a new immutable TemplateVersion with CAS verification against expectedVersion.
+ * @param {PublishVersionInput} input - Parameters containing templateId, expectedVersion, and fieldMappings.
+ * @returns {Promise<PublishVersionResult>} Updated parent template and created active version.
+ * @throws {TemplateValidationError} If parameters or field mappings fail schema checks.
+ * @throws {TemplateNotFoundError} If the template does not exist or access is unauthorized.
+ * @throws {VersionConflictError} If the current version does not match expectedVersion (409 conflict).
  */
 export async function publishVersion(input: PublishVersionInput): Promise<PublishVersionResult> {
   const { templateId, ownerId, expectedVersion, fieldMappings } = input;
@@ -188,7 +241,6 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
   const template = await Template.findOne({
     _id: templateId,
     ownerId,
-    deletedAt: null,
   });
 
   if (!template) {
@@ -256,6 +308,11 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
 
 /**
  * Lists all versions for a template in descending order by version number.
+ * 
+ * @desc Retrieves all historical versions for an authorized template owner.
+ * @param {ListVersionsInput} input - Object containing templateId and ownerId.
+ * @returns {Promise<ITemplateVersion[]>} List of template versions sorted descending.
+ * @throws {TemplateNotFoundError} If template is missing or access is unauthorized.
  */
 export async function listVersions(input: ListVersionsInput): Promise<ITemplateVersion[]> {
   const { templateId, ownerId } = input;
@@ -267,7 +324,6 @@ export async function listVersions(input: ListVersionsInput): Promise<ITemplateV
   const template = await Template.findOne({
     _id: templateId,
     ownerId,
-    deletedAt: null,
   });
 
   if (!template) {
@@ -282,6 +338,11 @@ export async function listVersions(input: ListVersionsInput): Promise<ITemplateV
 
 /**
  * Retrieves a specific template version by ID for the authorized owner.
+ * 
+ * @desc Fetches a single template version by its ObjectId.
+ * @param {GetVersionInput} input - Object containing templateId, versionId, and ownerId.
+ * @returns {Promise<ITemplateVersion>} The requested template version document.
+ * @throws {TemplateNotFoundError} If the template or specific version is not found.
  */
 export async function getVersion(input: GetVersionInput): Promise<ITemplateVersion> {
   const { templateId, versionId, ownerId } = input || {};
@@ -297,7 +358,6 @@ export async function getVersion(input: GetVersionInput): Promise<ITemplateVersi
   const template = await Template.findOne({
     _id: templateId,
     ownerId,
-    deletedAt: null,
   });
 
   if (!template) {
@@ -323,6 +383,12 @@ export async function getVersion(input: GetVersionInput): Promise<ITemplateVersi
 
 /**
  * Generates Cloudinary authenticated upload parameters for direct client uploads.
+ * 
+ * @desc Produces an HMAC-SHA1 upload signature for client-side uploads scoped to `templates/{ownerId}/`.
+ * @param {string | SignUploadParamsInput} input - Owner ID or object with ownerId.
+ * @returns {SignUploadParamsResult} Signature, timestamp, folder, and Cloudinary public keys.
+ * @throws {TemplateValidationError} If ownerId is missing or empty.
+ * @throws {StorageAssetError} If Cloudinary configuration is missing.
  */
 export function signUploadParams(input: string | SignUploadParamsInput): SignUploadParamsResult {
   const ownerId = typeof input === 'string' ? input : input?.ownerId;
@@ -359,6 +425,11 @@ export function signUploadParams(input: string | SignUploadParamsInput): SignUpl
 /**
  * Generates a signed Cloudinary thumbnail URL for page 1 of an authenticated PDF document.
  * Safely strips any trailing extensions (e.g. .pdf) to avoid double extensions (.pdf.png).
+ * 
+ * @desc Creates a signed Cloudinary transformation URL for page 1 rendered as PNG thumbnail.
+ * @param {string} publicId - Cloudinary asset public ID.
+ * @returns {string} Signed thumbnail URL.
+ * @throws {TemplateValidationError} If publicId is missing or empty.
  */
 export function generateThumbnailUrl(publicId: string): string {
   if (!publicId || typeof publicId !== 'string' || publicId.trim() === '') {
@@ -381,6 +452,12 @@ export function generateThumbnailUrl(publicId: string): string {
  * Repairs legacy or missing thumbnail URLs.
  * Converts legacy /image/upload/ URLs to /image/authenticated/.
  * Generates fresh authenticated thumbnail URLs if the URL is missing and publicId is present.
+ * 
+ * @desc Sanitizes thumbnail URLs to ensure authenticated signing and valid Cloudinary endpoints.
+ * @param {string | null | undefined} url - Current thumbnail URL.
+ * @param {string} [publicId] - Underlying Cloudinary public ID for generation fallback.
+ * @param {string} [resourceType] - Asset resource type ('image' or 'raw').
+ * @returns {string | null} Repaired thumbnail URL, or null if unresolvable.
  */
 export function repairThumbnailUrl(
   url: string | null | undefined,
@@ -407,6 +484,12 @@ export function repairThumbnailUrl(
 /**
  * Ensures thumbnail health for a template entity:
  * Repairs in-memory immediately for caller latency, and schedules a background DB update if changed.
+ * 
+ * @desc Lazily detects broken thumbnail URLs and repairs them in-memory and asynchronously in MongoDB.
+ * @param {*} inputOrTemplate - Template document or payload object.
+ * @param {string} [sourceObjectKeyArg] - Explicit source asset key override.
+ * @param {string} [resourceTypeArg] - Explicit resource type override.
+ * @returns {string | null} Active valid thumbnail URL.
  */
 export function ensureThumbnailHealth(
   inputOrTemplate: any,
@@ -452,6 +535,12 @@ export function ensureThumbnailHealth(
 
 /**
  * Creates a new template document and its initial version (v1) from an uploaded asset key.
+ * 
+ * @desc Registers an authenticated Cloudinary asset into Template and TemplateVersion v1 records.
+ * @param {CreateTemplateInput} input - Parameters containing ownerId, name, and cloudinaryPublicId.
+ * @returns {Promise<CreateTemplateResult>} Newly created Template and initial active TemplateVersion v1.
+ * @throws {TemplateValidationError} If ownerId, name, or public ID validation fails.
+ * @throws {StorageAssetError} If probe of Cloudinary asset metadata fails.
  */
 export async function createTemplate(input: CreateTemplateInput): Promise<CreateTemplateResult> {
   const { ownerId, name, cloudinaryPublicId, thumbnailUrl } = input || {};
@@ -559,6 +648,11 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
  * Lists active templates for an owner with populated currentVersionId.
  * Auto-heals legacy or missing thumbnail URLs via ensureThumbnailHealth.
  * Supports filtering to only templates with configured field mappings (mappedOnly: true).
+ * 
+ * @desc Retrieves all non-deleted templates for an owner with populated active versions.
+ * @param {string | ListTemplatesInput} input - Owner ID string or options object with mappedOnly filter.
+ * @returns {Promise<ITemplate[]>} List of active templates sorted by creation date descending.
+ * @throws {TemplateValidationError} If ownerId is missing or empty.
  */
 export async function listTemplates(input: string | ListTemplatesInput): Promise<ITemplate[]> {
   const ownerId = typeof input === 'string' ? input : input?.ownerId;
@@ -570,7 +664,6 @@ export async function listTemplates(input: string | ListTemplatesInput): Promise
 
   let templates = await Template.find({
     ownerId,
-    deletedAt: null,
   })
     .populate('currentVersionId')
     .sort({ createdAt: -1 });
@@ -594,6 +687,12 @@ export async function listTemplates(input: string | ListTemplatesInput): Promise
  * Retrieves a single active template by ID with populated currentVersionId.
  * Auto-heals legacy thumbnail URLs via ensureThumbnailHealth.
  * Throws TemplateNotFoundError if missing, access denied, or soft-deleted.
+ * 
+ * @desc Fetches an individual template document by ID for the authorized owner.
+ * @param {GetTemplateInput} input - Object containing templateId and ownerId.
+ * @returns {Promise<ITemplate>} Active template document with populated currentVersionId.
+ * @throws {TemplateValidationError} If ownerId is invalid.
+ * @throws {TemplateNotFoundError} If template is not found, unauthorized, or deleted.
  */
 export async function getTemplate(input: GetTemplateInput): Promise<ITemplate> {
   const { templateId, ownerId } = input || {};
@@ -609,7 +708,6 @@ export async function getTemplate(input: GetTemplateInput): Promise<ITemplate> {
   const template = await Template.findOne({
     _id: templateId,
     ownerId,
-    deletedAt: null,
   }).populate('currentVersionId');
 
   if (!template) {
@@ -622,33 +720,59 @@ export async function getTemplate(input: GetTemplateInput): Promise<ITemplate> {
 }
 
 /**
- * Soft-deletes a template by setting deletedAt timestamp.
- * Throws TemplateNotFoundError if not found or already deleted.
+ * Permanently deletes a template.
+ * Validates dependencies against Batch collection; throws TemplateCascadeConfirmationRequiredError
+ * if dependent batches exist and confirmCascade is false or omitted.
+ * When confirmCascade is true, permanently deletes all draft rows, batch imports, and batches.
+ * Cascades to permanently delete all TemplateVersion documents and the root Template.
  */
 export async function deleteTemplate(input: DeleteTemplateInput): Promise<DeleteTemplateResult> {
-  const { templateId, ownerId } = input || {};
+  const { templateId, ownerId, confirmCascade } = input || {};
 
   if (!ownerId || typeof ownerId !== 'string' || ownerId.trim() === '') {
     throw new TemplateValidationError('Missing or invalid ownerId', 'INVALID_OWNER_ID');
   }
 
   if (!templateId || !mongoose.isValidObjectId(templateId)) {
-    throw new TemplateNotFoundError('Template not found or already deleted');
+    throw new TemplateNotFoundError('Template not found or access denied');
   }
 
-  const template = await Template.findOneAndUpdate(
-    { _id: templateId, ownerId, deletedAt: null },
-    { deletedAt: new Date() },
-    { new: true }
-  );
-
+  const template = await Template.findOne({ _id: templateId, ownerId });
   if (!template) {
-    throw new TemplateNotFoundError('Template not found or already deleted');
+    throw new TemplateNotFoundError('Template not found or access denied');
   }
+
+  const dependentBatches = await Batch.find({ templateId: template._id, ownerId }).select('_id name status totalRows');
+
+  if (dependentBatches.length > 0 && !confirmCascade) {
+    throw new TemplateCascadeConfirmationRequiredError(
+      dependentBatches.map((b) => ({
+        _id: b._id,
+        name: b.name,
+        status: b.status,
+        totalRows: b.totalRows,
+      }))
+    );
+  }
+
+  let deletedBatchesCount = 0;
+  if (dependentBatches.length > 0 && confirmCascade === true) {
+    const batchIds = dependentBatches.map((b) => b._id);
+    await Promise.all([
+      DraftRow.deleteMany({ batchId: { $in: batchIds } }),
+      BatchImport.deleteMany({ batchId: { $in: batchIds } }),
+      Batch.deleteMany({ _id: { $in: batchIds } }),
+    ]);
+    deletedBatchesCount = dependentBatches.length;
+  }
+
+  await TemplateVersion.deleteMany({ templateId: template._id });
+  await Template.deleteOne({ _id: template._id });
 
   return {
     success: true,
     message: 'Template deleted',
+    ...(deletedBatchesCount > 0 ? { deletedBatchesCount } : {}),
   };
 }
 
@@ -657,6 +781,13 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
  * Attempts authenticated download URL with 'image' resource type first,
  * falling back to 'raw' resource type if 'image' fails.
  * Throws StorageAssetError if both attempts fail.
+ * 
+ * @desc Retrieves an authorized binary stream of the template's underlying PDF asset from Cloudinary.
+ * @param {StreamAssetInput} input - Object containing templateId, versionId, and ownerId.
+ * @returns {Promise<StreamAssetResult>} Readable body stream, filename, and version number.
+ * @throws {TemplateValidationError} If parameters fail validation.
+ * @throws {TemplateNotFoundError} If template or version does not exist.
+ * @throws {StorageAssetError} If download from cloud storage fails across all resource types.
  */
 export async function streamAsset(input: StreamAssetInput): Promise<StreamAssetResult> {
   const { templateId, versionId, ownerId } = input || {};
@@ -676,7 +807,6 @@ export async function streamAsset(input: StreamAssetInput): Promise<StreamAssetR
   const template = await Template.findOne({
     _id: templateId,
     ownerId,
-    deletedAt: null,
   });
 
   if (!template) {
@@ -759,6 +889,10 @@ export async function streamAsset(input: StreamAssetInput): Promise<StreamAssetR
   };
 }
 
+/**
+ * @module TemplateLifecycle
+ * @description Domain service namespace packaging template lifecycle operations.
+ */
 export const TemplateLifecycle = {
   computeMappingHash,
   publishVersion,
@@ -774,3 +908,4 @@ export const TemplateLifecycle = {
   deleteTemplate,
   streamAsset,
 };
+

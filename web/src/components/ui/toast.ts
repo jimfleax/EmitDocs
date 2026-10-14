@@ -1,3 +1,10 @@
+/**
+ * @file toast.ts
+ * @description Toast notification dispatching system and event subscriber hook.
+ * @architecture Global imperative toast service paired with useToast for headless toast state management.
+ * @agent_note Use toast.success(), toast.error(), etc. anywhere in the app to trigger feedback notifications.
+ */
+
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { SwipeToastProps } from "./SwipeToast";
@@ -15,11 +22,20 @@ function notify() {
   listeners.forEach((listener) => listener([...activeToasts]));
 }
 
+/**
+ * @desc Dismisses an active toast notification by ID.
+ * @param {string} id - Unique identifier of the toast to remove.
+ */
 export function dismissToast(id: string) {
   activeToasts = activeToasts.filter((t) => t.id !== id);
   notify();
 }
 
+/**
+ * @desc Triggers a toast notification with the given options or title message.
+ * @param {Omit<ToastItem, "id"> | string} options - Toast message text or full configuration object.
+ * @returns {string} Unique toast ID for programmatic dismissal.
+ */
 export const toast = (options: Omit<ToastItem, "id"> | string) => {
   const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
   const toastData: ToastItem =
@@ -72,6 +88,12 @@ toast.loading = (
 
 toast.dismiss = dismissToast;
 
+/**
+ * @hook useToast
+ * @description Subscribes to active toast notifications and provides dismiss/toast actions.
+ * @returns {{ toasts: ToastItem[], dismiss: (id: string) => void, toast: typeof toast }} Toast state and control functions.
+ * @sideeffects Registers and unregisters listener callback on active toasts store.
+ */
 export function useToast() {
   const [items, setItems] = useState<ToastItem[]>(activeToasts);
 

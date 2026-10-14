@@ -1,8 +1,19 @@
+/**
+ * @file input.tsx
+ * @description Standardized text input field primitive with focus rings and disabled styling.
+ * @architecture Base design system form control forwarding refs to native HTML input elements.
+ */
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
 
+/**
+ * @component Input
+ * @description Standard HTML text input with focus ring outlines and muted placeholder styling.
+ * @param {InputProps} props - Native HTML input attributes.
+ */
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
     return (

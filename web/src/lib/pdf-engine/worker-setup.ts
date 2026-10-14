@@ -1,3 +1,10 @@
+/**
+ * @file worker-setup.ts
+ * @description PDF.js web worker setup and standard font data path configuration.
+ * @architecture Sets GlobalWorkerOptions.workerSrc to /pdf.worker.min.mjs and exports configured pdfjsLib.
+ * @agent_note Essential for rendering PDF canvases in browser without module-loader bundling failures.
+ */
+
 import * as pdfjsLib from "pdfjs-dist";
 
 if (typeof window !== "undefined" && !pdfjsLib.GlobalWorkerOptions.workerSrc) {

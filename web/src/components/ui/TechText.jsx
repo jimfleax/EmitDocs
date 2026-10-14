@@ -1,3 +1,10 @@
+/**
+ * @file TechText.jsx
+ * @description Interactive canvas-based technical typography component with mouse reveal, draggable glyphs, and CAD-style coordinate frames.
+ * @architecture Renders an interactive 2D canvas displaying text with animated vector outlines, measurement labels, and spring physics.
+ * @agent_note Supports touch/mouse drag displacement with spring restitution and particle specks.
+ */
+
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -39,6 +46,17 @@ const noise = (...values) => {
 const signed = (value) =>
   value > 0 ? `+${value}` : value < 0 ? `−${-value}` : "0";
 
+/**
+ * @component TechText
+ * @description Interactive canvas wordmark rendering vector outlines, particle specks, and selection frames.
+ * @param {Object} props - Component properties.
+ * @param {string} [props.text="React Bits"] - Wordmark text to display.
+ * @param {number} [props.fontSize=150] - Maximum target font size in pixels.
+ * @param {string} [props.color="#ffffff"] - Fill color for letters.
+ * @param {string} [props.accentColor="#ffffff"] - Accent color for frame outlines.
+ * @param {boolean} [props.draggable=true] - Whether letters can be dragged and sprung back.
+ * @sideeffects Attaches 2D canvas rendering loops and pointer movement event listeners.
+ */
 const TechText = ({
   text = "React Bits",
   fontFamily = "",

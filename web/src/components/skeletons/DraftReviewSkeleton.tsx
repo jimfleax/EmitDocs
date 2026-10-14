@@ -1,6 +1,16 @@
+/**
+ * @file DraftReviewSkeleton.tsx
+ * @description Two-column loading skeleton for the draft review workspace and document preview pane.
+ * @architecture Suspense boundary placeholder for the /app/batches/$batchId/review route.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 import { DraftGallerySkeleton } from "./DraftGallerySkeleton";
 
+/**
+ * @component DraftReviewSkeleton
+ * @description Renders a side-by-side skeleton layout for the draft gallery list and PDF document preview pane.
+ */
 export function DraftReviewSkeleton() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 h-[calc(100vh-225px)] min-h-[500px] w-full items-start">

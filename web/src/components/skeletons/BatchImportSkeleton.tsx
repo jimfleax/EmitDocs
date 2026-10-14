@@ -1,5 +1,15 @@
+/**
+ * @file BatchImportSkeleton.tsx
+ * @description Loading skeleton for the batch spreadsheet import wizard.
+ * @architecture Visual placeholder for step navigation, file dropzone, and mapping guidelines during async batch loading.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
+/**
+ * @component BatchImportSkeleton
+ * @description Renders a placeholder skeleton for the batch import stepper and dropzone.
+ */
 export function BatchImportSkeleton() {
   return (
     <div className="space-y-6 w-full">

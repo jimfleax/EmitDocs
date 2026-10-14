@@ -1,3 +1,9 @@
+/**
+ * @file LoadingState.tsx
+ * @description Centered loading spinner/track state with optional title and description text.
+ * @architecture Used across pages, panels, and route transitions to convey async loading status.
+ */
+
 import * as React from "react";
 import { InfinityTrack } from "@/components/ui/InfinityTrack";
 import { cn } from "@/lib/utils";
@@ -8,6 +14,14 @@ export interface LoadingStateProps extends React.HTMLAttributes<HTMLDivElement> 
   size?: "page" | "section" | "fullscreen";
 }
 
+/**
+ * @component LoadingState
+ * @description Displays a centered InfinityTrack loading animation with status text.
+ * @param {LoadingStateProps} props - Component properties.
+ * @param {string} [props.title="Loading..."] - Status title heading.
+ * @param {string} [props.description] - Subordinate explanatory text.
+ * @param {"page" | "section" | "fullscreen"} [props.size="page"] - Vertical container sizing preset.
+ */
 function LoadingState({
   title = "Loading...",
   description,

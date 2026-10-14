@@ -1,5 +1,15 @@
+/**
+ * @file DefaultPageSkeleton.tsx
+ * @description Generic fallback page loading skeleton with metric cards and content body placeholders.
+ * @architecture Used during Suspense transitions for standard dashboard or overview routes.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
+/**
+ * @component DefaultPageSkeleton
+ * @description Renders a pulsing layout skeleton with 3 metric cards and a main content area.
+ */
 export function DefaultPageSkeleton() {
   return (
     <div className="space-y-6 w-full animate-pulse">

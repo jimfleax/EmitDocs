@@ -1,3 +1,12 @@
+/**
+ * @file db.ts
+ * @description Direct MongoDB native client connection and database instance provider.
+ * @architecture Initializes and exports the shared MongoClient and Db instances required specifically by the
+ *               Better-Auth MongoDB adapter (`@better-auth/mongo-adapter`). Operates alongside Mongoose connection pooling.
+ * @agent_note For general domain models (Template, Batch, DraftRow), use Mongoose models rather than raw `db`.
+ *             `db` and `mongoClient` are primarily used by auth subsystems and direct low-level queries.
+ */
+
 import { MongoClient } from 'mongodb';
 import 'dotenv/config';
 
@@ -9,5 +18,14 @@ if (!MONGODB_URI) {
 
 const client = new MongoClient(MONGODB_URI);
 
+/**
+ * @type {import('mongodb').Db}
+ * @description Connected MongoDB database instance targeted at DB_NAME or default 'emitdocs'.
+ */
 export const db = client.db(process.env.DB_NAME || 'emitdocs');
+
+/**
+ * @type {MongoClient}
+ * @description Root native MongoDB client instance connected to MONGODB_URI.
+ */
 export const mongoClient = client;

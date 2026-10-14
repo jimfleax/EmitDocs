@@ -1,3 +1,9 @@
+/**
+ * @file index.ts
+ * @description Barrel exports for all loading skeleton components.
+ * @architecture Central export point for loading placeholder components across templates, batches, and editors.
+ */
+
 export { DefaultPageSkeleton } from "./DefaultPageSkeleton";
 export { TemplateLibrarySkeleton } from "./TemplateLibrarySkeleton";
 export { TemplateDetailsSkeleton } from "./TemplateDetailsSkeleton";

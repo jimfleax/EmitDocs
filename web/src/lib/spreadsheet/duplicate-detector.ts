@@ -1,3 +1,10 @@
+/**
+ * @file duplicate-detector.ts
+ * @description In-memory duplicate row detection using deterministic row fingerprinting.
+ * @architecture Computes normalized key-value hash strings across rows, flags matching items with DUPLICATE_ROW warnings while strictly preserving all data records.
+ * @agent_note Duplicate rows are never pruned or omitted from output, only annotated with warnings and line references.
+ */
+
 export interface RowWarning {
   field?: string;
   code: string;
@@ -24,6 +31,9 @@ export interface DuplicateCheckedRow<
 
 /**
  * Computes deterministic fingerprint for an effectiveData object.
+ * @desc Generates a sorted pipe-delimited string key from normalized record fields.
+ * @param {Record<string, any>} data - Normalized field values map.
+ * @returns {string} Deterministic fingerprint string.
  */
 export function computeRowFingerprint(data: Record<string, any>): string {
   if (!data) return "";
@@ -40,6 +50,9 @@ export function computeRowFingerprint(data: Record<string, any>): string {
 /**
  * Scans rows and flags duplicates with DUPLICATE_ROW warning and referenceRowNumbers.
  * Strict Invariant (AC4): All duplicate rows are preserved, never dropped.
+ * @desc Inspects an array of row items for duplicate content fingerprints and decorates duplicates with warning metadata.
+ * @param {T[]} rows - List of draft row items.
+ * @returns {(T & { isDuplicate: boolean; duplicateReferences: number[]; warnings: RowWarning[] })[]} Decorated rows with duplicate flags and source row references.
  */
 export function detectDuplicatesAcrossRows<T extends DetectDuplicateItem>(
   rows: T[],

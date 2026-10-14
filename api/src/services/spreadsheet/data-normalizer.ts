@@ -1,5 +1,27 @@
+/**
+ * @file data-normalizer.ts
+ * @description Spreadsheet cell data normalization algorithms for strings, numbers, currencies, and dates.
+ * @architecture Used during chunk ingestion and batch finalization by `row-validator.ts`. Sanitizes dirty Excel/CSV
+ *               data, strips currency symbols, identifies ambiguous date/number formats (e.g. EU vs US decimals),
+ *               and flags missing formula caches.
+ * @agent_note When modifying date parsing, ensure both Excel serial numbers (offset from 1899-12-30) and string representations
+ *             (ISO, slash, hyphen) are supported, and produce canonical ISO `YYYY-MM-DD` strings.
+ */
+
+/**
+ * Special sentinel token injected when an Excel formula cell has no precomputed cached calculation.
+ */
 export const FORMULA_CACHE_MISSING_TOKEN = '__FORMULA_CACHE_MISSING__';
 
+/**
+ * @interface NormalizationResult
+ * @description Outcome of a cell normalization operation.
+ * @template T - Normalized data type.
+ * @property {T} [value] - Cleaned and parsed value if successful.
+ * @property {Object} [error] - Error details if cell value is invalid or ambiguous.
+ * @property {string} error.code - Machine-readable error code.
+ * @property {string} error.message - User-facing description of why normalization failed.
+ */
 export interface NormalizationResult<T = any> {
   value?: T;
   error?: {
@@ -8,8 +30,17 @@ export interface NormalizationResult<T = any> {
   };
 }
 
+/**
+ * @typedef {('DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD')} DateFormatHint
+ * @description Disambiguation hint providing expected date segment order.
+ */
 export type DateFormatHint = 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD';
 
+/**
+ * @desc Normalizes arbitrary cell input into a trimmed string.
+ * @param {*} val - Raw input value from spreadsheet cell.
+ * @returns {NormalizationResult<string>} Normalized string or formula cache error.
+ */
 export function normalizeTextValue(val: any): NormalizationResult<string> {
   if (val === null || val === undefined) {
     return { value: '' };
@@ -25,6 +56,13 @@ export function normalizeTextValue(val: any): NormalizationResult<string> {
   return { value: String(val).trim() };
 }
 
+/**
+ * @desc Parses and normalizes diverse numeric string representations, handling currency symbols,
+ *       international decimal commas, and thousand separators.
+ * @param {*} val - Cell value (string, number, or null/undefined).
+ * @param {string | { locale?: string }} [localeOrOptions] - Optional locale string or option object.
+ * @returns {NormalizationResult<number>} Parsed numeric result or ambiguity error.
+ */
 export function normalizeNumberValue(
   val: any,
   localeOrOptions?: string | { locale?: string }
@@ -129,6 +167,13 @@ export function normalizeNumberValue(
   return { value: parsed };
 }
 
+/**
+ * @desc Parses and normalizes date representations into canonical ISO `YYYY-MM-DD` strings.
+ *       Supports Excel epoch serial offsets, ISO timestamps, and delimited formats with hints.
+ * @param {*} val - Cell value (string, Excel serial number, or null/undefined).
+ * @param {DateFormatHint} [formatHint] - Explicit hint to disambiguate DD/MM vs MM/DD.
+ * @returns {NormalizationResult<string>} Canonical YYYY-MM-DD date string or validation error.
+ */
 export function normalizeDateValue(val: any, formatHint?: DateFormatHint): NormalizationResult<string> {
   if (val === null || val === undefined || val === '') {
     return { value: '' };

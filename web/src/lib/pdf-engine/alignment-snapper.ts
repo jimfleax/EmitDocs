@@ -1,3 +1,10 @@
+/**
+ * @file alignment-snapper.ts
+ * @description Magnetic edge-snapping and alignment guide line calculator for interactive canvas dragging.
+ * @architecture Computes snap positions and visual guide lines against sibling nodes and viewport bounds during move and 8-point resize operations.
+ * @agent_note Holding Alt / Option bypasses snapping calculations.
+ */
+
 import type { DomRect, ViewportConfig } from "./coordinate-transforms";
 
 export interface AlignmentGuide {
@@ -25,6 +32,12 @@ export interface SnapResult {
 /**
  * Calculates magnetic snapping coordinates and active alignment guide lines
  * for bounding boxes during dragging and 8-point resizing.
+ * @desc Evaluates target proximity against page edges and sibling boxes, snapping coordinates within threshold.
+ * @param {DomRect} current - Un-snapped target bounding box in DOM coordinates.
+ * @param {DomRect[]} siblings - Surrounding sibling boxes on the active page.
+ * @param {ViewportConfig} viewport - Active canvas dimensions and zoom config.
+ * @param {SnapOptions} [options={}] - Threshold, snap targets, modifier key flags, and active resize handle.
+ * @returns {SnapResult} Snapped bounding rectangle and active guide lines to display.
  */
 export function calculateSnapping(
   current: DomRect,

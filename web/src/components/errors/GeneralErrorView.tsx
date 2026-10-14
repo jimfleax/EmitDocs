@@ -1,3 +1,9 @@
+/**
+ * @file GeneralErrorView.tsx
+ * @description 500 Internal Server Error presentation component.
+ * @architecture Pre-configured wrapper around ErrorView for unexpected client/server runtime exceptions.
+ */
+
 import { ErrorView, type ErrorVariant } from "./ErrorView";
 
 export interface GeneralErrorViewProps {
@@ -8,6 +14,11 @@ export interface GeneralErrorViewProps {
   message?: string;
 }
 
+/**
+ * @component GeneralErrorView
+ * @description Displays a 500 Something Went Wrong error screen with retry trigger and error stack trace in dev.
+ * @param {GeneralErrorViewProps} props - Component properties.
+ */
 export function GeneralErrorView({
   error,
   reset,

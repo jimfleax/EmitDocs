@@ -1,3 +1,9 @@
+/**
+ * @file PageShell.tsx
+ * @description Standardized header bar and body wrapper for views within the authenticated workspace.
+ * @architecture Renders full-width headers with title, subtitle, back navigation, actions slot, and responsive maxWidth centering.
+ */
+
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "@phosphor-icons/react";
@@ -60,6 +66,16 @@ export interface PageShellProps {
  * PageShell — standardised page-level layout used by every route inside `/app/*`.
  * Provides a 100% full-width header (optional back button + title + subtitle + actions slot)
  * separated from the body by a divider, and an architecturally centered body container.
+ * @component PageShell
+ * @description Standardized page-level layout container with navigation header and centered content body.
+ * @param {PageShellProps} props - Component properties.
+ * @param {React.ReactNode} props.title - Main page heading.
+ * @param {React.ReactNode} [props.subtitle] - Descriptive subtitle beneath title.
+ * @param {string} [props.backTo] - Route path for back button navigation.
+ * @param {React.ReactNode} [props.actions] - Action slot for CTAs, buttons, and filters.
+ * @param {PageShellMaxWidth} [props.maxWidth="full"] - Body container max-width constraint.
+ * @param {boolean} [props.isLoading=false] - Whether to render loading skeleton placeholder.
+ * @param {React.ReactNode} [props.skeleton] - Custom skeleton component override.
  */
 export function PageShell({
   title,

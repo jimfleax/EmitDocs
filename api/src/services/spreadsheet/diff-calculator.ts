@@ -1,3 +1,23 @@
+/**
+ * @file diff-calculator.ts
+ * @description 4-way re-import diff engine comparing prior batch revisions against prospective uploads.
+ * @architecture Categorizes differences between an existing revision's rows and a newly uploaded spreadsheet
+ *               into six mutually exclusive sets: added, removed, changed, unchanged, conflicted (where incoming data
+ *               differs from both old imported data AND manual user overrides), and ambiguous (missing or duplicate reconciliation keys).
+ * @agent_note Reconciliation relies on a specified `reconciliationKey` (e.g. studentId, email, or row identifier).
+ *             Conflicted items require explicit user resolution before applying overrides forward.
+ */
+
+/**
+ * @interface DiffSummary
+ * @description Statistical counter breakdown of re-import diff results.
+ * @property {number} addedCount - Count of new rows present only in the new import.
+ * @property {number} removedCount - Count of old rows absent from the new import.
+ * @property {number} changedCount - Count of matching rows where source values have changed cleanly.
+ * @property {number} unchangedCount - Count of matching rows with identical data.
+ * @property {number} conflictedCount - Count of rows with 3-way conflicts between old data, user overrides, and new import.
+ * @property {number} ambiguousCount - Count of rows with missing or duplicate reconciliation keys.
+ */
 export interface DiffSummary {
   addedCount: number;
   removedCount: number;
@@ -7,6 +27,10 @@ export interface DiffSummary {
   ambiguousCount: number;
 }
 
+/**
+ * @interface AddedDiffItem
+ * @description New row found only in the incoming revision.
+ */
 export interface AddedDiffItem {
   newRowId: string;
   rowKey: string;
@@ -14,6 +38,10 @@ export interface AddedDiffItem {
   data: Record<string, any>;
 }
 
+/**
+ * @interface RemovedDiffItem
+ * @description Existing row missing from the incoming revision.
+ */
 export interface RemovedDiffItem {
   oldRowId: string;
   rowKey: string;
@@ -21,6 +49,10 @@ export interface RemovedDiffItem {
   data: Record<string, any>;
 }
 
+/**
+ * @interface ChangedDiffItem
+ * @description Existing row where cell data changed between revisions without conflicting with user overrides.
+ */
 export interface ChangedDiffItem {
   oldRowId: string;
   newRowId: string;
@@ -28,12 +60,20 @@ export interface ChangedDiffItem {
   diffs: Record<string, { old: any; new: any }>;
 }
 
+/**
+ * @interface UnchangedDiffItem
+ * @description Row with identical imported and effective values across revisions.
+ */
 export interface UnchangedDiffItem {
   oldRowId: string;
   newRowId: string;
   rowKey: string;
 }
 
+/**
+ * @interface ConflictedDiffItem
+ * @description 3-way conflict where a field was manually edited by a user and also changed in the new spreadsheet.
+ */
 export interface ConflictedDiffItem {
   oldRowId: string;
   newRowId: string;
@@ -44,6 +84,10 @@ export interface ConflictedDiffItem {
   override: any;
 }
 
+/**
+ * @interface AmbiguousDiffItem
+ * @description Row that cannot be uniquely matched due to duplicate or missing reconciliation key values.
+ */
 export interface AmbiguousDiffItem {
   id: string;
   revision: number;
@@ -53,6 +97,10 @@ export interface AmbiguousDiffItem {
   data: Record<string, any>;
 }
 
+/**
+ * @interface ReimportDiffResult
+ * @description Complete classified diff output between two batch revisions.
+ */
 export interface ReimportDiffResult {
   summary: DiffSummary;
   reconciliationKey: string;
@@ -64,6 +112,10 @@ export interface ReimportDiffResult {
   ambiguous: AmbiguousDiffItem[];
 }
 
+/**
+ * @interface CalculateDiffOptions
+ * @description Optional column mapping parameters for old and new revisions.
+ */
 export interface CalculateDiffOptions {
   oldColumnMap?: Record<string, string>;
   newColumnMap?: Record<string, string>;
@@ -120,6 +172,16 @@ function isDiff(a: any, b: any): boolean {
   return String(a ?? '').trim() !== String(b ?? '').trim();
 }
 
+/**
+ * @desc Compares draft rows between the current revision and a prospective import revision,
+ *       computing a 4-way diff classification using a reconciliation key.
+ * @param {any[]} oldRows - List of draft rows from the currently active revision.
+ * @param {any[]} newRows - List of draft rows from the prospective new import revision.
+ * @param {string} reconciliationKey - Target field key used to pair rows (e.g. 'studentId', 'email').
+ * @param {any[]} [fieldMappings=[]] - Active template field mappings used for attribute comparison.
+ * @param {CalculateDiffOptions} [options] - Header column mapping dictionaries for old and new revisions.
+ * @returns {ReimportDiffResult} Structured reconciliation summary and lists of categorized rows.
+ */
 export function calculateReimportDiff(
   oldRows: any[],
   newRows: any[],

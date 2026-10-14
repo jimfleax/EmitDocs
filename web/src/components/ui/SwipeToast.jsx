@@ -1,3 +1,10 @@
+/**
+ * @file SwipeToast.jsx
+ * @description Gesture-driven, swipeable toast notification component with timer fuse and physics spring settlement.
+ * @architecture Implements physics-based drag dismissal using motion/react and custom rubberbanding calculations.
+ * @agent_note Supports touch drag, keyboard Escape dismissal, and auto-dismiss fuses.
+ */
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -116,6 +123,16 @@ const TOAST_VARIANTS = {
   },
 };
 
+/**
+ * @component SwipeToast
+ * @description Renders a toast notification card with gesture-based dismiss, fuse timer, and action buttons.
+ * @param {Object} props - Component properties.
+ * @param {string} [props.variant="default"] - Category preset (default, success, error, warning, info, loading).
+ * @param {React.ReactNode} [props.title="File archived"] - Primary title message.
+ * @param {React.ReactNode} [props.description=""] - Supporting text.
+ * @param {Function} [props.onClose] - Callback fired when toast finishes closing.
+ * @state Manages drag coordinates, timeout fuse animation, and exit settlement.
+ */
 export default function SwipeToast({
   variant = "default",
   title = "File archived",

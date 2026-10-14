@@ -1,3 +1,9 @@
+/**
+ * @file Badge.tsx
+ * @description Compact status indicator badge with color variants, pill/rounded shapes, and dot markers.
+ * @architecture Base design system badge component configured with class-variance-authority tokens.
+ */
+
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
@@ -49,6 +55,16 @@ export interface BadgeProps
   mono?: boolean;
 }
 
+/**
+ * @component Badge
+ * @description Displays a compact status tag or count indicator with optional leading dot.
+ * @param {BadgeProps} props - Component properties.
+ * @param {"neutral" | "primary" | "success" | "error" | "warning" | "glass"} [props.variant="neutral"] - Color theme.
+ * @param {"pill" | "rounded"} [props.shape="rounded"] - Border radius shape.
+ * @param {"sm" | "md"} [props.size="sm"] - Text and padding size.
+ * @param {boolean} [props.dot=false] - Whether to render a colored dot indicator.
+ * @param {boolean} [props.mono=false] - Whether to format text with monospaced font.
+ */
 function Badge({
   className,
   variant = "neutral",

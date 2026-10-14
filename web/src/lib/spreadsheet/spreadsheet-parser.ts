@@ -1,3 +1,10 @@
+/**
+ * @file spreadsheet-parser.ts
+ * @description In-memory spreadsheet parsing engine for CSV text and XLSX binary workbooks.
+ * @architecture Uses PapaParse for CSV and SheetJS (XLSX) for Excel workbooks; normalizes worksheet grids into row records.
+ * @agent_note Un-cached Excel formulas are flagged with FORMULA_CACHE_MISSING_TOKEN rather than throwing silent errors.
+ */
+
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { extractHeadersAndRows } from "./header-extractor.js";
@@ -17,6 +24,9 @@ export const FORMULA_CACHE_MISSING_TOKEN = "__FORMULA_CACHE_MISSING__";
 
 /**
  * Parses a CSV string or file content into structured headers and records.
+ * @desc Parses raw CSV text into a structured grid and normalizes records by disambiguated header names.
+ * @param {string} csvContent - Raw CSV text content.
+ * @returns {ParsedSpreadsheetResult} Parsed result containing headers, data rows, and line counts.
  */
 export function parseCsvString(csvContent: string): ParsedSpreadsheetResult {
   const parsed = Papa.parse<any[]>(csvContent, {
@@ -52,6 +62,12 @@ export function parseCsvString(csvContent: string): ParsedSpreadsheetResult {
 
 /**
  * Parses an XLSX ArrayBuffer, inspecting formulas and cached values, extracting worksheet metadata.
+ * @desc Decodes an Excel workbook buffer, extracts the selected worksheet, and converts cells into normalized record objects.
+ * @param {ArrayBuffer} buffer - Binary ArrayBuffer of the XLSX file.
+ * @param {Object} [options] - Parsing options.
+ * @param {string} [options.worksheetName] - Optional worksheet name to parse (defaults to first worksheet).
+ * @returns {ParsedSpreadsheetResult} Worksheet headers, records, and metadata.
+ * @throws {Error} When no worksheets are found in the workbook.
  */
 export function parseXlsxBuffer(
   buffer: ArrayBuffer,

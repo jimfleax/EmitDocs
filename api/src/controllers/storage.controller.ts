@@ -1,8 +1,29 @@
+/**
+ * @file storage.controller.ts
+ * @description Controller and calculation engine for user cloud storage metrics.
+ * @architecture Computes cloud storage consumption across Cloudinary Admin API assets (`templates/{userId}/*`)
+ *               and MongoDB TemplateVersion records. Employs a resilient fallback strategy if Cloudinary
+ *               is rate-limited or unreachable.
+ * @agent_note When computing storage metrics, deleted templates are flagged with `isSoftDeleted: true`
+ *               so users can audit retained assets before cleanup.
+ */
+
 import { Context } from 'hono';
 import cloudinary from '../lib/cloudinary.js';
 import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
 
+/**
+ * @interface StoredDocumentItem
+ * @description Detail record of an individual stored asset in user storage.
+ * @property {string} id - Asset public ID or version key.
+ * @property {string} name - Associated template or filename.
+ * @property {number} bytes - Raw byte size.
+ * @property {string} formattedSize - Human-readable size string (e.g. "2.4 MB").
+ * @property {string} [format] - File extension format (e.g. 'pdf').
+ * @property {string} [resourceType] - Cloudinary resource type ('image' or 'raw').
+ * @property {string} [createdAt] - Upload timestamp.
+ */
 export interface StoredDocumentItem {
   id: string;
   name: string;
@@ -11,10 +32,19 @@ export interface StoredDocumentItem {
   format?: string;
   resourceType?: string;
   createdAt?: string;
-  isSoftDeleted?: boolean;
   templateId?: string;
 }
 
+/**
+ * @interface UserStorageSummary
+ * @description Aggregated storage consumption payload returned to the frontend.
+ * @property {boolean} success - Operation success flag.
+ * @property {number} totalBytes - Aggregated total byte size.
+ * @property {string} formattedTotal - Human-readable total (e.g. "12.8 MB").
+ * @property {number} documentCount - Count of stored document assets.
+ * @property {StoredDocumentItem[]} documents - List of detailed stored assets.
+ * @property {'cloudinary' | 'database'} source - Data source indicating whether live cloud probe succeeded.
+ */
 export interface UserStorageSummary {
   success: boolean;
   totalBytes: number;
@@ -26,6 +56,11 @@ export interface UserStorageSummary {
 
 /**
  * Format bytes into human-readable strings (e.g. 14.2 MB, 850 KB, 0 B).
+ * 
+ * @desc Converts numeric bytes into a human-readable string with units.
+ * @param {number} bytes - Number of bytes to format.
+ * @param {number} [decimals=1] - Decimal precision to retain.
+ * @returns {string} Formatted size string.
  */
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!bytes || bytes <= 0 || isNaN(bytes)) return '0 B';
@@ -43,6 +78,10 @@ export function formatBytes(bytes: number, decimals = 1): string {
  * 1. Checks Cloudinary Admin API for live assets under templates/{userId}/*
  * 2. Correlates with MongoDB templates to enrich names and soft-delete statuses
  * 3. Falls back smoothly to MongoDB TemplateVersion byte records if Cloudinary is unavailable or rate-limited.
+ * 
+ * @desc Evaluates total user storage consumption using hybrid Cloudinary API probe and MongoDB fallback.
+ * @param {string} userId - Target Better-Auth user ID.
+ * @returns {Promise<UserStorageSummary>} Detailed breakdown of stored documents and aggregated bytes.
  */
 export async function calculateUserStorage(userId: string): Promise<UserStorageSummary> {
   // 1. Fetch metadata from MongoDB
@@ -56,13 +95,12 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
     templateMap.set(String(t._id), t);
   }
 
-  const sourceKeyMap = new Map<string, { templateName: string; isSoftDeleted: boolean; templateId: string }>();
+  const sourceKeyMap = new Map<string, { templateName: string; templateId: string }>();
   for (const v of versions) {
     const tmpl = templateMap.get(String(v.templateId));
     if (v.sourceObjectKey) {
       sourceKeyMap.set(v.sourceObjectKey, {
         templateName: tmpl?.name || v.sourceObjectKey.split('/').pop() || 'Document',
-        isSoftDeleted: Boolean(tmpl?.deletedAt),
         templateId: String(v.templateId),
       });
     }
@@ -153,7 +191,6 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
       format: 'pdf',
       resourceType: 'image',
       createdAt: ver.createdAt ? new Date(ver.createdAt).toISOString() : undefined,
-      isSoftDeleted: Boolean(tmpl?.deletedAt),
       templateId: String(ver.templateId),
     });
   }
@@ -174,7 +211,6 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
         format: asset.format || 'pdf',
         resourceType: asset.resource_type || 'image',
         createdAt: asset.created_at,
-        isSoftDeleted: Boolean(keyInfo?.isSoftDeleted),
         templateId: keyInfo?.templateId,
       });
     }
@@ -199,6 +235,12 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
 
 /**
  * Controller handler for GET /api/storage and GET /api/storage/summary
+ * 
+ * @desc Retrieves total cloud storage consumption metrics, asset details, and byte counts for the authenticated user.
+ * @route GET /api/storage
+ * @route GET /api/storage/summary
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON UserStorageSummary payload, 401 if unauthorized, or 500 on failure.
  */
 export const getUserStorage = async (c: Context) => {
   const user = c.get('user');

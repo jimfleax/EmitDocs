@@ -1,3 +1,9 @@
+/**
+ * @file InfinityTrack.tsx
+ * @description Monospaced ASCII infinity loop animation for indeterminate progress states.
+ * @architecture Micro-animation UI primitive using CSS keyframes and unicode grid blocks.
+ */
+
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +14,13 @@ type InfinityTrackProps = React.ComponentProps<"span"> & {
   track?: string;
 };
 
+/**
+ * @component InfinityTrack
+ * @description Displays a looping figure-8 unicode block progress animation.
+ * @param {InfinityTrackProps} props - Component properties.
+ * @param {readonly string[]} [props.blocks] - Custom block characters for animated pulses.
+ * @param {string} [props.track="░"] - Track fill character.
+ */
 function InfinityTrack({
   className,
   blocks = INFINITY_TRACK_BLOCKS,

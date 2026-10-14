@@ -1,3 +1,12 @@
+/**
+ * @file templates.controller.ts
+ * @description HTTP controller endpoints handling PDF template management and version lifecycles.
+ * @architecture Thin HTTP layer translating Hono Context requests into calls to `TemplateLifecycle`.
+ *               Handles authentication validation, extracts JSON bodies via `getJsonBody`, maps typed domain
+ *               errors to HTTP status codes (400, 404, 409, 502), and handles binary asset streaming.
+ * @agent_note All routes mounted here require user authentication enforced by `requireAuth` middleware.
+ */
+
 import { Context } from 'hono';
 import { getJsonBody } from '../lib/request.js';
 import {
@@ -9,6 +18,7 @@ import {
   VersionConflictError,
   TemplateValidationError,
   StorageAssetError,
+  TemplateCascadeConfirmationRequiredError,
 } from '../services/template-lifecycle.js';
 
 // Re-export utility functions for backwards compatibility with tests and callers
@@ -16,6 +26,11 @@ export { computeMappingHash, generateThumbnailUrl, repairThumbnailUrl };
 
 /**
  * Generates signed parameters for direct client-to-Cloudinary authenticated uploads.
+ * 
+ * @desc Signs an authenticated upload request allowing frontend direct upload to Cloudinary.
+ * @route POST /api/templates/sign-upload
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with signature, timestamp, folder, and API keys.
  */
 export const signUpload = async (c: Context) => {
   const user = c.get('user');
@@ -40,6 +55,15 @@ export const signUpload = async (c: Context) => {
 
 /**
  * Registers an uploaded PDF asset as a new template with initial Version 1.
+ * 
+ * @desc Registers an authenticated template upload and initializes version 1.
+ * @route POST /api/templates
+ * @access Private
+ * @body {Object} body
+ * @body {string} body.name - Human-readable template name.
+ * @body {string} body.cloudinaryPublicId - Cloudinary asset identifier.
+ * @body {string} [body.thumbnailUrl] - Optional pre-generated thumbnail URL.
+ * @returns {Promise<Response>} 201 Created JSON with template and initial version, or 400/404 error.
  */
 export const createTemplate = async (c: Context) => {
   const user = c.get('user');
@@ -75,6 +99,11 @@ export const createTemplate = async (c: Context) => {
 
 /**
  * Lists templates for the current user, optionally filtered to mapped templates.
+ * 
+ * @desc Lists all active templates owned by the current user with populated active versions.
+ * @route GET /api/templates
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ templates: ITemplate[] }`.
  */
 export const getTemplates = async (c: Context) => {
   const user = c.get('user');
@@ -96,6 +125,11 @@ export const getTemplates = async (c: Context) => {
 
 /**
  * Retrieves a single template by ID for the authorized owner.
+ * 
+ * @desc Fetches a specific template by ID with its active currentVersionId populated.
+ * @route GET /api/templates/:id
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ template: ITemplate }`, or 404 if not found.
  */
 export const getTemplateById = async (c: Context) => {
   const user = c.get('user');
@@ -119,7 +153,14 @@ export const getTemplateById = async (c: Context) => {
 };
 
 /**
- * Soft-deletes a template.
+ * Permanently deletes a template.
+ * Checks for cascade confirmation if dependent batches exist.
+ * Returns HTTP 409 CASCADE_CONFIRMATION_REQUIRED if confirmCascade is omitted.
+ * 
+ * @desc Permanently deletes a template and its versions, optionally cascading to batches.
+ * @route DELETE /api/templates/:id
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ success: true, message: 'Template deleted' }`, or 409 if batches exist, or 404 if not found.
  */
 export const deleteTemplate = async (c: Context) => {
   const user = c.get('user');
@@ -127,14 +168,43 @@ export const deleteTemplate = async (c: Context) => {
 
   const id = c.req.param('id');
 
+  let confirmCascade = c.req.query('confirmCascade') === 'true' || c.req.query('cascade') === 'true';
+  const contentType = c.req.header('content-type') || '';
+  if (!confirmCascade && contentType.includes('application/json')) {
+    try {
+      const body = await getJsonBody(c);
+      if (body && (body.confirmCascade === true || body.cascade === true)) {
+        confirmCascade = true;
+      }
+    } catch {
+      // Ignored
+    }
+  }
+
   try {
     const result = await TemplateLifecycle.deleteTemplate({
       templateId: id,
       ownerId: user.id,
+      confirmCascade,
     });
 
     return c.json(result);
   } catch (error: any) {
+    if (error instanceof TemplateValidationError) {
+      return c.json({ error: error.message }, 400);
+    }
+    if (error instanceof TemplateCascadeConfirmationRequiredError) {
+      return c.json(
+        {
+          error: error.code,
+          message: error.message,
+          requiresConfirmation: true,
+          dependentBatchesCount: error.dependentBatchesCount,
+          dependentBatches: error.dependentBatches,
+        },
+        409
+      );
+    }
     if (error instanceof TemplateNotFoundError) {
       return c.json({ error: 'Template not found' }, 404);
     }
@@ -144,6 +214,11 @@ export const deleteTemplate = async (c: Context) => {
 
 /**
  * Lists all versions for a template in descending order.
+ * 
+ * @desc Retrieves all historical and active versions for a given template.
+ * @route GET /api/templates/:id/versions
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ versions: ITemplateVersion[] }`, or 404/500 on failure.
  */
 export const getTemplateVersions = async (c: Context) => {
   const user = c.get('user');
@@ -168,6 +243,11 @@ export const getTemplateVersions = async (c: Context) => {
 
 /**
  * Retrieves a specific version of a template.
+ * 
+ * @desc Fetches an individual template version by version ID.
+ * @route GET /api/templates/:id/versions/:versionId
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ version: ITemplateVersion }`, or 404 if not found.
  */
 export const getTemplateVersionById = async (c: Context) => {
   const user = c.get('user');
@@ -197,6 +277,11 @@ export const getTemplateVersionById = async (c: Context) => {
 
 /**
  * Streams the template version PDF asset with dual format fallback.
+ * 
+ * @desc Proxies a streaming binary download of the template's PDF document.
+ * @route GET /api/templates/:id/versions/:versionId/file
+ * @access Private
+ * @returns {Promise<Response>} 200 Binary PDF stream with Content-Disposition inline header, 404 if missing, or 502 on storage failure.
  */
 export const streamTemplateVersionPdf = async (c: Context) => {
   const user = c.get('user');
@@ -233,6 +318,14 @@ export const streamTemplateVersionPdf = async (c: Context) => {
 
 /**
  * Publishes a new template version with CAS concurrency checking.
+ * 
+ * @desc Publishes an updated version of a template with new visual field mappings.
+ * @route POST /api/templates/:id/versions
+ * @access Private
+ * @body {Object} body
+ * @body {number} body.expectedVersion - Current version number expected by caller for CAS check.
+ * @body {IFieldMapping[]} body.fieldMappings - Updated field mappings array.
+ * @returns {Promise<Response>} 201 Created JSON with template and new version, 400 validation error, or 409 conflict.
  */
 export const createTemplateVersion = async (c: Context) => {
   const user = c.get('user');

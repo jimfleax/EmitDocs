@@ -1,8 +1,19 @@
+/**
+ * @file Skeleton.tsx
+ * @description Animated pulsing placeholder primitive for loading placeholders and content mockups.
+ * @architecture Base design system primitive for building composite skeleton screens.
+ */
+
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {}
 
+/**
+ * @component Skeleton
+ * @description Pulsing placeholder box matching dimensions of loading content.
+ * @param {SkeletonProps} props - Native HTML div element attributes.
+ */
 export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
     <div

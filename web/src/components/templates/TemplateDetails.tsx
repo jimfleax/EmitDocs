@@ -1,3 +1,10 @@
+/**
+ * @file TemplateDetails.tsx
+ * @description Detailed inspection view for a single template, its active version, and metadata.
+ * @architecture Feature view component rendered inside the template details route shell.
+ * @agent_note Fetches template details via /api/templates/:id and synchronizes the active template ID with local storage.
+ */
+
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import {
@@ -31,6 +38,18 @@ interface Template {
   updatedAt?: string;
 }
 
+/**
+ * @component TemplateDetails
+ * @description Displays comprehensive template details including versioning, status badges, page specs, and action buttons.
+ * @param {Object} props - Component properties.
+ * @param {string} props.templateId - Unique identifier of the template to display.
+ * @state {Template | null} template - Loaded template entity.
+ * @state {TemplateVersion[]} versions - Array of associated template versions.
+ * @state {boolean} loading - Loading state while fetching details.
+ * @state {string} error - Error message if fetch fails.
+ * @api {GET} /api/templates/:templateId - Retrieves template record and version details.
+ * @returns {JSX.Element} Template details dashboard view.
+ */
 export function TemplateDetails({ templateId }: { templateId: string }) {
   const [template, setTemplate] = useState<Template | null>(null);
   const [versions, setVersions] = useState<TemplateVersion[]>([]);

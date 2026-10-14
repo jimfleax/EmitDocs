@@ -1,3 +1,21 @@
+/**
+ * @file index.ts
+ * @description Main application server entry point, database connection manager, middleware pipeline, and route mount registry for the EmitDocs API.
+ *
+ * @architecture
+ * - Instantiates the root Hono application with base path `/api`.
+ * - Configures global CORS using dynamic origin resolution (`resolveCorsOrigin`).
+ * - Manages serverless-safe Mongoose connection pooling with caching and exponential retry backoff.
+ * - Mounts Better-Auth wildcard routes (`/auth/*`) with request reconstruction for pre-parsed bodies.
+ * - Registers sub-routers for templates (`/templates`), batches (`/batches`), and storage (`/storage`).
+ * - Provides standardized global 404 (notFound) and 500 (onError) handlers.
+ * - Exports both `honoApp` instance and Node listener via `getRequestListener` for serverless or Node runtime hosts.
+ *
+ * @agent_note
+ * Vercel serverless functions disable standard body parsing via `export const config = { api: { bodyParser: false } }`.
+ * When proxying incoming bodies to Better-Auth, `incoming.body` is reconstructed into a standard `Request` object if present.
+ */
+
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import mongoose from 'mongoose'
@@ -19,6 +37,9 @@ app.use('*', cors({
 const MONGODB_URI = process.env.MONGODB_URI
 const DB_NAME = process.env.DB_NAME || 'emitdocs'
 
+/**
+ * Global cache interface for preserving Mongoose connection handles across serverless cold starts.
+ */
 interface MongooseCache {
   conn: typeof mongoose | null;
   promise: Promise<typeof mongoose> | null;
@@ -35,6 +56,14 @@ if (!cached) {
   cached = (globalThis as any).mongooseCache = { conn: null, promise: null };
 }
 
+/**
+ * Establishes or reuses a cached MongoDB connection with configurable retry attempts.
+ *
+ * @param {number} [retries=3] - Number of connection attempts before failing.
+ * @param {number} [delay=5000] - Backoff delay in milliseconds between failed connection attempts.
+ * @returns {Promise<typeof mongoose | null>} The active Mongoose instance or null if unconfigured/failed.
+ * @throws {Error} When connection attempts are exhausted without establishing a connection.
+ */
 const connectDB = async (retries = 3, delay = 5000): Promise<typeof mongoose | null> => {
   // 1. If already connected, return immediately
   if (mongoose.connection.readyState === 1) {
@@ -184,11 +213,21 @@ app.onError((err, c) => {
 
 import { getRequestListener } from '@hono/node-server'
 
+/**
+ * Serverless function configuration disabling automated body parsing so raw streams remain readable.
+ */
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
+/**
+ * The configured root Hono application instance.
+ */
 export const honoApp = app
+
+/**
+ * Default Node.js request listener handler for production deployment and local development.
+ */
 export default getRequestListener(app.fetch)

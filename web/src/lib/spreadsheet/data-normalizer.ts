@@ -1,3 +1,10 @@
+/**
+ * @file data-normalizer.ts
+ * @description Type coercion, date parsing, locale currency stripping, and ambiguity detection for raw spreadsheet inputs.
+ * @architecture Validates and normalizes text, numbers, and dates into canonical formats (ISO 8601, clean floats) while detecting un-cached formulas.
+ * @agent_note Emits distinct errors for AMBIGUOUS_DATE and AMBIGUOUS_NUMBER to prompt user clarification.
+ */
+
 import { FORMULA_CACHE_MISSING_TOKEN } from "./spreadsheet-parser.js";
 
 export interface NormalizationResult<T = any> {
@@ -12,6 +19,9 @@ export type DateFormatHint = "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD";
 
 /**
  * Normalizes text value, detecting formula cache missing token.
+ * @desc Converts input cell value to trimmed string, catching un-evaluated spreadsheet formulas.
+ * @param {any} val - Raw cell value from spreadsheet parser.
+ * @returns {NormalizationResult<string>} Normalized string or formula error.
  */
 export function normalizeTextValue(val: any): NormalizationResult<string> {
   if (val === null || val === undefined) {
@@ -31,6 +41,10 @@ export function normalizeTextValue(val: any): NormalizationResult<string> {
 
 /**
  * Normalizes number value, stripping currency symbols, thousands separators, and detecting ambiguity.
+ * @desc Parses numeric cells or formatted strings into numbers, resolving European vs US comma/period ambiguities.
+ * @param {any} val - Raw input value.
+ * @param {string | { locale?: string }} [localeOrOptions] - Optional locale string or config to assist separator resolution.
+ * @returns {NormalizationResult<number>} Cleaned number or validation error.
  */
 export function normalizeNumberValue(
   val: any,
@@ -154,6 +168,10 @@ export function normalizeNumberValue(
 
 /**
  * Normalizes date value to ISO YYYY-MM-DD, detecting ambiguous locales (AC5).
+ * @desc Converts calendar strings and Excel numeric serial dates into ISO YYYY-MM-DD format.
+ * @param {any} val - Raw date string, Date instance, or Excel serial number.
+ * @param {DateFormatHint} [formatHint] - Optional hint (e.g. DD/MM/YYYY vs MM/DD/YYYY) to disambiguate days/months.
+ * @returns {NormalizationResult<string>} ISO date string or ambiguity/invalid error.
  */
 export function normalizeDateValue(
   val: any,

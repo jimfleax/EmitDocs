@@ -1,3 +1,10 @@
+/**
+ * @file Balatro.tsx
+ * @description Interactive WebGL CRT / psychedelic shader animation canvas using OGL.
+ * @architecture Decorative background component rendering animated fragment shaders with pointer interactivity.
+ * @agent_note Relies on browser WebGL context; handles resize events and pointer coordinates.
+ */
+
 "use client";
 
 import { useEffect, useRef } from "react";
@@ -121,6 +128,19 @@ void main() {
 }
 `;
 
+/**
+ * @component Balatro
+ * @description Renders an interactive WebGL canvas running a swirling chromatic shader background.
+ * @param {BalatroProps} props - Component properties and shader uniforms.
+ * @param {number} [props.spinRotation=-2.0] - Initial rotation angle.
+ * @param {number} [props.spinSpeed=7.0] - Speed of the rotational animation.
+ * @param {[number, number]} [props.offset=[0.0, 0.0]] - Coordinate center offset.
+ * @param {string} [props.color1="#DE443B"] - Primary shader palette color (hex).
+ * @param {string} [props.color2="#006BB4"] - Secondary shader palette color (hex).
+ * @param {string} [props.color3="#162325"] - Tertiary shader palette color (hex).
+ * @param {boolean} [props.mouseInteraction=true] - Whether pointer movement alters shader distortion.
+ * @sideeffects Initializes WebGL context, runs requestAnimationFrame loop, and attaches resize listeners.
+ */
 export function Balatro({
   spinRotation = -2.0,
   spinSpeed = 7.0,

@@ -670,20 +670,10 @@ async function runTests() {
       (err: any) => err instanceof TemplateNotFoundError && err.code === 'TEMPLATE_NOT_FOUND'
     );
 
-    // 15d. Throws TemplateNotFoundError when template is soft-deleted
-    const tSoftDeleted = await Template.create({
-      ownerId: testOwner,
-      name: 'Soft Deleted Template',
-      deletedAt: new Date(),
-    });
-    await assert.rejects(
-      async () => getTemplate({ templateId: tSoftDeleted._id, ownerId: testOwner }),
-      (err: any) => err instanceof TemplateNotFoundError && err.code === 'TEMPLATE_NOT_FOUND'
-    );
     console.log('   ✓ getTemplate retrieval, population, auto-healing, and access guards verified\n');
 
     // Test 16: deleteTemplate
-    console.log('16. Testing deleteTemplate (soft-deletion, idempotency guards, query exclusion)...');
+    console.log('16. Testing deleteTemplate (permanent deletion, cascade confirmation, idempotency guards)...');
     
     // Seed template to delete
     const tToDelete = await Template.create({
@@ -704,7 +694,7 @@ async function runTests() {
     tToDelete.currentVersionId = vToDelete._id;
     await tToDelete.save();
 
-    // 16a. Soft-delete succeeds
+    // 16a. Permanent delete succeeds
     const deleteRes = await deleteTemplate({
       templateId: tToDelete._id,
       ownerId: testOwner,
@@ -712,20 +702,22 @@ async function runTests() {
     assert.strictEqual(deleteRes.success, true);
     assert.strictEqual(deleteRes.message, 'Template deleted');
 
-    // Verify deletedAt is set in database
+    // Verify Template and TemplateVersion are permanently removed from database
     const directDoc = await Template.findById(tToDelete._id);
-    assert.ok(directDoc?.deletedAt instanceof Date, 'deletedAt must be a Date timestamp');
+    assert.strictEqual(directDoc, null, 'Template must be permanently removed');
+    const versionDocs = await TemplateVersion.find({ templateId: tToDelete._id });
+    assert.strictEqual(versionDocs.length, 0, 'Versions must be permanently removed');
 
-    // 16b. Subsequent getTemplate excludes soft-deleted template
+    // 16b. Subsequent getTemplate throws TemplateNotFoundError
     await assert.rejects(
       async () => getTemplate({ templateId: tToDelete._id, ownerId: testOwner }),
       (err: any) => err instanceof TemplateNotFoundError
     );
 
-    // 16c. Subsequent listTemplates excludes soft-deleted template
+    // 16c. Subsequent listTemplates excludes deleted template
     const listAfterDelete = await listTemplates({ ownerId: testOwner });
     const afterDeleteIds = listAfterDelete.map((t) => t._id.toString());
-    assert.ok(!afterDeleteIds.includes(tToDelete._id.toString()), 'listTemplates must exclude soft-deleted template');
+    assert.ok(!afterDeleteIds.includes(tToDelete._id.toString()), 'listTemplates must exclude deleted template');
 
     // 16d. Re-deleting already deleted template throws TemplateNotFoundError
     await assert.rejects(
@@ -744,7 +736,7 @@ async function runTests() {
       async () => deleteTemplate({ templateId: tOther._id, ownerId: testOwner }),
       (err: any) => err instanceof TemplateNotFoundError
     );
-    console.log('   ✓ deleteTemplate soft-deletion, query exclusion, and idempotency guards verified\n');
+    console.log('   ✓ deleteTemplate permanent deletion and guards verified\n');
 
     // Test 17: streamAsset
     console.log('17. Testing streamAsset (access guards, image probe, raw fallback, storage failure)...');

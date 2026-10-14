@@ -1,4 +1,14 @@
+/**
+ * @file batches.controller.ts
+ * @description HTTP controller endpoints managing bulk document issuance batches, intake, and draft rows.
+ * @architecture Thin HTTP layer routing requests to MongoDB models and `BatchIntake` service routines.
+ *               Manages batch lifecycle transitions, chunked spreadsheet uploads, draft row pagination and search,
+ *               inline cell editing under optimistic locking, and 4-way re-import reconciliation.
+ * @agent_note Protected by `requireAuth` middleware. Access is strictly scoped to `ownerId === user.id`.
+ */
+
 import { Context } from 'hono';
+import mongoose from 'mongoose';
 import { Batch } from '../models/Batch.js';
 import { BatchImport } from '../models/BatchImport.js';
 import { DraftRow } from '../models/DraftRow.js';
@@ -13,6 +23,16 @@ import {
   BatchIntakeValidationError,
 } from '../services/batch-intake.js';
 
+/**
+ * @desc Creates a new bulk issuance batch attached to a template and verified mapped version.
+ * @route POST /api/batches
+ * @access Private
+ * @body {Object} body
+ * @body {string} body.name - Name of the issuance batch.
+ * @body {string} body.templateId - Target Template ObjectId.
+ * @body {string} [body.templateVersionId] - Optional specific version ID (defaults to active version).
+ * @returns {Promise<Response>} 201 Created JSON with `{ batch: IBatch }`, or 400/404 error.
+ */
 export const createBatch = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -75,6 +95,12 @@ export const createBatch = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Retrieves all batches belonging to the authenticated user, populated with template metadata.
+ * @route GET /api/batches
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ batches: IBatch[] }`.
+ */
 export const getBatches = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -89,6 +115,12 @@ export const getBatches = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Retrieves an individual batch by ID with populated template, version, and active import revision.
+ * @route GET /api/batches/:id
+ * @access Private
+ * @returns {Promise<Response>} 200 JSON with `{ batch, currentImport, template, templateVersion }`, or 404 if not found.
+ */
 export const getBatchById = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -120,6 +152,23 @@ export const getBatchById = async (c: Context) => {
   }
 };
 
+
+/**
+ * @desc Initializes a new spreadsheet import session for a batch and reserves the next revision number.
+ * @route POST /api/batches/:id/imports
+ * @access Private
+ * @body {Object} body
+ * @body {string} body.sourceFileName - Name of the uploaded file.
+ * @body {number} body.sourceFileSize - File size in bytes.
+ * @body {string} [body.sourceChecksum] - Optional checksum.
+ * @body {string} [body.worksheetName] - Selected sheet.
+ * @body {string[]} [body.availableWorksheets] - Discovered sheet names.
+ * @body {string[]} [body.rawHeaders] - Unprocessed column names.
+ * @body {string[]} [body.disambiguatedHeaders] - Sanitized column names.
+ * @body {Record<string, string>} [body.columnMap] - Mapping to template field keys.
+ * @body {Record<string, string>} [body.dateFormatHints] - Per-column date formatting hints.
+ * @returns {Promise<Response>} 201 Created JSON with `{ batchImport: IBatchImport }`, or 400/404 error.
+ */
 export const createImport = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -204,6 +253,15 @@ export const createImport = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Updates column key mappings and date format hints for an import revision.
+ * @route PUT /api/batches/:id/imports/:importId/mapping
+ * @access Private
+ * @body {Object} body
+ * @body {Record<string, string>} body.columnMap - Mapping from template field keys to spreadsheet headers.
+ * @body {Record<string, string>} [body.dateFormatHints] - Per-column date format hints.
+ * @returns {Promise<Response>} 200 JSON with `{ batchImport: IBatchImport }`, or 400/404 error.
+ */
 export const updateImportMapping = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -235,6 +293,16 @@ export const updateImportMapping = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Streams a chunk of parsed spreadsheet rows to be validated and saved as draft rows.
+ * @route POST /api/batches/:id/imports/:importId/rows
+ * @access Private
+ * @body {Object} body
+ * @body {string} body.chunkId - Unique chunk identifier for idempotency tracking.
+ * @body {number} [body.totalChunks] - Total chunks count.
+ * @body {IngestChunkRowInput[]} body.rows - Array of raw row items.
+ * @returns {Promise<Response>} 200 JSON with `{ chunkId, processed, idempotent }`, or 400/404 error.
+ */
 export const submitRowsChunk = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -265,7 +333,20 @@ export const submitRowsChunk = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Finalizes a spreadsheet import: validates row/chunk counts, runs duplicate checks, and recalculates batch counters.
+ * @route POST /api/batches/:id/imports/:importId/finalize
+ * @access Private
+ * @body {Object} [body]
+ * @body {number} [body.totalExpectedRows] - Declared total rows.
+ * @body {number} [body.totalExpectedChunks] - Declared total chunks.
+ * @body {Record<string, string>} [body.columnMap] - Final column mappings.
+ * @body {Record<string, string>} [body.dateFormatHints] - Final date hints.
+ * @body {boolean} [body.promote] - Explicit flag to promote batch to review status.
+ * @returns {Promise<Response>} 200 JSON with `{ batch, batchImport, summary }`, 400 mismatch error, or 404 error.
+ */
 export const finalizeImport = async (c: Context) => {
+
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
@@ -305,6 +386,16 @@ export const finalizeImport = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Retrieves paginated, filtered, and searched draft rows with faceted summary counts.
+ * @route GET /api/batches/:id/rows
+ * @access Private
+ * @param {string} [c.req.query('filter')] - Filter facet ('all', 'valid', 'invalid', 'duplicate', 'warning', 'overridden').
+ * @param {string} [c.req.query('page')] - 1-based page number (defaults to 1).
+ * @param {string} [c.req.query('limit')] - Number of rows per page (defaults to 50, max 200).
+ * @param {string} [c.req.query('query')] - Search text across rowKey, row numbers, and mapped fields.
+ * @returns {Promise<Response>} 200 JSON with `{ rows, total, page, limit, totalPages, nextCursor, summary }`, or 404/500 error.
+ */
 export const getDraftRows = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -455,7 +546,18 @@ export const getDraftRows = async (c: Context) => {
   }
 };
 
+/**
+ * @desc Applies human inline cell overrides to an individual draft row with optimistic locking.
+ * @route PATCH /api/batches/:id/rows/:rowId
+ * @access Private
+ * @body {Object} body
+ * @body {number} [body.expectedRevision] - Expected batch revision number.
+ * @body {number} [body.expectedVersion] - Expected row version counter for CAS concurrency protection.
+ * @body {Record<string, any>} body.overrides - Dictionary of field overrides.
+ * @returns {Promise<Response>} 200 JSON with `{ row: IDraftRow, batchSummary }`, 404 if not found, or 409 on version conflict.
+ */
 export const patchDraftRow = async (c: Context) => {
+
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
@@ -489,6 +591,15 @@ export const patchDraftRow = async (c: Context) => {
   }
 };
 
+/**
+ * Computes a diff preview comparing a re-imported staging dataset against existing draft rows.
+ *
+ * @desc Inspects matched, changed, added, and removed rows using the specified reconciliation key.
+ * @route GET /api/batches/:id/reimports/:importId/diff
+ * @access Private (authenticated owner)
+ * @param {Context} c - Hono context containing route parameters (`id`, `importId`) and query `reconciliationKey`.
+ * @returns {Promise<Response>} 200 with diff summary, rows categorization, and field statistics; 401 if unauthenticated; 404 if batch/import missing; 500 on failure.
+ */
 export const getReimportDiff = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -514,6 +625,15 @@ export const getReimportDiff = async (c: Context) => {
   }
 };
 
+/**
+ * Reconciles and commits a re-imported spreadsheet dataset into the active batch draft rows.
+ *
+ * @desc Merges staged rows according to specified resolution decisions per row (e.g., overwrite vs keep existing).
+ * @route POST /api/batches/:id/reimports/:importId/reconcile
+ * @access Private (authenticated owner)
+ * @param {Context} c - Hono context containing route parameters and JSON body with `{ reconciliationKey, resolutions }`.
+ * @returns {Promise<Response>} 200 with updated batch and reconciliation summary; 400 on chunk mismatch; 401 if unauthenticated; 404 if missing; 409 on version conflict; 500 on failure.
+ */
 export const reconcileReimport = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -551,6 +671,15 @@ export const reconcileReimport = async (c: Context) => {
   }
 };
 
+/**
+ * Aggregates batch creation and document throughput activity over a rolling timeframe for analytics charts.
+ *
+ * @desc Groups batch and document counts into daily buckets over a requested window (default 30 days, up to 90 days), calculating relative heights for UI rendering.
+ * @route GET /api/batches/activity
+ * @access Private (authenticated owner)
+ * @param {Context} c - Hono context containing query parameter `days` (optional numeric string).
+ * @returns {Promise<Response>} 200 with activity timeframes, totals, and daily buckets; 401 if unauthenticated; 500 on failure.
+ */
 export const getBatchActivity = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -642,22 +771,67 @@ export const getBatchActivity = async (c: Context) => {
   }
 };
 
+/**
+ * Deletes a batch and cascades deletion to all associated draft rows and batch import records.
+ *
+ * @desc Permanently removes the batch document and executes cleanup queries across `DraftRow` and `BatchImport` collections.
+ * @route DELETE /api/batches/:id
+ * @access Private (authenticated owner)
+ * @param {Context} c - Hono context containing the batch ID route parameter.
+ * @returns {Promise<Response>} 200 with deletion confirmation message; 401 if unauthenticated; 404 if not found; 500 on failure.
+ */
 export const deleteBatch = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const id = c.req.param('id');
   try {
-    const batch = await Batch.findOneAndDelete({ _id: id, ownerId: user.id });
+    const batch = await Batch.findOne({ _id: id, ownerId: user.id });
     if (!batch) {
       return c.json({ error: 'Batch not found or access denied' }, 404);
     }
 
-    // Cascade delete associated draft rows and imports
-    await Promise.all([
-      DraftRow.deleteMany({ batchId: batch._id }),
-      BatchImport.deleteMany({ batchId: batch._id }),
-    ]);
+    if (batch.status === 'generating') {
+      return c.json({ error: 'Cannot delete batch while generating (generation in progress)' }, 400);
+    }
+
+    // Wrap permanent cascade delete in a Mongoose session transaction where supported, fallback gracefully
+    let session: mongoose.ClientSession | null = null;
+    let transactionCommitted = false;
+    try {
+      session = await mongoose.startSession();
+      session.startTransaction();
+      await DraftRow.deleteMany({ batchId: batch._id }, { session });
+      await BatchImport.deleteMany({ batchId: batch._id }, { session });
+      await Batch.deleteOne({ _id: batch._id }, { session });
+      await session.commitTransaction();
+      transactionCommitted = true;
+    } catch {
+      if (session && session.inTransaction()) {
+        try {
+          await session.abortTransaction();
+        } catch {
+          // Transaction abort failed or unsupported
+        }
+      }
+    } finally {
+      if (session) {
+        try {
+          await session.endSession();
+        } catch {
+          // Session cleanup
+        }
+      }
+    }
+
+    if (!transactionCommitted) {
+      // Graceful fallback without transaction (e.g. standalone Mongo)
+      await Promise.all([
+        DraftRow.deleteMany({ batchId: batch._id }),
+        BatchImport.deleteMany({ batchId: batch._id }),
+        Batch.deleteOne({ _id: batch._id }),
+      ]);
+    }
 
     return c.json({ success: true, message: 'Batch deleted' });
   } catch (err: any) {

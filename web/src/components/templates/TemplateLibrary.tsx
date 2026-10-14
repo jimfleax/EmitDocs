@@ -1,3 +1,10 @@
+/**
+ * @file TemplateLibrary.tsx
+ * @description Template library catalog displaying existing PDF templates with search, filtering, and management.
+ * @architecture Primary dashboard view for template exploration and batch issuance entry point.
+ * @agent_note Supports client-side name search, template deletion with confirmation, and direct routing to mapping or batch issuance.
+ */
+
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -8,6 +15,7 @@ import {
   Certificate,
   CheckCircle,
   PlusCircle,
+  Warning,
 } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
@@ -48,6 +56,14 @@ function formatDate(isoString: string): string {
   }
 }
 
+/**
+ * @component TemplateCardThumbnail
+ * @description Renders template thumbnail preview or fallback document silhouette illustration.
+ * @param {Object} props - Component properties.
+ * @param {string | null} [props.thumbnailUrl] - Remote thumbnail URL.
+ * @param {string} props.name - Template name for accessibility alt text.
+ * @returns {JSX.Element} Thumbnail image or placeholder SVG graphic.
+ */
 function TemplateCardThumbnail({
   thumbnailUrl,
   name,
@@ -94,6 +110,17 @@ function TemplateCardThumbnail({
   );
 }
 
+/**
+ * @component TemplateLibrary
+ * @description Main template listing view with quick actions, search bar, empty states, and template grid.
+ * @state {Template[]} templates - List of retrieved templates.
+ * @state {boolean} loading - Loading indicator state.
+ * @state {string} searchQuery - Search query string for filtering templates.
+ * @state {string} error - Fetch error message.
+ * @api {GET} /api/templates - Fetches template collection.
+ * @api {DELETE} /api/templates/:id - Deletes a specified template.
+ * @returns {JSX.Element} Template library catalog page.
+ */
 export function TemplateLibrary() {
   const navigate = useNavigate();
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -101,6 +128,10 @@ export function TemplateLibrary() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
+  const [cascadeWarning, setCascadeWarning] = useState<{
+    count: number;
+    batches: Array<{ _id: string; name: string }>;
+  } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
 
@@ -154,13 +185,26 @@ export function TemplateLibrary() {
     return templates.filter((t) => t.name.toLowerCase().includes(q));
   }, [templates, searchQuery]);
 
-  const confirmDelete = async (id: string) => {
+  const confirmDelete = async (id: string, forceCascade = false) => {
     try {
       setIsDeleting(true);
-      const res = await fetch(`/api/templates/${id}`, {
+      const url = forceCascade
+        ? `/api/templates/${id}?confirmCascade=true`
+        : `/api/templates/${id}`;
+      const res = await fetch(url, {
         method: "DELETE",
         credentials: "include",
       });
+      if (res.status === 409) {
+        const errData = await res.json().catch(() => ({}));
+        if (errData.error === "CASCADE_CONFIRMATION_REQUIRED") {
+          setCascadeWarning({
+            count: errData.dependentBatchesCount || 0,
+            batches: errData.dependentBatches || [],
+          });
+          return;
+        }
+      }
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
         throw new Error(
@@ -169,6 +213,7 @@ export function TemplateLibrary() {
       }
       setTemplates((prev) => prev.filter((t) => t._id !== id));
       setDeleteTarget(null);
+      setCascadeWarning(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Delete failed";
       alert(message);
@@ -376,6 +421,7 @@ export function TemplateLibrary() {
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          setCascadeWarning(null);
                           setDeleteTarget(template);
                         }}
                         title="Delete template"
@@ -418,10 +464,34 @@ export function TemplateLibrary() {
               </div>
             </div>
 
+            {cascadeWarning && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
+                <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
+                  <Warning size={16} weight="bold" className="text-amber-600 shrink-0" />
+                  <span>Orphaned Batches Warning</span>
+                </div>
+                <p className="text-xs text-amber-800 leading-relaxed">
+                  This template is linked to{" "}
+                  <strong>{cascadeWarning.count} batch(es)</strong>:{" "}
+                  <span className="font-medium text-amber-950">
+                    {cascadeWarning.batches.map((b) => b.name).join(", ")}
+                  </span>
+                  . Deleting this template will also{" "}
+                  <strong>permanently delete all associated batches and draft records</strong>.
+                </p>
+                <p className="text-xs font-semibold text-amber-900">
+                  Do you want to proceed and delete the template along with these batches?
+                </p>
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
-                onClick={() => setDeleteTarget(null)}
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setCascadeWarning(null);
+                }}
                 disabled={isDeleting}
                 className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
               >
@@ -429,11 +499,15 @@ export function TemplateLibrary() {
               </button>
               <button
                 type="button"
-                onClick={() => confirmDelete(deleteTarget._id)}
+                onClick={() => confirmDelete(deleteTarget._id, Boolean(cascadeWarning))}
                 disabled={isDeleting}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >
-                {isDeleting ? "Deleting..." : "Delete Template"}
+                {isDeleting
+                  ? "Deleting..."
+                  : cascadeWarning
+                    ? "Yes, Delete Template & Batches"
+                    : "Delete Template"}
               </button>
             </div>
           </div>

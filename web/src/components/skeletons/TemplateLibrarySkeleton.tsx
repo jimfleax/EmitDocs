@@ -1,9 +1,21 @@
+/**
+ * @file TemplateLibrarySkeleton.tsx
+ * @description Grid layout loading skeleton for the template library gallery.
+ * @architecture Suspense boundary placeholder for the /app/templates route.
+ */
+
 import { Skeleton } from "@/components/ui/Skeleton";
 
 interface TemplateLibrarySkeletonProps {
   count?: number;
 }
 
+/**
+ * @component TemplateLibrarySkeleton
+ * @description Renders a multi-column responsive grid of template card wireframes.
+ * @param {TemplateLibrarySkeletonProps} props - Component properties.
+ * @param {number} [props.count=8] - Number of skeleton cards to render.
+ */
 export function TemplateLibrarySkeleton({
   count = 8,
 }: TemplateLibrarySkeletonProps) {
