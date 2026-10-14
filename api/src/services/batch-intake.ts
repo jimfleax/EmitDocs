@@ -323,20 +323,18 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
 
   const duplicateBulkOps = [];
   for (const r of duplicateChecked) {
-    if (r.isDuplicate) {
-      duplicateBulkOps.push({
-        updateOne: {
-          filter: { _id: r._id },
-          update: {
-            $set: {
-              isDuplicate: true,
-              duplicateReferences: r.duplicateReferences,
-              warnings: r.warnings,
-            },
+    duplicateBulkOps.push({
+      updateOne: {
+        filter: { _id: r._id },
+        update: {
+          $set: {
+            isDuplicate: r.isDuplicate,
+            duplicateReferences: r.duplicateReferences || [],
+            warnings: r.warnings || [],
           },
         },
-      });
-    }
+      },
+    });
   }
 
   if (duplicateBulkOps.length > 0) {
@@ -528,6 +526,43 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
     batch.status = 'review';
   }
 
+  // Run duplicate detection on current revision's rows after override
+  const currentRevisionRows = await DraftRow.find({
+    batchId: batch._id,
+    revision: batch.currentImportRevision,
+  })
+    .sort({ sourceRowNumber: 1 })
+    .lean();
+
+  const duplicateChecked = detectDuplicatesAcrossRows(currentRevisionRows as any[]);
+
+  const duplicateBulkOps = [];
+  for (const r of duplicateChecked) {
+    duplicateBulkOps.push({
+      updateOne: {
+        filter: { _id: r._id },
+        update: {
+          $set: {
+            isDuplicate: r.isDuplicate,
+            duplicateReferences: r.duplicateReferences || [],
+            warnings: r.warnings || [],
+          },
+        },
+      },
+    });
+  }
+
+  if (duplicateBulkOps.length > 0) {
+    await DraftRow.bulkWrite(duplicateBulkOps, { ordered: false });
+  }
+
+  const thisRowChecked = duplicateChecked.find((r) => r._id.toString() === rowId.toString());
+  if (thisRowChecked) {
+    updatedRow.isDuplicate = thisRowChecked.isDuplicate;
+    updatedRow.duplicateReferences = thisRowChecked.duplicateReferences || [];
+    updatedRow.warnings = thisRowChecked.warnings || [];
+  }
+
   // Recompute batch counts authoritatively
   const counters = await recalculateBatchCounters(batch._id, batch.currentImportRevision);
   batch.validRows = counters.validRows;
@@ -600,6 +635,26 @@ export async function reconcileImportRevision(
     throw new BatchNotFoundError('Import not found or access denied');
   }
 
+  // Reject imports that are not completed and whose receivedChunkIds count does not match totalExpectedChunks when chunks are expected
+  if (
+    newImport.status !== 'completed' &&
+    newImport.totalExpectedChunks > 0 &&
+    newImport.receivedChunkIds.length !== newImport.totalExpectedChunks
+  ) {
+    throw new ChunkMismatchError(
+      `Cannot reconcile incomplete import: expected ${newImport.totalExpectedChunks} chunks, received ${newImport.receivedChunkIds.length}`,
+      'IMPORT_CHUNK_MISMATCH'
+    );
+  }
+
+  // Reject any import whose revision is not newer than batch.currentImportRevision
+  if (newImport.revision <= (batch.currentImportRevision || 0)) {
+    throw new ConcurrencyConflictError(
+      `Import revision (${newImport.revision}) must be newer than current batch revision (${batch.currentImportRevision || 0})`,
+      'STALE_IMPORT_REVISION'
+    );
+  }
+
   const templateVersion = await TemplateVersion.findById(batch.templateVersionId).lean();
   const fieldMappings: FieldMappingItem[] = (templateVersion as any)?.fieldMappings || [];
   const reconciliationKey = reqKey || fieldMappings[0]?.key || 'studentId';
@@ -614,8 +669,8 @@ export async function reconcileImportRevision(
   const newColumnMap = newImport.columnMap || {};
 
   const diffResult = calculateReimportDiff(
-    oldRows.map((r) => r.toObject()),
-    newRows.map((r) => r.toObject()),
+    oldRows.map((r: any) => r.toObject()),
+    newRows.map((r: any) => r.toObject()),
     reconciliationKey,
     fieldMappings,
     { oldColumnMap, newColumnMap }

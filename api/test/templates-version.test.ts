@@ -1,7 +1,7 @@
 import assert from 'assert';
 import mongoose from 'mongoose';
-import { TemplateVersion, IFieldMapping } from '../api/models/TemplateVersion';
-import { computeMappingHash } from '../api/controllers/templates.controller';
+import { TemplateVersion, IFieldMapping } from '../src/models/TemplateVersion';
+import { computeMappingHash } from '../src/controllers/templates.controller';
 
 async function runTests() {
   console.log('--- RUNNING SLICE 1 TEMPLATE VERSION TESTS ---');

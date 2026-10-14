@@ -81,27 +81,45 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
   if (hasCloudinaryCredentials) {
     try {
       const prefix = `templates/${userId}/`;
+      const fetchResources = async (resourceType: 'image' | 'raw') => {
+        const resources: any[] = [];
+        let nextCursor: string | undefined = undefined;
+        do {
+          const res: any = await cloudinary.api.resources({
+            type: 'authenticated',
+            resource_type: resourceType,
+            prefix,
+            max_results: 500,
+            ...(nextCursor ? { next_cursor: nextCursor } : {}),
+          });
+          if (res?.resources && Array.isArray(res.resources)) {
+            resources.push(...res.resources);
+          }
+          nextCursor = res?.next_cursor;
+        } while (nextCursor);
+        return resources;
+      };
+
       const [imageRes, rawRes] = await Promise.allSettled([
-        cloudinary.api.resources({
-          type: 'authenticated',
-          resource_type: 'image',
-          prefix,
-          max_results: 500,
-        }),
-        cloudinary.api.resources({
-          type: 'authenticated',
-          resource_type: 'raw',
-          prefix,
-          max_results: 500,
-        }),
+        fetchResources('image'),
+        fetchResources('raw'),
       ]);
 
-      const collected: any[] = [];
-      if (imageRes.status === 'fulfilled' && (imageRes.value as any)?.resources) {
-        collected.push(...(imageRes.value as any).resources);
+      if (imageRes.status === 'rejected') {
+        console.warn('[Storage] Cloudinary image query rejected:', imageRes.reason);
       }
-      if (rawRes.status === 'fulfilled' && (rawRes.value as any)?.resources) {
-        collected.push(...(rawRes.value as any).resources);
+      if (rawRes.status === 'rejected') {
+        console.warn('[Storage] Cloudinary raw query rejected:', rawRes.reason);
+      }
+
+      usedCloudinary = imageRes.status === 'fulfilled' || rawRes.status === 'fulfilled';
+
+      const collected: any[] = [];
+      if (imageRes.status === 'fulfilled' && Array.isArray(imageRes.value)) {
+        collected.push(...imageRes.value);
+      }
+      if (rawRes.status === 'fulfilled' && Array.isArray(rawRes.value)) {
+        collected.push(...rawRes.value);
       }
 
       // Deduplicate by public_id
@@ -112,8 +130,6 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
           cloudinaryAssets.push(item);
         }
       }
-
-      usedCloudinary = true;
     } catch (cloudinaryErr) {
       console.warn('[Storage] Cloudinary API query failed, falling back to database metadata:', cloudinaryErr);
       usedCloudinary = false;

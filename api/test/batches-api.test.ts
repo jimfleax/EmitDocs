@@ -1,11 +1,11 @@
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import { Batch } from '../api/models/Batch.js';
-import { BatchImport } from '../api/models/BatchImport.js';
-import { DraftRow } from '../api/models/DraftRow.js';
-import { Template } from '../api/models/Template.js';
-import { TemplateVersion } from '../api/models/TemplateVersion.js';
+import { Batch } from '../src/models/Batch.js';
+import { BatchImport } from '../src/models/BatchImport.js';
+import { DraftRow } from '../src/models/DraftRow.js';
+import { Template } from '../src/models/Template.js';
+import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import {
   createBatch,
   createImport,
@@ -15,7 +15,7 @@ import {
   getBatchActivity,
   deleteBatch,
   getBatches,
-} from '../api/controllers/batches.controller.js';
+} from '../src/controllers/batches.controller.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;

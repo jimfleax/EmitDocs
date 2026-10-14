@@ -2,9 +2,10 @@
   "name": "emitdocs-api",
   "version": "1.0.0",
   "description": "API for EmitDocs - Document Automation · Bulk Issuance",
+  "packageManager": "pnpm@9.15.9+sha512.68046141893c66fad01c079231128e9afb89ef87e2691d69e4d40eee228988295fd4682181bae55b58418c3a253bde65a505ec7c5f9403ece5cc3cd37dcf2531",
   "main": "api/index.ts",
   "scripts": {
-    "dev": "tsx watch api/api/index.ts",
+    "dev": "tsx watch src/index.ts",
     "build:tsc": "tsc"
   },
   "dependencies": {

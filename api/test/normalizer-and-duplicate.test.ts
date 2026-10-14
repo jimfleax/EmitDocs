@@ -1,9 +1,9 @@
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import { TemplateVersion } from '../api/models/TemplateVersion.js';
-import { BatchImport } from '../api/models/BatchImport.js';
-import { normalizeNumberValue } from '../api/services/spreadsheet/data-normalizer.js';
-import { detectDuplicatesAcrossRows, RowWarning } from '../api/services/spreadsheet/duplicate-detector.js';
+import { TemplateVersion } from '../src/models/TemplateVersion.js';
+import { BatchImport } from '../src/models/BatchImport.js';
+import { normalizeNumberValue } from '../src/services/spreadsheet/data-normalizer.js';
+import { detectDuplicatesAcrossRows, RowWarning } from '../src/services/spreadsheet/duplicate-detector.js';
 
 async function runTests() {
   console.log('🧪 Starting Backend Engineer Unit & Verification Test Suite...\n');

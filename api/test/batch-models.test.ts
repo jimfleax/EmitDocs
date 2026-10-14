@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import { Batch } from '../api/models/Batch.js';
-import { BatchImport } from '../api/models/BatchImport.js';
-import { DraftRow } from '../api/models/DraftRow.js';
+import { Batch } from '../src/models/Batch.js';
+import { BatchImport } from '../src/models/BatchImport.js';
+import { DraftRow } from '../src/models/DraftRow.js';
 
 async function runTests() {
   console.log('🧪 Starting Batch domain models unit test suite...');

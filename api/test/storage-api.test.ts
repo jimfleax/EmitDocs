@@ -1,13 +1,13 @@
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import { Template } from '../api/models/Template.js';
-import { TemplateVersion } from '../api/models/TemplateVersion.js';
+import { Template } from '../src/models/Template.js';
+import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import {
   formatBytes,
   calculateUserStorage,
   getUserStorage,
-} from '../api/controllers/storage.controller.js';
+} from '../src/controllers/storage.controller.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;

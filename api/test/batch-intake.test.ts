@@ -1,18 +1,18 @@
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import { Batch } from '../api/models/Batch.js';
-import { BatchImport } from '../api/models/BatchImport.js';
-import { DraftRow } from '../api/models/DraftRow.js';
-import { Template } from '../api/models/Template.js';
-import { TemplateVersion, IFieldMapping } from '../api/models/TemplateVersion.js';
+import { Batch } from '../src/models/Batch.js';
+import { BatchImport } from '../src/models/BatchImport.js';
+import { DraftRow } from '../src/models/DraftRow.js';
+import { Template } from '../src/models/Template.js';
+import { TemplateVersion, IFieldMapping } from '../src/models/TemplateVersion.js';
 import {
   BatchIntake,
   BatchNotFoundError,
   ConcurrencyConflictError,
   ChunkMismatchError,
   BatchIntakeValidationError,
-} from '../api/services/batch-intake.js';
+} from '../src/services/batch-intake.js';
 
 async function runTests() {
   console.log('🧪 Starting BatchIntake Slice 1 (ingestChunk & finalizeImport) test suite...\n');
@@ -360,6 +360,52 @@ async function runTests() {
   assert.strictEqual(finalImport.duplicateCount, 1);
   console.log('   ✓ Duplicate detection and authoritative counter rollup verified\n');
 
+  // 7b. Verify duplicateChecked persistence clears stale duplicate status when rows are no longer duplicates
+  await DraftRow.updateOne(
+    { _id: row3._id },
+    {
+      $set: {
+        importedData: {
+          'Full Name': 'Zoe Unique',
+          'Grad Date': '2026-07-01',
+          GPA: '3.90',
+        },
+      },
+    }
+  );
+  await BatchIntake.finalizeImport({
+    batchId: batch._id,
+    importId: batchImport._id,
+    ownerId: testUserId,
+    totalExpectedChunks: 2,
+    totalExpectedRows: 3,
+  });
+  const row3Cleared = await DraftRow.findById(row3._id);
+  assert.strictEqual(row3Cleared.isDuplicate, false);
+  assert.deepStrictEqual(row3Cleared.duplicateReferences, []);
+  assert.strictEqual(row3Cleared.warnings.some((w: any) => w.code === 'DUPLICATE_ROW'), false);
+
+  // Restore row3 back to duplicate for subsequent test steps
+  await DraftRow.updateOne(
+    { _id: row3._id },
+    {
+      $set: {
+        importedData: {
+          'Full Name': 'Alice Smith',
+          'Grad Date': '2026-05-15',
+          GPA: '3.85',
+        },
+      },
+    }
+  );
+  await BatchIntake.finalizeImport({
+    batchId: batch._id,
+    importId: batchImport._id,
+    ownerId: testUserId,
+    totalExpectedChunks: 2,
+    totalExpectedRows: 3,
+  });
+
   // Test 8: patchRowOverride with CAS, revalidation, approval invalidation & counter rollup
   console.log('8. Testing patchRowOverride (CAS protection, override persistence, approval invalidation)...');
   
@@ -431,10 +477,63 @@ async function runTests() {
   assert.strictEqual(reloadedBatch.invalidRows, 0);
   assert.strictEqual(patchRes.batchSummary.validRows, 3);
   assert.strictEqual(patchRes.batchSummary.invalidRows, 0);
+
+  // 8e. Override row3 to not be a duplicate, verify patchRowOverride refreshes duplicate detection & counters
+  const patchResRow3 = await BatchIntake.patchRowOverride({
+    batchId: batch._id,
+    rowId: row3._id,
+    ownerId: testUserId,
+    overrides: {
+      studentName: 'Zoe Unique',
+    },
+    expectedRevision: 1,
+    expectedVersion: 1,
+  });
+  assert.strictEqual(patchResRow3.row.isDuplicate, false);
+  assert.deepStrictEqual(patchResRow3.row.duplicateReferences, []);
+  assert.strictEqual(patchResRow3.batchSummary.duplicateRows, 0);
+
+  const reloadedBatchAfterDup = await Batch.findById(batch._id);
+  assert.strictEqual(reloadedBatchAfterDup.duplicateRows, 0);
+
   console.log('   ✓ patchRowOverride CAS, approval invalidation, and counter recalculation verified\n');
 
   // Test 9: reconcileImportRevision (diff calculation, override carry-forward, duplicate detection, counter rollup)
   console.log('9. Testing reconcileImportRevision across revisions...');
+
+  // 9a. Test rejection when import chunks are incomplete and chunks are expected
+  const incompleteImport = await BatchImport.create({
+    batchId: batch._id,
+    ownerId: testUserId,
+    revision: 3,
+    sourceFileName: 'students_v3.xlsx',
+    sourceFileSize: 5000,
+    totalExpectedChunks: 3,
+    receivedChunkIds: ['c1'],
+    status: 'uploading',
+  });
+  await assert.rejects(
+    async () => {
+      await BatchIntake.reconcileImportRevision({
+        batchId: batch._id,
+        importId: incompleteImport._id,
+        ownerId: testUserId,
+      });
+    },
+    (err: any) => err instanceof ChunkMismatchError && err.code === 'IMPORT_CHUNK_MISMATCH'
+  );
+
+  // 9b. Test rejection when import revision is not newer than current batch revision
+  await assert.rejects(
+    async () => {
+      await BatchIntake.reconcileImportRevision({
+        batchId: batch._id,
+        importId: batchImport._id,
+        ownerId: testUserId,
+      });
+    },
+    (err: any) => err instanceof ConcurrencyConflictError && err.code === 'STALE_IMPORT_REVISION'
+  );
   const revision2Import = await BatchImport.create({
     batchId: batch._id,
     ownerId: testUserId,

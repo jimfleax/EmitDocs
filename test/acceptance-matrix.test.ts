@@ -9,8 +9,8 @@ import { detectTokensInTextItems } from '../web/src/lib/pdf-engine/token-detecto
 import { calculateFit } from '../web/src/lib/pdf-engine/fit-then-flag';
 import { validateStandardFontGlyphs } from '../web/src/lib/pdf-engine/glyph-validator';
 import { generatePdfWithOverlay, FieldMappingConfig } from '../web/src/lib/pdf-engine/pdf-preview-engine';
-import { computeMappingHash } from '../api/api/controllers/templates.controller';
-import { TemplateVersion, IFieldMapping } from '../api/api/models/TemplateVersion';
+import { computeMappingHash } from '../api/src/controllers/templates.controller';
+import { TemplateVersion, IFieldMapping } from '../api/src/models/TemplateVersion';
 import mongoose from 'mongoose';
 
 const __filename = fileURLToPath(import.meta.url);

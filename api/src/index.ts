@@ -82,13 +82,12 @@ const connectDB = async (retries = 3, delay = 5000): Promise<typeof mongoose | n
           console.log(`Successfully connected to MongoDB database: ${DB_NAME}`);
           cached.conn = client;
           return client;
-        } catch {
+        } catch (err) {
           attemptsLeft -= 1;
           console.error(`MongoDB connection failed. Retries left: ${attemptsLeft}`);
           if (attemptsLeft === 0) {
             cached.promise = null;
-            console.error('Maximum retries reached. Exiting application...');
-            process.exit(1);
+            throw err instanceof Error ? err : new Error('Failed to connect to MongoDB after maximum retries');
           }
           console.log(`Retrying connection in ${delay / 1000} seconds...`);
           await new Promise((resolve) => setTimeout(resolve, delay));

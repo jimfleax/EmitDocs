@@ -11,12 +11,12 @@ if (!process.env.MONGODB_URI) {
   dotenv.config({ path: path.resolve(__dirname, '../../api/.env') });
 }
 
-import { Batch } from '../api/models/Batch.js';
-import { BatchImport } from '../api/models/BatchImport.js';
-import { DraftRow } from '../api/models/DraftRow.js';
-import { Template } from '../api/models/Template.js';
-import { TemplateVersion } from '../api/models/TemplateVersion.js';
-import { getReimportDiff, reconcileReimport } from '../api/controllers/batches.controller.js';
+import { Batch } from '../src/models/Batch.js';
+import { BatchImport } from '../src/models/BatchImport.js';
+import { DraftRow } from '../src/models/DraftRow.js';
+import { Template } from '../src/models/Template.js';
+import { TemplateVersion } from '../src/models/TemplateVersion.js';
+import { getReimportDiff, reconcileReimport } from '../src/controllers/batches.controller.js';
 
 function createMockContext({ user, params = {}, query = {}, body }: any) {
   let responseData: any = null;

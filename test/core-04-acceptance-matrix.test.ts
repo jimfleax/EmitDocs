@@ -12,18 +12,18 @@ dotenv.config({ path: path.resolve(__dirname, '../api/.env') });
 import { parseXlsxBuffer } from '../web/src/lib/spreadsheet/spreadsheet-parser.js';
 import { normalizeDateValue, normalizeNumberValue, normalizeTextValue } from '../web/src/lib/spreadsheet/data-normalizer.js';
 
-import { Batch } from '../api/api/models/Batch.js';
-import { BatchImport } from '../api/api/models/BatchImport.js';
-import { DraftRow } from '../api/api/models/DraftRow.js';
-import { Template } from '../api/api/models/Template.js';
-import { TemplateVersion } from '../api/api/models/TemplateVersion.js';
+import { Batch } from '../api/src/models/Batch.js';
+import { BatchImport } from '../api/src/models/BatchImport.js';
+import { DraftRow } from '../api/src/models/DraftRow.js';
+import { Template } from '../api/src/models/Template.js';
+import { TemplateVersion } from '../api/src/models/TemplateVersion.js';
 import {
   createBatch,
   createImport,
   updateImportMapping,
   submitRowsChunk,
   finalizeImport,
-} from '../api/api/controllers/batches.controller.js';
+} from '../api/src/controllers/batches.controller.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;

@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { generateThumbnailUrl, repairThumbnailUrl } from '../api/controllers/templates.controller';
+import { generateThumbnailUrl, repairThumbnailUrl } from '../src/controllers/templates.controller';
 
 async function runTests() {
   console.log('--- RUNNING TEMPLATE THUMBNAIL UNIT TESTS ---');
@@ -24,16 +24,31 @@ async function runTests() {
   assert.strictEqual(url, urlWithExt, 'Generated URLs must match whether extension is present or stripped');
   console.log('   ✓ Extension stripping verified');
 
-  // Test 3: repairThumbnailUrl converting legacy /image/upload/ to /image/authenticated/
-  console.log('3. Testing repairThumbnailUrl converting legacy /image/upload/...');
+  // Test 3: repairThumbnailUrl with legacy /image/upload/ URLs
+  console.log('3. Testing repairThumbnailUrl with legacy /image/upload/...');
   const legacyUrl = 'https://res.cloudinary.com/demo/image/upload/s--abc12345--/c_fill,h_450,pg_1,w_600/v1/templates/user_1/sample.png';
-  const repaired = repairThumbnailUrl(legacyUrl);
+  const regeneratedFromLegacy = repairThumbnailUrl(legacyUrl, 'templates/user_1/sample');
+  const expectedRegenerated = generateThumbnailUrl('templates/user_1/sample');
   assert.strictEqual(
-    repaired,
-    'https://res.cloudinary.com/demo/image/authenticated/s--abc12345--/c_fill,h_450,pg_1,w_600/v1/templates/user_1/sample.png',
-    'Legacy /upload/ URL must be converted to /authenticated/'
+    regeneratedFromLegacy,
+    expectedRegenerated,
+    'Legacy URL with available publicId must be regenerated with signed authenticated URL'
   );
-  console.log('   ✓ Legacy URL conversion verified');
+
+  const preservedWithoutPublicId = repairThumbnailUrl(legacyUrl);
+  assert.strictEqual(
+    preservedWithoutPublicId,
+    legacyUrl,
+    'Legacy URL without publicId must be preserved unchanged to avoid unsigned authenticated URLs'
+  );
+
+  const preservedRaw = repairThumbnailUrl(legacyUrl, 'templates/user_1/sample', 'raw');
+  assert.strictEqual(
+    preservedRaw,
+    legacyUrl,
+    'Legacy URL for raw resource must be preserved unchanged'
+  );
+  console.log('   ✓ Legacy URL regeneration and preservation verified');
 
   // Test 4: repairThumbnailUrl preserving already authenticated URL
   console.log('4. Testing repairThumbnailUrl preserving valid authenticated URL...');

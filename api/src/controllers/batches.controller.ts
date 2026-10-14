@@ -43,7 +43,11 @@ export const createBatch = async (c: Context) => {
       }
     }
 
-    const versionDoc = await TemplateVersion.findById(resolvedVersionId);
+    const versionDoc = await TemplateVersion.findOne({
+      _id: resolvedVersionId,
+      templateId: template._id,
+      ownerId: user.id,
+    });
     if (!versionDoc) {
       return c.json({ error: 'Template version not found' }, 404);
     }
@@ -125,6 +129,10 @@ export const createImport = async (c: Context) => {
     const batch = await Batch.findOne({ _id: batchId, ownerId: user.id });
     if (!batch) return c.json({ error: 'Batch not found' }, 404);
 
+    if (batch.status === 'generating') {
+      return c.json({ error: 'Cannot import while batch is generating' }, 400);
+    }
+
     const body = await getJsonBody(c);
     const {
       sourceFileName,
@@ -185,8 +193,10 @@ export const createImport = async (c: Context) => {
       }
     }
 
-    batch.status = 'importing';
-    await batch.save();
+    if ((batch.currentImportRevision || 0) === 0) {
+      batch.status = 'importing';
+      await batch.save();
+    }
 
     return c.json({ batchImport }, 201);
   } catch (err: any) {
@@ -530,6 +540,12 @@ export const reconcileReimport = async (c: Context) => {
   } catch (err: any) {
     if (err instanceof BatchNotFoundError) {
       return c.json({ error: 'Batch not found or access denied' }, 404);
+    }
+    if (err instanceof ConcurrencyConflictError) {
+      return c.json({ error: err.message, code: err.code }, 409);
+    }
+    if (err instanceof ChunkMismatchError) {
+      return c.json({ error: err.message, code: err.code }, 400);
     }
     return c.json({ error: err.message || 'Failed to reconcile import' }, 500);
   }

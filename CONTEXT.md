@@ -21,7 +21,7 @@ A single recipient data row within a batch import revision. Maintains strict sep
 - `status`: `valid` or `invalid`, plus non-blocking `warnings` (e.g. duplicates)
 
 ### Batch Intake
-The deep domain module (`BatchIntake` in `api/api/services/batch-intake.ts`) responsible for:
+The deep domain module (`BatchIntake` in `api/src/services/batch-intake.ts`) responsible for:
 - Chunked row ingestion (`ingestChunk`)
 - Authoritative validation & duplicate fingerprinting (`finalizeImport`)
 - Manual row overrides with CAS optimistic concurrency (`patchRowOverride`)
@@ -39,7 +39,7 @@ The deep domain module (`BatchIntake` in `api/api/services/batch-intake.ts`) res
 An immutable, sealed snapshot of batch metadata, template version, mapping hash, and effective recipient rows created upon final approval before generation begins. Any row override or re-import reconciliation automatically invalidates stale approval state (`approvedSnapshotId = null`, status returns to `review`).
 
 ### Template Lifecycle
-The deep domain module (`TemplateLifecycle` in `api/api/services/template-lifecycle.ts`) responsible for:
+The deep domain module (`TemplateLifecycle` in `api/src/services/template-lifecycle.ts`) responsible for:
 - Initial template asset registration & Cloudinary signature generation (`signUploadParams`, `createTemplate`)
 - Canonical field mapping hash generation and optimistic CAS version bumps (`publishVersion`)
 - Deterministic thumbnail signing, validation, and transparent background healing (`ensureThumbnailHealth`)

@@ -181,7 +181,7 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
     throw new TemplateValidationError('fieldMappings must be an array', 'INVALID_FIELD_MAPPINGS');
   }
 
-  if (!templateId || !mongoose.Types.ObjectId.isValid(templateId)) {
+  if (!templateId || !mongoose.isValidObjectId(templateId)) {
     throw new TemplateNotFoundError('Template not found or access denied');
   }
 
@@ -220,6 +220,7 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
     ownerId,
     version: latest.version + 1,
     sourceObjectKey: latest.sourceObjectKey,
+    resourceType: latest.resourceType,
     bytes: latest.bytes,
     pageCount: latest.pageCount,
     status: 'active',
@@ -230,7 +231,7 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
   try {
     await newVersion.save();
   } catch (err: any) {
-    if (err.code === 11000 || err.name === 'MongoServerError') {
+    if (err.code === 11000) {
       throw new VersionConflictError(
         `Version modified concurrently. Expected version ${expectedVersion}, but latest is ${latest.version}`,
         latest.version
@@ -259,7 +260,7 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
 export async function listVersions(input: ListVersionsInput): Promise<ITemplateVersion[]> {
   const { templateId, ownerId } = input;
 
-  if (!templateId || !mongoose.Types.ObjectId.isValid(templateId)) {
+  if (!templateId || !mongoose.isValidObjectId(templateId)) {
     throw new TemplateNotFoundError('Template not found or access denied');
   }
 
@@ -283,7 +284,15 @@ export async function listVersions(input: ListVersionsInput): Promise<ITemplateV
  * Retrieves a specific template version by ID for the authorized owner.
  */
 export async function getVersion(input: GetVersionInput): Promise<ITemplateVersion> {
-  const { templateId, versionId, ownerId } = input;
+  const { templateId, versionId, ownerId } = input || {};
+
+  if (!templateId || !mongoose.isValidObjectId(templateId)) {
+    throw new TemplateNotFoundError('Template not found or access denied');
+  }
+
+  if (!versionId || !mongoose.isValidObjectId(versionId)) {
+    throw new TemplateNotFoundError('Template version not found or access denied');
+  }
 
   const template = await Template.findOne({
     _id: templateId,
@@ -379,7 +388,10 @@ export function repairThumbnailUrl(
   resourceType?: string
 ): string | null {
   if (url && url.includes('/image/upload/') && url.includes('/templates/')) {
-    return url.replace('/image/upload/', '/image/authenticated/');
+    if (publicId && resourceType !== 'raw') {
+      return generateThumbnailUrl(publicId);
+    }
+    return url;
   }
   if (url && url.includes('/image/authenticated/')) {
     return url;
@@ -456,6 +468,27 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
     throw new TemplateValidationError('Missing or invalid cloudinaryPublicId', 'MISSING_CLOUDINARY_PUBLIC_ID');
   }
 
+  const expectedFolderPrefix = `templates/${ownerId}/`;
+  if (!cloudinaryPublicId.startsWith(expectedFolderPrefix) || cloudinaryPublicId.trim() === expectedFolderPrefix) {
+    throw new TemplateValidationError(
+      `cloudinaryPublicId must belong to owner folder '${expectedFolderPrefix}'`,
+      'INVALID_CLOUDINARY_PUBLIC_ID'
+    );
+  }
+
+  if (thumbnailUrl) {
+    const isCloudinary =
+      thumbnailUrl.includes('res.cloudinary.com') ||
+      (process.env.CLOUDINARY_CLOUD_NAME && thumbnailUrl.includes(process.env.CLOUDINARY_CLOUD_NAME));
+    const isOwnerScoped = thumbnailUrl.includes(`/templates/${ownerId}/`);
+    if (!isCloudinary || !isOwnerScoped) {
+      throw new TemplateValidationError(
+        'thumbnailUrl must be a Cloudinary URL scoped to the owner',
+        'INVALID_THUMBNAIL_URL'
+      );
+    }
+  }
+
   let asset: any;
   let isImageResource = true;
   try {
@@ -493,11 +526,14 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
   });
   await template.save();
 
+  const detectedResourceType = asset?.resource_type || (isImageResource ? 'image' : 'raw');
+
   const version = new TemplateVersion({
     templateId: template._id,
     ownerId,
     version: 1,
     sourceObjectKey: cloudinaryPublicId,
+    resourceType: detectedResourceType,
     bytes,
     pageCount,
     status: 'active',
@@ -566,7 +602,7 @@ export async function getTemplate(input: GetTemplateInput): Promise<ITemplate> {
     throw new TemplateValidationError('Missing or invalid ownerId', 'INVALID_OWNER_ID');
   }
 
-  if (!templateId || !mongoose.Types.ObjectId.isValid(templateId)) {
+  if (!templateId || !mongoose.isValidObjectId(templateId)) {
     throw new TemplateNotFoundError('Template not found or access denied');
   }
 
@@ -596,7 +632,7 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
     throw new TemplateValidationError('Missing or invalid ownerId', 'INVALID_OWNER_ID');
   }
 
-  if (!templateId || !mongoose.Types.ObjectId.isValid(templateId)) {
+  if (!templateId || !mongoose.isValidObjectId(templateId)) {
     throw new TemplateNotFoundError('Template not found or already deleted');
   }
 
@@ -629,11 +665,11 @@ export async function streamAsset(input: StreamAssetInput): Promise<StreamAssetR
     throw new TemplateValidationError('Missing or invalid ownerId', 'INVALID_OWNER_ID');
   }
 
-  if (!templateId || !mongoose.Types.ObjectId.isValid(templateId)) {
+  if (!templateId || !mongoose.isValidObjectId(templateId)) {
     throw new TemplateNotFoundError('Template not found or access denied');
   }
 
-  if (!versionId || !mongoose.Types.ObjectId.isValid(versionId)) {
+  if (!versionId || !mongoose.isValidObjectId(versionId)) {
     throw new TemplateNotFoundError('Template version not found or access denied');
   }
 
@@ -657,27 +693,10 @@ export async function streamAsset(input: StreamAssetInput): Promise<StreamAssetR
     throw new TemplateNotFoundError('Template version not found or access denied');
   }
 
-  // Attempt 1: Authenticated URL with 'image' resource type
-  let downloadUrl = cloudinary.url(version.sourceObjectKey, {
-    resource_type: 'image',
-    format: 'pdf',
-    type: 'authenticated',
-    sign_url: true,
-  });
-
   let response: any = null;
-  try {
-    const res = await fetch(downloadUrl);
-    if (res && res.ok && res.body) {
-      response = res;
-    }
-  } catch {
-    // Fall back to raw
-  }
 
-  // Attempt 2: Fallback with 'raw' resource type
-  if (!response) {
-    downloadUrl = cloudinary.url(version.sourceObjectKey, {
+  if (version.resourceType === 'raw') {
+    const downloadUrl = cloudinary.url(version.sourceObjectKey, {
       resource_type: 'raw',
       type: 'authenticated',
       sign_url: true,
@@ -688,7 +707,41 @@ export async function streamAsset(input: StreamAssetInput): Promise<StreamAssetR
         response = res;
       }
     } catch {
-      // Both attempts failed
+      // Failed
+    }
+  } else {
+    // Attempt 1: Authenticated URL with 'image' resource type
+    let downloadUrl = cloudinary.url(version.sourceObjectKey, {
+      resource_type: 'image',
+      format: 'pdf',
+      type: 'authenticated',
+      sign_url: true,
+    });
+
+    try {
+      const res = await fetch(downloadUrl);
+      if (res && res.ok && res.body) {
+        response = res;
+      }
+    } catch {
+      // Fall back to raw
+    }
+
+    // Attempt 2: Fallback with 'raw' resource type
+    if (!response) {
+      downloadUrl = cloudinary.url(version.sourceObjectKey, {
+        resource_type: 'raw',
+        type: 'authenticated',
+        sign_url: true,
+      });
+      try {
+        const res = await fetch(downloadUrl);
+        if (res && res.ok && res.body) {
+          response = res;
+        }
+      } catch {
+        // Both attempts failed
+      }
     }
   }
 

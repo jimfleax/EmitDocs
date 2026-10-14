@@ -9,18 +9,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../api/.env') });
 
-import { Batch } from '../api/api/models/Batch.js';
-import { BatchImport } from '../api/api/models/BatchImport.js';
-import { DraftRow } from '../api/api/models/DraftRow.js';
-import { Template } from '../api/api/models/Template.js';
-import { TemplateVersion } from '../api/api/models/TemplateVersion.js';
+import { Batch } from '../api/src/models/Batch.js';
+import { BatchImport } from '../api/src/models/BatchImport.js';
+import { DraftRow } from '../api/src/models/DraftRow.js';
+import { Template } from '../api/src/models/Template.js';
+import { TemplateVersion } from '../api/src/models/TemplateVersion.js';
 import {
   getDraftRows,
   patchDraftRow,
   getReimportDiff,
   reconcileReimport,
-} from '../api/api/controllers/batches.controller.js';
-import { calculateReimportDiff } from '../api/api/services/spreadsheet/diff-calculator.js';
+} from '../api/src/controllers/batches.controller.js';
+import { calculateReimportDiff } from '../api/src/services/spreadsheet/diff-calculator.js';
 import { generatePdfWithOverlay, type FieldMappingConfig } from '../web/src/lib/pdf-engine/pdf-preview-engine.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {

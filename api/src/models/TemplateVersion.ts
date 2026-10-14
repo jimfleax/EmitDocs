@@ -40,6 +40,7 @@ export interface ITemplateVersion extends Document {
   status: 'draft' | 'active' | 'superseded';
   fieldMappings: IFieldMapping[];
   mappingHash: string | null;
+  resourceType?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,6 +88,7 @@ const TemplateVersionSchema = new Schema<ITemplateVersion>(
     ownerId: { type: String, required: true, index: true },
     version: { type: Number, required: true },
     sourceObjectKey: { type: String, required: true },
+    resourceType: { type: String, enum: ['image', 'raw'], default: 'image' },
     bytes: { type: Number, required: true },
     pageCount: { type: Number, required: true },
     status: { type: String, enum: ['draft', 'active', 'superseded'], default: 'draft' },

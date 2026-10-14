@@ -1,11 +1,10 @@
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import cloudinary from '../api/lib/cloudinary.js';
-import { Template } from '../api/models/Template.js';
-import { TemplateVersion, IFieldMapping } from '../api/models/TemplateVersion.js';
+import cloudinary from '../src/lib/cloudinary.js';
+import { Template } from '../src/models/Template.js';
+import { TemplateVersion, IFieldMapping } from '../src/models/TemplateVersion.js';
 import {
-  TemplateLifecycle,
   computeMappingHash,
   publishVersion,
   listVersions,
@@ -23,7 +22,7 @@ import {
   VersionConflictError,
   TemplateValidationError,
   StorageAssetError,
-} from '../api/services/template-lifecycle.js';
+} from '../src/services/template-lifecycle.js';
 
 async function runTests() {
   console.log('🧪 Starting TemplateLifecycle Slice 1 & 2 test suite...\n');
@@ -319,6 +318,28 @@ async function runTests() {
       },
       (err: any) => err instanceof TemplateNotFoundError
     );
+
+    await assert.rejects(
+      async () => {
+        await getVersion({
+          templateId: 'invalid-template-id',
+          versionId: v2Doc._id,
+          ownerId: testOwner,
+        });
+      },
+      (err: any) => err instanceof TemplateNotFoundError
+    );
+
+    await assert.rejects(
+      async () => {
+        await getVersion({
+          templateId: template._id,
+          versionId: 'invalid-version-id',
+          ownerId: testOwner,
+        });
+      },
+      (err: any) => err instanceof TemplateNotFoundError
+    );
     console.log('   ✓ getVersion returned exact version and rejected invalid IDs\n');
 
     /* ---------------------------------------------------------------------- */
@@ -348,10 +369,26 @@ async function runTests() {
     // Test 10: repairThumbnailUrl
     console.log('10. Testing repairThumbnailUrl...');
     const legacyUrl = 'https://res.cloudinary.com/demo/image/upload/s--abc12345--/c_fill,h_450,pg_1,w_600/v1/templates/user_1/sample.png';
-    const repairedUrl = repairThumbnailUrl(legacyUrl);
+    const regeneratedFromLegacy = repairThumbnailUrl(legacyUrl, 'templates/user_1/sample');
+    const expectedRegenerated = generateThumbnailUrl('templates/user_1/sample');
     assert.strictEqual(
-      repairedUrl,
-      'https://res.cloudinary.com/demo/image/authenticated/s--abc12345--/c_fill,h_450,pg_1,w_600/v1/templates/user_1/sample.png'
+      regeneratedFromLegacy,
+      expectedRegenerated,
+      'Legacy URL with available publicId must be regenerated with signed authenticated URL'
+    );
+
+    const preservedWithoutPublicId = repairThumbnailUrl(legacyUrl);
+    assert.strictEqual(
+      preservedWithoutPublicId,
+      legacyUrl,
+      'Legacy URL without publicId must be preserved unchanged'
+    );
+
+    const preservedRaw = repairThumbnailUrl(legacyUrl, 'templates/user_1/sample', 'raw');
+    assert.strictEqual(
+      preservedRaw,
+      legacyUrl,
+      'Legacy URL for raw resource must be preserved unchanged'
     );
 
     const validAuthUrl = 'https://res.cloudinary.com/demo/image/authenticated/s--abc12345--/sample.png';
@@ -371,14 +408,14 @@ async function runTests() {
       thumbnailUrl: legacyUrl,
     });
 
-    const healedUrl = ensureThumbnailHealth(healthTemplate);
-    assert.strictEqual(healthTemplate.thumbnailUrl, repairedUrl, 'Must repair in-memory immediately');
-    assert.strictEqual(healedUrl, repairedUrl);
+    const healedUrl = ensureThumbnailHealth(healthTemplate, 'templates/user_1/sample');
+    assert.strictEqual(healthTemplate.thumbnailUrl, expectedRegenerated, 'Must repair in-memory immediately');
+    assert.strictEqual(healedUrl, expectedRegenerated);
 
     // Wait 100ms for background DB update to complete
     await new Promise((resolve) => setTimeout(resolve, 100));
     const persistedTemplate = await Template.findById(healthTemplate._id);
-    assert.strictEqual(persistedTemplate?.thumbnailUrl, repairedUrl, 'Must persist repaired URL to database');
+    assert.strictEqual(persistedTemplate?.thumbnailUrl, expectedRegenerated, 'Must persist repaired URL to database');
     console.log('   ✓ ensureThumbnailHealth in-memory and background DB persistence verified\n');
 
     // Test 12: signUploadParams
@@ -407,6 +444,40 @@ async function runTests() {
       (err: any) => err instanceof TemplateValidationError && err.code === 'MISSING_CLOUDINARY_PUBLIC_ID'
     );
 
+    // Public ID outside owner's templates folder
+    await assert.rejects(
+      async () => createTemplate({ ownerId: testOwner, name: 'Sample', cloudinaryPublicId: 'templates/other_owner/sample' }),
+      (err: any) => err instanceof TemplateValidationError && err.code === 'INVALID_CLOUDINARY_PUBLIC_ID'
+    );
+
+    // Bare folder without file name
+    await assert.rejects(
+      async () => createTemplate({ ownerId: testOwner, name: 'Sample', cloudinaryPublicId: `templates/${testOwner}/` }),
+      (err: any) => err instanceof TemplateValidationError && err.code === 'INVALID_CLOUDINARY_PUBLIC_ID'
+    );
+
+    // Invalid thumbnailUrl from untrusted host
+    await assert.rejects(
+      async () => createTemplate({
+        ownerId: testOwner,
+        name: 'Sample',
+        cloudinaryPublicId: `templates/${testOwner}/sample`,
+        thumbnailUrl: 'https://evil.com/malicious.png',
+      }),
+      (err: any) => err instanceof TemplateValidationError && err.code === 'INVALID_THUMBNAIL_URL'
+    );
+
+    // Invalid thumbnailUrl from another owner
+    await assert.rejects(
+      async () => createTemplate({
+        ownerId: testOwner,
+        name: 'Sample',
+        cloudinaryPublicId: `templates/${testOwner}/sample`,
+        thumbnailUrl: 'https://res.cloudinary.com/demo/image/upload/v1/templates/other_owner/sample.png',
+      }),
+      (err: any) => err instanceof TemplateValidationError && err.code === 'INVALID_THUMBNAIL_URL'
+    );
+
     const originalResource = cloudinary.api.resource;
     try {
       // 13a. Probes 'image' resource first
@@ -414,7 +485,7 @@ async function runTests() {
       cloudinary.api.resource = (async (publicId: string, options: any) => {
         probeLog.push(options?.resource_type);
         if (options?.resource_type === 'image') {
-          return { bytes: 48000, pages: 3 };
+          return { bytes: 48000, pages: 3, resource_type: 'image' };
         }
         throw new Error('Not found');
       }) as any;
@@ -422,11 +493,12 @@ async function runTests() {
       const imageCreated = await createTemplate({
         ownerId: testOwner,
         name: 'Award Certificate',
-        cloudinaryPublicId: 'templates/user_1/award_pdf',
+        cloudinaryPublicId: `templates/${testOwner}/award_pdf`,
       });
 
       assert.strictEqual(imageCreated.template.name, 'Award Certificate');
       assert.strictEqual(imageCreated.version.version, 1);
+      assert.strictEqual(imageCreated.version.resourceType, 'image');
       assert.strictEqual(imageCreated.version.bytes, 48000);
       assert.strictEqual(imageCreated.version.pageCount, 3);
       assert.strictEqual(imageCreated.version.status, 'active');
@@ -439,17 +511,18 @@ async function runTests() {
       cloudinary.api.resource = (async (publicId: string, options: any) => {
         probeLog.push(options?.resource_type);
         if (options?.resource_type === 'image') throw new Error('Not an image');
-        if (options?.resource_type === 'raw') return { bytes: 12000, pages: 1 };
+        if (options?.resource_type === 'raw') return { bytes: 12000, pages: 1, resource_type: 'raw' };
         throw new Error('Not found');
       }) as any;
 
       const rawCreated = await createTemplate({
         ownerId: testOwner,
         name: 'Raw Document Template',
-        cloudinaryPublicId: 'templates/user_1/raw_doc',
+        cloudinaryPublicId: `templates/${testOwner}/raw_doc`,
       });
 
       assert.strictEqual(rawCreated.version.bytes, 12000);
+      assert.strictEqual(rawCreated.version.resourceType, 'raw');
       assert.strictEqual(rawCreated.template.thumbnailUrl, null);
       assert.deepStrictEqual(probeLog, ['image', 'raw'], 'Must probe image first, then fallback to raw');
 
@@ -463,7 +536,7 @@ async function runTests() {
           await createTemplate({
             ownerId: testOwner,
             name: 'Missing Resource',
-            cloudinaryPublicId: 'templates/user_1/missing',
+            cloudinaryPublicId: `templates/${testOwner}/missing`,
           });
         },
         (err: any) => err instanceof StorageAssetError && err.code === 'STORAGE_ASSET_NOT_FOUND'
@@ -773,6 +846,40 @@ async function runTests() {
         (err: any) => err instanceof StorageAssetError && err.code === 'STORAGE_ASSET_FETCH_FAILED'
       );
       assert.strictEqual(fetchCalls.length, 2, 'Must have attempted image then raw before failing');
+
+      // 17e. Streams directly via 'raw' when version.resourceType is raw
+      const vRawAsset = await TemplateVersion.create({
+        templateId: tMapped._id,
+        ownerId: testOwner,
+        version: 99,
+        sourceObjectKey: 'templates/owner/raw_file.pdf',
+        resourceType: 'raw',
+        bytes: 1024,
+        pageCount: 1,
+        status: 'active',
+        fieldMappings: [],
+        mappingHash: computeMappingHash([]),
+      });
+
+      fetchCalls = [];
+      global.fetch = (async (url: string) => {
+        fetchCalls.push(url);
+        return {
+          ok: true,
+          body: mockRawStream,
+        };
+      }) as any;
+
+      const directRawRes = await streamAsset({
+        templateId: tMapped._id,
+        versionId: vRawAsset._id,
+        ownerId: testOwner,
+      });
+
+      assert.strictEqual(directRawRes.body, mockRawStream);
+      assert.strictEqual(fetchCalls.length, 1, 'Must only perform 1 fetch attempt directly to raw');
+      assert.ok(fetchCalls[0].includes('raw'), 'Attempt must use raw resource type');
+      assert.ok(!fetchCalls[0].includes('image'), 'Must not treat raw assets as images');
     } finally {
       global.fetch = originalFetch;
     }

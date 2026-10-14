@@ -9,6 +9,6 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "./dist"
   },
-  "include": ["api/**/*", "index.ts"],
+  "include": ["src/**/*", "api/**/*"],
   "exclude": ["node_modules"]
 }
