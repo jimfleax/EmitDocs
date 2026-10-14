@@ -1,68 +1,73 @@
-# PRD-CORE-09 — Retention, cleanup ledger and account deletion
+# PRD-CORE-09 — Retention, MongoDB PII pruning and account deletion
 
 **Status:** Core MVP · P0 before real personal data.
 
 ## Objective
 
-Make data expiry and deletion predictable, visible and retryable. Job data has strict 24-hour/7-day/30-day presets (7-day default); saved template sources remain until the template is deleted. Daily direct-delete sweep retries cleanup failures.
+Make data expiry and deletion predictable, visible, and automated. Batch and recipient PII records adhere to strict 24-hour/7-day/30-day retention presets (7-day default). Because recipient PDFs are generated on-the-go without cloud output storage, batch expiry strictly prunes MongoDB snapshot and recipient records. Cloudinary storage deletions are restricted exclusively to explicit template deletions and full account deletions.
 
 ## User stories
 
-- I choose a retention preset and see the deadline.
-- After expiry, I cannot retrieve job PII or obtain new download URLs.
-- Cleanup failures are recorded and retried, not silently lost.
-- I can explicitly delete my account; sessions are revoked immediately and owned resources are scheduled for deletion.
+- I choose a retention preset (24h, 7d, 30d) during batch approval and see the clear expiration deadline.
+- After expiry, batch recipient PII is purged and no further on-demand generation or downloads are permitted.
+- Saved template source files in Cloudinary remain safely intact across batches until I explicitly delete the template.
+- When I delete my account, my active sessions are revoked immediately, my MongoDB records are removed, and all my template assets in Cloudinary are purged.
 
 ## Scope / exclusions
 
-Retention setting, expiry timestamps, abandoned draft timer, template lifetime, cleanup tasks/leases/retry, daily sweep, R2 lifecycle backstop, aggregate post-expiry history, account-delete confirmation/session revocation/cascading cleanup. No promise of instantaneous physical erasure, no retention beyond 30 days, no legal hold or named compliance certification.
+### In Scope
+- Retention setting (24h, 7d, 30d presets; default 7d) locked into `ApprovedSnapshot` and `Batch`.
+- Expiry timestamps calculated at approval time.
+- Automated MongoDB TTL / retention pruner for expired `DraftRow`, `ApprovedRecipient`, and `ApprovedSnapshot` PII.
+- Template source persistence in Cloudinary until explicit template deletion.
+- Template deletion cleanup: deletes associated Cloudinary public IDs via Cloudinary API.
+- Account deletion: revokes session, deletes user data, and purges user's Cloudinary folder (`templates/{userId}/`).
+- Aggregate post-expiry history (preserves batch summary counts and timestamps without recipient PII).
+
+### Excluded
+- Cloud storage cleanup sweeps for generated recipient PDFs (since zero recipient PDFs are stored in Cloudinary).
+- Retention extensions beyond 30 days.
 
 ## End-to-end flow
 
-1. Job uses allowed preset 24h/7d/30d; default 7d. Abandoned draft timer starts at creation; output/job-data timer starts when generation reaches terminal state.
-2. UI displays deadline and explains physical deletion can lag. Deadline persists and does not slide when reopened.
-3. At logical expiry, deny new downloads, mark data expired, hide PII in product UI and create cleanup tasks for R2 objects plus database PII.
-4. Daily sweep leases due tasks, requests direct R2 deletes, verifies absent where possible, records success/error and schedules bounded retry. R2 lifecycle is only backstop.
-5. After expiry preserve only aggregate counts/timestamps, not recipient-level identity/status/object key.
-6. Template source persists until explicit template deletion. Delete revokes future access and schedules all version objects after resolving active references safely.
-7. Account deletion requires explicit confirmation; immediately revoke sessions, mark `deletion_pending`, stop new work and schedule deletion of owned templates/jobs/outputs. Retain only non-identifying cleanup evidence.
+1. Batch uses selected preset (24h / 7d / 30d; default 7d / 168 hours). Expiration timestamp (`expiresAt`) is computed and saved in `ApprovedSnapshot` and `Batch`.
+2. UI displays the expiration countdown and deadline label.
+3. Logical Expiry:
+   - When `now() >= expiresAt`, batch status becomes `expired`.
+   - Any attempt to access `GET /api/batches/:id/snapshot/recipients` or trigger downloads returns `410 GONE` / `403 FORBIDDEN (BATCH_EXPIRED)`.
+4. Database Cleanup:
+   - MongoDB TTL indexes or a lightweight retention runner prunes expired `ApprovedRecipient` and `DraftRow` records.
+   - Aggregate batch history (name, total count, approval date, expiration date) is retained for audit reporting.
+   - Zero Cloudinary API calls needed for batch expiration.
+5. Template Deletion:
+   - User explicitly deletes a template.
+   - API verifies no active, unexpired batches reference the template version.
+   - System deletes template records and invokes Cloudinary API (`cleanupUnreferencedCloudinaryAssets`) to remove the source PDF.
+6. Account Deletion:
+   - User confirms account deletion.
+   - Sessions are immediately revoked.
+   - Deletes all owned batches, snapshots, and templates.
+   - Purges user's Cloudinary assets under `templates/{userId}/`.
 
-## Routes/components
+## Routes & Components
 
-`/app/settings/retention`, `/app/settings/account`, template-delete and results screens. `RetentionPresetSelector`, `ExpiryCountdown/Label`, `ExpiredOutputNotice`, `CleanupStatusNotice`, `DeleteAccountDialog`, `DeletionPendingNotice`.
+- `/app/settings/retention`, `/app/settings/account`, `/app/templates`, and `/app/batches/:batchId/results`
+- `RetentionPresetSelector`, `ExpiryCountdownBadge`, `ExpiredBatchNotice`, `DeleteAccountDialog`, `DeleteTemplateDialog`.
 
-## API/data
+## Acceptance Criteria
 
-`PATCH /api/settings/retention`; `DELETE /api/account`; `DELETE /api/templates/:id`. `cleanupTasks` has resource link, opaque object key, due date, attempt count/status/lease/error/deleted confirmation. MongoDB TTL is not used as sole R2 cleanup mechanism.
-
-## States/errors
-
-Scheduled, due, deleting, deleted, retry-wait, cleanup failed; expired but physical delete pending; account deletion pending; active job during deletion. Logical expiry is immediate even if delete fails. Never claim success if object is still present/unknown. Account deletion stops new claims and safely transitions active work.
-
-## Security/privacy
-
-Owner-only retention/deletion; confirmation and CSRF/replay safeguards; cleanup credentials and triggers are not public owner-controlled authority; no PII in long-term audit facts; logs scrubbed.
-
-## Acceptance criteria
-
-- AC1: Only 24h/7d/30d accepted; default is 7d.
-- AC2: Exact logical expiry timestamp is stable.
-- AC3: Expired output cannot obtain a fresh download URL.
-- AC4: Daily sweep detects/deletes due R2 objects and retries failures.
-- AC5: Cleanup failure remains visible and retryable.
-- AC6: Expired recipient data removed; only allowed aggregates persist.
-- AC7: Template source remains until template deletion.
-- AC8: Account deletion revokes session immediately and schedules all owned cleanup.
-- AC9: Copy discloses physical deletion may lag logical expiry.
+- **AC1**: Only 24h, 7d, and 30d retention presets accepted; default is 7d (168h).
+- **AC2**: Exact expiration timestamp `expiresAt` is immutable once approved.
+- **AC3**: Expired batches reject on-demand recipient fetches with `410 GONE` / `BATCH_EXPIRED`.
+- **AC4**: Batch expiry removes recipient PII from MongoDB without requiring Cloudinary output sweeps.
+- **AC5**: Template source files in Cloudinary persist across batch lifecycles until explicit template deletion.
+- **AC6**: Template deletion purges the underlying Cloudinary asset.
+- **AC7**: Account deletion immediately revokes session and cascades deletion across MongoDB and Cloudinary.
 
 ## Tests
 
-All presets, abandoned draft, output expiry, signed URL expired, R2 failure/retry, repeat sweep idempotency, partial DB/object deletion, active job/template deletion, account delete during generation, post-expiry PII/log scan, cross-user delete.
-
-## Dependencies/gate
-
-CORE-01 through CORE-08, R2 delete API and cleanup ledger. Must pass before using real recipient data.
-
-## Open details
-
-Actual daily sweep scheduler allowed by hosting terms, retry schedule, delete verification and source template behavior if approved jobs still reference it.
+- Preset calculation tests (24h, 7d, 30d).
+- Expired batch access rejection (returns 410 Gone).
+- PII pruning verification in MongoDB.
+- Template deletion Cloudinary cleanup test.
+- Account deletion cascade test.

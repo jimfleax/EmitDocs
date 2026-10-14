@@ -18,7 +18,9 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Spinner } from "@/components/ui/Spinner";
 import { BatchImportSkeleton } from "@/components/skeletons/BatchImportSkeleton";
+import { toast } from "@/components/ui/toast";
 import { DataFilePicker } from "./DataFilePicker";
 import { WorksheetSelector } from "./WorksheetSelector";
 import { ImportSchemaSummary } from "./ImportSchemaSummary";
@@ -100,18 +102,24 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
     duplicateRows: number;
   } | null>(null);
   const [draftRows, setDraftRows] = useState<DisplayDraftRow[]>([]);
+  const [isLoadingDraftRows, setIsLoadingDraftRows] = useState(false);
 
   const loadRows = useCallback(async () => {
     try {
+      setIsLoadingDraftRows(true);
       const res = await fetch(`/api/batches/${batchId}/rows?limit=100`, {
         credentials: "include",
       });
-      if (res.ok) {
-        const data = await res.json();
-        setDraftRows(data.rows || []);
-      }
-    } catch {
-      // ignore
+      if (!res.ok) throw new Error("Failed to load draft rows");
+      const data = await res.json();
+      setDraftRows(data.rows || []);
+    } catch (err: any) {
+      toast.error(
+        "Failed to load draft records",
+        err.message || "Error loading rows",
+      );
+    } finally {
+      setIsLoadingDraftRows(false);
     }
   }, [batchId]);
 
@@ -214,6 +222,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       setCurrentStep(2); // advance to mapping
     } catch (err: any) {
       setApiError(err.message || "Error initializing import");
+      toast.error(
+        "Import Initialization Failed",
+        err.message || "Failed to initialize import session",
+      );
     } finally {
       setIsInitializingImport(false);
     }
@@ -238,6 +250,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       );
     } catch (err: any) {
       setApiError(err.message || "Failed to switch worksheet");
+      toast.error("Worksheet Selection Failed", err.message || "Failed to switch worksheet");
     }
   };
 
@@ -261,10 +274,14 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setApiError(err.error || "Failed to update mapping");
+        const msg = err.error || "Failed to update mapping";
+        setApiError(msg);
+        toast.error("Mapping Update Failed", msg);
       }
     } catch (err: any) {
-      setApiError(err.message || "Failed to update mapping");
+      const msg = err.message || "Failed to update mapping";
+      setApiError(msg);
+      toast.error("Mapping Update Failed", msg);
     }
   };
 
@@ -286,10 +303,14 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       );
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setApiError(err.error || "Failed to update date format hints");
+        const msg = err.error || "Failed to update date format hints";
+        setApiError(msg);
+        toast.error("Mapping Update Failed", msg);
       }
     } catch (err: any) {
-      setApiError(err.message || "Failed to update date format hints");
+      const msg = err.message || "Failed to update date format hints";
+      setApiError(msg);
+      toast.error("Mapping Update Failed", msg);
     }
   };
 
@@ -315,9 +336,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
         );
       }
     } catch (err: any) {
-      setApiError(
-        err.message || "Failed to save mapping before starting upload",
-      );
+      const msg =
+        err.message || "Failed to save mapping before starting upload";
+      setApiError(msg);
+      toast.error("Mapping Save Failed", msg);
       return;
     }
 
@@ -372,6 +394,8 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
 
         if (!res.ok) {
           const err = await res.json();
+          const msg = `Chunk ${chunkIndex + 1} of ${totalChunks}: ${err.error || "Upload failed"}`;
+          toast.error("Chunk Upload Failed", msg);
           throw new Error(err.error || `Failed on chunk ${chunkIndex + 1}`);
         }
       }
@@ -404,6 +428,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       const finalizeData = await finalizeRes.json();
       setValidationSummary(finalizeData.summary);
       setUploadProgress((prev) => ({ ...prev, status: "completed" }));
+      toast.success(
+        "Spreadsheet Ingestion Complete",
+        `${rows.length.toLocaleString()} rows processed and validated.`,
+      );
 
       // Fetch persisted draft rows
       await loadRows();
@@ -415,6 +443,7 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
         errorMessage: err.message || "Upload failed",
       }));
       setApiError(err.message || "Upload pipeline failed");
+      toast.error("Import Pipeline Failed", err.message || "Upload failed");
     }
   };
 
@@ -756,10 +785,17 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
                 duplicateCount={validationSummary.duplicateRows}
               />
 
-              <RowErrorTable
-                rows={draftRows}
-                totalRows={validationSummary.totalRows}
-              />
+              {isLoadingDraftRows ? (
+                <div className="p-8 flex items-center justify-center bg-white border border-slate-200 rounded-2xl text-xs text-slate-500">
+                  <Spinner size="sm" className="mr-2" />
+                  <span>Loading draft rows...</span>
+                </div>
+              ) : (
+                <RowErrorTable
+                  rows={draftRows}
+                  totalRows={validationSummary.totalRows}
+                />
+              )}
             </div>
           )}
         </>

@@ -24,6 +24,7 @@ import { Route as ProtectedAppBatchesNewRouteImport } from './routes/_protected/
 import { Route as ProtectedAppTemplatesIndexRouteImport } from './routes/_protected/app/templates/index'
 import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from './routes/_protected/app/templates/$templateId'
 import { Route as ProtectedAppTemplatesNewRouteImport } from './routes/_protected/app/templates/new'
+import { Route as ProtectedAppBatchesBatchIdApproveRouteImport } from './routes/_protected/app/batches/$batchId_.approve'
 import { Route as ProtectedAppBatchesBatchIdImportRouteImport } from './routes/_protected/app/batches/$batchId_.import'
 import { Route as ProtectedAppBatchesBatchIdReviewRouteImport } from './routes/_protected/app/batches/$batchId_.review'
 import { Route as ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport } from './routes/_protected/app/templates/$templateId_.versions.$versionId'
@@ -106,6 +107,12 @@ const ProtectedAppTemplatesNewRoute =
     path: '/templates/new',
     getParentRoute: () => ProtectedAppRoute,
   } as any)
+const ProtectedAppBatchesBatchIdApproveRoute =
+  ProtectedAppBatchesBatchIdApproveRouteImport.update({
+    id: '/batches/$batchId_/approve',
+    path: '/batches/$batchId/approve',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
 const ProtectedAppBatchesBatchIdImportRoute =
   ProtectedAppBatchesBatchIdImportRouteImport.update({
     id: '/batches/$batchId_/import',
@@ -140,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
   '/app/batches/': typeof ProtectedAppBatchesIndexRoute
   '/app/templates/': typeof ProtectedAppTemplatesIndexRoute
+  '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
   '/app/templates/$templateId/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
@@ -158,6 +166,7 @@ export interface FileRoutesByTo {
   '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
   '/app/batches': typeof ProtectedAppBatchesIndexRoute
   '/app/templates': typeof ProtectedAppTemplatesIndexRoute
+  '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
   '/app/templates/$templateId/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
@@ -179,6 +188,7 @@ export interface FileRoutesById {
   '/_protected/app/templates/new': typeof ProtectedAppTemplatesNewRoute
   '/_protected/app/batches/': typeof ProtectedAppBatchesIndexRoute
   '/_protected/app/templates/': typeof ProtectedAppTemplatesIndexRoute
+  '/_protected/app/batches/$batchId_/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
   '/_protected/app/batches/$batchId_/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/_protected/app/batches/$batchId_/review': typeof ProtectedAppBatchesBatchIdReviewRoute
   '/_protected/app/templates/$templateId_/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/app/templates/new'
     | '/app/batches/'
     | '/app/templates/'
+    | '/app/batches/$batchId/approve'
     | '/app/batches/$batchId/import'
     | '/app/batches/$batchId/review'
     | '/app/templates/$templateId/versions/$versionId'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/app/templates/new'
     | '/app/batches'
     | '/app/templates'
+    | '/app/batches/$batchId/approve'
     | '/app/batches/$batchId/import'
     | '/app/batches/$batchId/review'
     | '/app/templates/$templateId/versions/$versionId'
@@ -238,6 +250,7 @@ export interface FileRouteTypes {
     | '/_protected/app/templates/new'
     | '/_protected/app/batches/'
     | '/_protected/app/templates/'
+    | '/_protected/app/batches/$batchId_/approve'
     | '/_protected/app/batches/$batchId_/import'
     | '/_protected/app/batches/$batchId_/review'
     | '/_protected/app/templates/$templateId_/versions/$versionId'
@@ -361,6 +374,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppTemplatesNewRouteImport
       parentRoute: typeof ProtectedAppRoute
     }
+    '/_protected/app/batches/$batchId_/approve': {
+      id: '/_protected/app/batches/$batchId_/approve'
+      path: '/batches/$batchId/approve'
+      fullPath: '/app/batches/$batchId/approve'
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdApproveRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
     '/_protected/app/batches/$batchId_/import': {
       id: '/_protected/app/batches/$batchId_/import'
       path: '/batches/$batchId/import'
@@ -392,6 +412,7 @@ interface ProtectedAppRouteChildren {
   ProtectedAppTemplatesNewRoute: typeof ProtectedAppTemplatesNewRoute
   ProtectedAppBatchesIndexRoute: typeof ProtectedAppBatchesIndexRoute
   ProtectedAppTemplatesIndexRoute: typeof ProtectedAppTemplatesIndexRoute
+  ProtectedAppBatchesBatchIdApproveRoute: typeof ProtectedAppBatchesBatchIdApproveRoute
   ProtectedAppBatchesBatchIdImportRoute: typeof ProtectedAppBatchesBatchIdImportRoute
   ProtectedAppBatchesBatchIdReviewRoute: typeof ProtectedAppBatchesBatchIdReviewRoute
   ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute: typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
@@ -404,6 +425,8 @@ const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
   ProtectedAppTemplatesNewRoute: ProtectedAppTemplatesNewRoute,
   ProtectedAppBatchesIndexRoute: ProtectedAppBatchesIndexRoute,
   ProtectedAppTemplatesIndexRoute: ProtectedAppTemplatesIndexRoute,
+  ProtectedAppBatchesBatchIdApproveRoute:
+    ProtectedAppBatchesBatchIdApproveRoute,
   ProtectedAppBatchesBatchIdImportRoute: ProtectedAppBatchesBatchIdImportRoute,
   ProtectedAppBatchesBatchIdReviewRoute: ProtectedAppBatchesBatchIdReviewRoute,
   ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute:

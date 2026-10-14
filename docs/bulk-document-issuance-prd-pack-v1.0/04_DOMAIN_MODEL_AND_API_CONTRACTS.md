@@ -49,8 +49,8 @@
 ### `workItems`
 `_id`, owner/batch/snapshot/recipient IDs, phase `generate|send|cleanup`, unique `operationKey`, status `queued|leased|retry_wait|completed|dead|canceled`, attempts/max, `availableAt`, lease owner/expiry, safe last-error code, timestamps. In prototype the browser dispatcher advances generation work; email is deferred.
 
-### `outputs`
-`_id`, owner/batch/snapshot/recipient IDs, kind `pdf|zip|manifest|preview`, opaque R2 key, checksum/bytes, safe file name, status, created/expiry times. One output must be associated with one recipient or clearly defined archive scope.
+### `outputs` (Deprecated / Replaced by JIT generation)
+Generated recipient PDFs are generated on-the-go on the client and are NOT stored as individual records in MongoDB or Cloudinary. Snapshots (`ApprovedSnapshot` and `ApprovedRecipient`) contain all deterministic inputs needed to regenerate any document or ZIP archive instantaneously.
 
 ### `cleanupTasks` and `auditEvents`
 Cleanup record has owner/resource link, opaque key, due date, attempts, status, lease and safe last error. Audit event has actor/resource/action/time/outcome and minimal safe metadata, never raw PII or signed URL.
@@ -110,13 +110,11 @@ No raw stack traces, storage secrets, provider details or signed URLs in normal 
 - `POST /api/batches/:id/reimports/:importId/reconcile`
 - `POST /api/batches/:id/approve`
 
-### Generation/output
-- `POST /api/batches/:id/generation/claim`
-- `POST /api/batches/:id/generation/checkpoint`
-- `POST /api/batches/:id/pause`, `/resume`, `/cancel`
-- Scoped upload authorization/completion for output PDFs
-- `GET /api/batches/:id/outputs`
-- `POST /api/outputs/:outputId/download-url`
+### Generation/output (On-demand JIT)
+- `GET /api/batches/:id/snapshot` (retrieve frozen mapping configuration & template version)
+- `GET /api/batches/:id/snapshot/recipients` (stream approved recipients with effective data)
+- `GET /api/templates/:id/versions/:version/file` (stream authorized base template PDF from Cloudinary)
+- `POST /api/batches/:id/generation/audit` (optional export completion audit log)
 
 ### Retention/future email
 - `PATCH /api/settings/retention`

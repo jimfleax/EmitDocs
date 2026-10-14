@@ -2,7 +2,7 @@
  * @file $templateId_.versions.$versionId.tsx
  * @description Full-screen visual studio route for mapping fields on a specific template version.
  * @architecture Studio canvas route rendering PdfMappingWorkspace with templateId and versionId parameters.
- * @agent_note Full viewport mapping studio without default AppShell chrome to maximize canvas area.
+ * @agent_note Studio canvas route rendered inside the parent AppShell layout.
  */
 
 import { createFileRoute } from "@tanstack/react-router";

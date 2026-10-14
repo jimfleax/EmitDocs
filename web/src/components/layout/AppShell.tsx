@@ -24,7 +24,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
   const location = useLocation();
   const pathname = location.pathname;
 
-  const isHomeActive = pathname === "/app";
+  const isHomeActive = pathname === "/app" || pathname === "/app/";
   const isTemplatesActive = pathname.startsWith("/app/templates");
   const isBatchesActive = pathname.startsWith("/app/batches");
   const isEditorRoute = pathname.includes("/versions/");
@@ -314,7 +314,11 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
       {/* Right Main Container (Full remaining flex width on lg+) */}
       <main
         className={`flex-1 min-w-0 min-h-0 w-full h-full bg-white/95 backdrop-blur-2xl rounded-3xl lg:rounded-[28px] shadow-[0_20px_50px_rgba(0,0,0,0.25)] text-gray-900 border border-white/40 ring-1 ring-black/5 relative z-10 transition-all ${
-          isEditorRoute ? "p-0 overflow-hidden" : "p-6 lg:p-10 overflow-y-auto"
+          isEditorRoute
+            ? "p-0 overflow-hidden"
+            : isHomeActive
+              ? "p-6 lg:p-10 overflow-hidden"
+              : "p-6 lg:p-10 overflow-y-auto"
         }`}
       >
         {children}

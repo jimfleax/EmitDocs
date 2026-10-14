@@ -56,16 +56,26 @@ assert.ok(swContent.includes("SKIP_WAITING"), "sw.js must listen for SKIP_WAITIN
 assert.ok(swContent.includes("clients.claim"), "sw.js must claim clients on activate");
 assert.ok(swContent.includes("mode === 'navigate'"), "sw.js must handle HTML navigation requests with fallback");
 assert.ok(swContent.includes("/api/"), "sw.js must handle /api/ routing with offline fallback");
+assert.ok(swContent.includes("cache.put('/index.html'"), "sw.js must refresh /index.html in cache on navigation");
+assert.ok(swContent.includes("no-store") && swContent.includes("private"), "sw.js must skip caching /api/ responses with no-store or private");
+assert.ok(!swContent.includes(".then(() => self.skipWaiting())"), "sw.js must not call skipWaiting automatically on install");
 console.log("   ✓ sw.js has precaching, SPA navigation fallback, and API offline handling");
 
 // 4. Verify PWA components exist and have proper exports
 console.log("4. Testing React PWA components and hooks...");
+const registerSwPath = path.join(WEB_DIR, "src", "lib", "registerSW.ts");
+assert.ok(fs.existsSync(registerSwPath), "registerSW.ts must exist");
+const registerSwContent = fs.readFileSync(registerSwPath, "utf-8");
+assert.ok(registerSwContent.includes("getWaitingWorker"), "registerSW.ts must export getWaitingWorker");
+
 const usePwaPath = path.join(WEB_DIR, "src", "hooks", "usePwa.ts");
 assert.ok(fs.existsSync(usePwaPath), "usePwa.ts must exist");
 const usePwaContent = fs.readFileSync(usePwaPath, "utf-8");
 assert.ok(usePwaContent.includes("emitdocs_pwa_install_dismissed"), "usePwa must manage emitdocs_pwa_install_dismissed localStorage key");
 assert.ok(usePwaContent.includes("promptInstall"), "usePwa must export promptInstall");
 assert.ok(usePwaContent.includes("dismissInstall"), "usePwa must export dismissInstall");
+assert.ok(usePwaContent.includes("globalDeferredPrompt"), "usePwa must capture prompt in module-level shared store");
+assert.ok(usePwaContent.includes("getWaitingWorker"), "usePwa must read getWaitingWorker on mount");
 
 const installCardPath = path.join(WEB_DIR, "src", "components", "pwa", "PwaInstallCard.tsx");
 assert.ok(fs.existsSync(installCardPath), "PwaInstallCard.tsx must exist");
@@ -78,6 +88,13 @@ assert.ok(fs.existsSync(updateBannerPath), "UpdateBanner.tsx must exist");
 
 const offlineIndicatorPath = path.join(WEB_DIR, "src", "components", "pwa", "OfflineIndicator.tsx");
 assert.ok(fs.existsSync(offlineIndicatorPath), "OfflineIndicator.tsx must exist");
+
+// 5. Verify template version studio route note
+const versionRoutePath = path.join(WEB_DIR, "src", "routes", "_protected", "app", "templates", "$templateId_.versions.$versionId.tsx");
+assert.ok(fs.existsSync(versionRoutePath), "version studio route must exist");
+const versionRouteContent = fs.readFileSync(versionRoutePath, "utf-8");
+assert.ok(!versionRouteContent.includes("without default AppShell"), "route must not claim to omit AppShell");
+assert.ok(versionRouteContent.includes("inside the parent AppShell"), "route must reflect rendering inside parent AppShell");
 
 console.log("   ✓ React PWA components and hooks correctly structured and wired\n");
 

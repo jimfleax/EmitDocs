@@ -1,81 +1,55 @@
 /**
  * @file index.tsx
- * @description Public marketing landing page displaying animated brand headers and entry links.
- * @architecture Public route redirecting authenticated users to /app and rendering landing visuals for guests.
- * @agent_note In beforeLoad, checks context.auth.session and redirects active sessions to /app.
+ * @description Official public marketing homepage and landing page for EmitDocs.
+ * @architecture Composed of modular landing components: LandingHeader, HeroSection, FeaturesBentoGrid,
+ * WorkflowTimeline, TrustAndSecurity, LandingBottomCta, and LandingFooter.
  */
 
-import { createFileRoute, Link, redirect } from "@tanstack/react-router";
-import TechText from "@/components/ui/TechText";
-import { Button } from "@/components/ui/button";
+import { createFileRoute } from "@tanstack/react-router";
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { FeaturesBentoGrid } from "@/components/landing/FeaturesBentoGrid";
+import { WorkflowTimeline } from "@/components/landing/WorkflowTimeline";
+import { TrustAndSecurity } from "@/components/landing/TrustAndSecurity";
+import { LandingBottomCta } from "@/components/landing/LandingBottomCta";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
 export const Route = createFileRoute("/")({
-  beforeLoad: ({ context }) => {
-    if (context.auth.session) {
-      throw redirect({
-        to: "/app",
-      });
-    }
-  },
-  component: Index,
+  component: IndexPage,
 });
 
-const CURRENT_YEAR = new Date().getFullYear();
-
 /**
- * @component Index
- * @description Landing page view featuring stylized logo animations and registration CTA buttons.
- * @returns {JSX.Element} Landing hero page.
+ * @component IndexPage
+ * @description Principal landing page showcasing EmitDocs's bulk document automation engine,
+ * interactive workflow canvas, features bento grid, and technical verification benchmarks.
+ * @returns {JSX.Element} Landing page.
  */
-function Index() {
+function IndexPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground justify-between p-4 sm:p-6">
-      <div />
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-blue-100 selection:text-blue-900 flex flex-col font-sans antialiased">
+      {/* 1. Sticky Navigation Header */}
+      <LandingHeader />
 
-      <div className="flex flex-col items-center justify-center space-y-8 my-auto">
-        <div className="w-full max-w-4xl h-[360px] md:h-[480px] relative bg-transparent overflow-hidden flex items-center justify-center p-4">
-          <TechText
-            text="EmitDocs"
-            fontWeight={700}
-            fontSize={140}
-            color="#000000"
-            accentColor="#3b82f6"
-            reveal="letter"
-            dashLength={4}
-            dashGap={2}
-            specks={15}
-          />
-        </div>
+      {/* 2. Main Content Canvas */}
+      <main className="flex-1 w-full">
+        {/* Hero Section with Interactive Workflow Canvas */}
+        <HeroSection />
 
-        <Button
-          asChild
-          size="lg"
-          className="h-12 px-8 rounded-[18px] bg-[#18181b] hover:bg-[#27272a] text-[#fafafa] font-medium shadow-[0_10px_24px_-14px_rgba(0,0,0,0.45)] transition-all duration-200 active:scale-[0.98]"
-        >
-          <Link to="/sign-in">Get Started</Link>
-        </Button>
-      </div>
+        {/* Core Features Bento Grid */}
+        <FeaturesBentoGrid />
 
-      <footer className="w-full max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-400 py-4 border-t border-slate-100">
-        <div>© {CURRENT_YEAR} EmitDocs. All rights reserved.</div>
-        <div className="flex items-center gap-6">
-          <Link to="/terms" className="hover:text-slate-600 transition-colors">
-            Terms of Service
-          </Link>
-          <Link
-            to="/privacy"
-            className="hover:text-slate-600 transition-colors"
-          >
-            Privacy Policy
-          </Link>
-          <Link
-            to="/sign-in"
-            className="hover:text-slate-600 transition-colors"
-          >
-            Sign In
-          </Link>
-        </div>
-      </footer>
+        {/* 3-Step Workflow & Benchmarks Timeline */}
+        <WorkflowTimeline />
+
+        {/* Architectural Trust, Compliance & Zero Model Training */}
+        <TrustAndSecurity />
+
+        {/* High-Contrast Signature Deep Navy Call to Action */}
+        <LandingBottomCta />
+      </main>
+
+      {/* 3. Comprehensive Brand Footer */}
+      <LandingFooter />
     </div>
   );
 }

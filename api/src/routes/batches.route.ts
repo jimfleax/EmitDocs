@@ -27,6 +27,10 @@ import {
   getReimportDiff,
   reconcileReimport,
   deleteBatch,
+  getApprovalPreflight,
+  approveBatch,
+  getApprovedSnapshot,
+  getApprovedRecipients,
 } from '../controllers/batches.controller.js';
 
 /**
@@ -41,6 +45,12 @@ batchesApp.get('/', getBatches);
 batchesApp.get('/activity', getBatchActivity);
 batchesApp.get('/:id', getBatchById);
 batchesApp.delete('/:id', deleteBatch);
+
+// Approval & Snapshot workflows (PRD-CORE-06)
+batchesApp.get('/:id/approval-preflight', getApprovalPreflight);
+batchesApp.post('/:id/approve', approveBatch);
+batchesApp.get('/:id/snapshot', getApprovedSnapshot);
+batchesApp.get('/:id/snapshot/recipients', getApprovedRecipients);
 
 // Import workflows
 batchesApp.post('/:id/imports', createImport);

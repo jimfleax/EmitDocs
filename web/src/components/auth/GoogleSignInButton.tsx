@@ -8,6 +8,7 @@ import { useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { authClient } from "../../lib/auth-client";
 import { cn } from "@/lib/utils";
+import { toast } from "@/components/ui/toast";
 
 interface GoogleSignInButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string;
@@ -42,6 +43,11 @@ export function GoogleSignInButton({
       });
     } catch (err) {
       console.error("Sign-in error:", err);
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Unable to authenticate with Google. Please try again.";
+      toast.error("Sign-in Failed", message);
       setIsLoading(false);
     }
   };

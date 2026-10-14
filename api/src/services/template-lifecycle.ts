@@ -11,11 +11,18 @@
 import crypto from 'crypto';
 import mongoose from 'mongoose';
 import cloudinary from '../lib/cloudinary.js';
+import { isTransactionUnsupportedError } from '../lib/transactions.js';
 import { Template, ITemplate } from '../models/Template.js';
 import { TemplateVersion, ITemplateVersion, IFieldMapping } from '../models/TemplateVersion.js';
 import { Batch } from '../models/Batch.js';
 import { BatchImport } from '../models/BatchImport.js';
 import { DraftRow } from '../models/DraftRow.js';
+import {
+  cleanupUnreferencedCloudinaryAssets,
+  type CloudinaryCleanupSummary,
+} from './cloudinary-cleanup.js';
+
+export type { CloudinaryCleanupSummary };
 
 /* -------------------------------------------------------------------------- */
 /*                               Typed Domain Errors                          */
@@ -173,6 +180,7 @@ export interface DeleteTemplateResult {
   success: boolean;
   message: string;
   deletedBatchesCount?: number;
+  cleanup?: CloudinaryCleanupSummary;
 }
 
 export interface StreamAssetInput {
@@ -777,6 +785,47 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
       ? dependentBatches.map((b) => b._id)
       : [];
 
+  const previousStatuses = new Map<string, string>();
+  for (const b of dependentBatches) {
+    previousStatuses.set(b._id.toString(), b.status);
+  }
+
+  const restoreClaimedBatches = async () => {
+    if (batchIds.length > 0) {
+      try {
+        await Promise.all(
+          batchIds.map((bId) => {
+            const prev = previousStatuses.get(bId.toString());
+            if (prev && prev !== 'deleting') {
+              return Batch.updateOne(
+                { _id: bId, status: 'deleting' },
+                { $set: { status: prev } }
+              );
+            }
+            return Promise.resolve();
+          })
+        );
+      } catch {
+        // Status restoration failed or unsupported
+      }
+    }
+  };
+
+  // Atomically claim dependent batches as 'deleting' before removal so they cannot transition to 'generating'
+  if (batchIds.length > 0) {
+    const claimResult = await Batch.updateMany(
+      { _id: { $in: batchIds }, status: { $ne: 'generating' } },
+      { $set: { status: 'deleting' } }
+    );
+    if (claimResult.matchedCount < batchIds.length) {
+      await restoreClaimedBatches();
+      throw new TemplateValidationError(
+        'Cannot delete template while dependent batch is generating',
+        'BATCH_GENERATING'
+      );
+    }
+  }
+
   let session: mongoose.ClientSession | null = null;
   let transactionCommitted = false;
 
@@ -787,7 +836,16 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
     if (batchIds.length > 0) {
       await DraftRow.deleteMany({ batchId: { $in: batchIds } }, { session });
       await BatchImport.deleteMany({ batchId: { $in: batchIds } }, { session });
-      await Batch.deleteMany({ _id: { $in: batchIds } }, { session });
+      const deleteBatchesResult = await Batch.deleteMany(
+        { _id: { $in: batchIds }, status: { $ne: 'generating' } },
+        { session }
+      );
+      if (deleteBatchesResult.deletedCount < batchIds.length) {
+        throw new TemplateValidationError(
+          'Cannot delete template while dependent batch is generating',
+          'BATCH_GENERATING'
+        );
+      }
     }
 
     await TemplateVersion.deleteMany({ templateId: template._id }, { session });
@@ -806,15 +864,9 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
         // Transaction abort failed or unsupported
       }
     }
-    const isUnsupported =
-      error?.code === 20 ||
-      error?.codeName === 'IllegalOperation' ||
-      error?.message?.includes('Transaction numbers are only allowed') ||
-      error?.message?.includes('replica set') ||
-      error?.message?.includes('Transactions are not supported') ||
-      error?.message?.includes('Sessions are not supported');
 
-    if (!isUnsupported) {
+    if (!isTransactionUnsupportedError(error)) {
+      await restoreClaimedBatches();
       throw error;
     }
   } finally {
@@ -828,23 +880,45 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
   }
 
   if (!transactionCommitted) {
-    if (batchIds.length > 0) {
-      await Promise.all([
-        DraftRow.deleteMany({ batchId: { $in: batchIds } }),
-        BatchImport.deleteMany({ batchId: { $in: batchIds } }),
-        Batch.deleteMany({ _id: { $in: batchIds } }),
-      ]);
-      deletedBatchesCount = batchIds.length;
-    }
+    try {
+      if (batchIds.length > 0) {
+        await Promise.all([
+          DraftRow.deleteMany({ batchId: { $in: batchIds } }),
+          BatchImport.deleteMany({ batchId: { $in: batchIds } }),
+        ]);
+        const deleteBatchesResult = await Batch.deleteMany({
+          _id: { $in: batchIds },
+          status: { $ne: 'generating' },
+        });
+        if (deleteBatchesResult.deletedCount < batchIds.length) {
+          throw new TemplateValidationError(
+            'Cannot delete template while dependent batch is generating',
+            'BATCH_GENERATING'
+          );
+        }
+        deletedBatchesCount = batchIds.length;
+      }
 
-    await TemplateVersion.deleteMany({ templateId: template._id });
-    await Template.deleteOne({ _id: template._id });
+      await TemplateVersion.deleteMany({ templateId: template._id });
+      await Template.deleteOne({ _id: template._id });
+    } catch (fallbackError) {
+      await restoreClaimedBatches();
+      throw fallbackError;
+    }
+  }
+
+  let cleanup: CloudinaryCleanupSummary | undefined;
+  try {
+    cleanup = await cleanupUnreferencedCloudinaryAssets({ ownerId: template.ownerId });
+  } catch (cleanupErr) {
+    console.error('Failed to run unreferenced Cloudinary cleanup after template delete:', cleanupErr);
   }
 
   return {
     success: true,
     message: 'Template deleted',
     ...(deletedBatchesCount > 0 ? { deletedBatchesCount } : {}),
+    ...(cleanup ? { cleanup } : {}),
   };
 }
 
@@ -979,5 +1053,6 @@ export const TemplateLifecycle = {
   getTemplate,
   deleteTemplate,
   streamAsset,
+  cleanupUnreferencedCloudinaryAssets,
 };
 

@@ -45,9 +45,9 @@ Users creating event certificates, letters, acknowledgements, notices, awards an
 6. Browse every draft through a paginated/searchable gallery; preview documents on demand; apply inline edits as overrides.
 7. Re-import revisions with a diff; match only with reliable unique keys and send ambiguous matches to manual reconciliation.
 8. Approve a specific revision; API creates an immutable snapshot of template/source/mapping/data/overrides.
-9. Generate via bounded browser Web Worker chunks under one active batch lease; upload each output to R2 and persist checkpoint/status. Poll status; browser closure pauses processing.
-10. Download individual documents or a ZIP; split or fail gracefully under measured browser-memory limits. Cancel preserves completed outputs.
-11. Retain job files under 24h, 7d or 30d; default 7d. Saved template source persists until template deletion. Daily cleanup sweep retries failed deletes. Physical deletion may lag logical expiry.
+9. On-demand Web Worker PDF generation: generate individual recipient PDFs deterministically on-the-go directly from frozen configuration records (`ApprovedSnapshot`, `ApprovedRecipient`). Zero generated recipient PDFs are uploaded or stored in cloud storage.
+10. Stream complete batch or split volumes into standard ZIP archives via `client-zip` in the browser. Split into 1,000-document volumes for safe, flat memory footprint (<150MB).
+11. Retain job metadata under 24h, 7d or 30d; default 7d. Batch expiry prunes MongoDB recipient PII. Saved template source persists in Cloudinary until explicit template deletion.
 12. Email is a future feature: individual attachment per recipient via Hono/server-side provider adapter with quota/expiry preflight. It is not enabled in the first live prototype.
 
 ## 6. Binding user decisions
@@ -59,12 +59,12 @@ Users creating event certificates, letters, acknowledgements, notices, awards an
 - CSV/XLSX; worksheet choice; first non-empty row as header; invalid rows isolated; duplicates warned and preserved.
 - Searchable/paginated gallery for all drafts; on-demand preview uses same pipeline as final; inline correction and re-import diff; manual reconciliation if matches are ambiguous.
 - Immutable template versions and immutable approved snapshots.
-- Browser generation/ZIP with bounded chunks; close pauses work; one active lease per batch; polling; pause/resume/cancel; preserve completed outputs.
-- Filename defaults to sanitized recipient name plus template/document label with collision suffix.
+- Browser Web Worker generation and streaming ZIP (`client-zip`) with 1,000-document volume splitting; zero cloud storage for recipient PDFs; on-demand preview and single downloads.
+- Filename defaults to sanitized recipient name plus unique recipientKey collision suffix.
 - Google Identity Services only; MongoDB-backed hashed session token and HttpOnly cookie; same-origin API arrangement.
-- React/Vite/TypeScript, Hono/TypeScript, separate frontend/API repositories, MongoDB, private R2, Zod, OpenAPI; GitHub Actions, npm/lockfiles, supported Node LTS, Vitest and Playwright direction.
+- React/Vite/TypeScript, Hono/TypeScript, separate frontend/API repositories, MongoDB, Cloudinary (templates only), Zod, OpenAPI; GitHub Actions, npm/lockfiles, supported Node LTS, Vitest and Playwright direction.
 - Strict ₹0 budget; Vercel Hobby only private non-commercial prototype candidate; public host remains a blocker.
-- 24h/7d/30d retention presets, 7d default, strict deadlines, aggregate counts/timestamps only after personal-data expiry, daily cleanup sweep; template source retained until template delete.
+- 24h/7d/30d retention presets, 7d default, strict deadlines, aggregate counts/timestamps only after personal-data expiry; template source retained until template delete.
 - Private-first launch. Public registration is a future direction with sending safeguards.
 - Nodemailer or equivalent was requested for investigation; no email provider/transport is selected.
 - Public name/tagline/logo/domain remain unapproved; current title is internal only.
@@ -72,7 +72,7 @@ Users creating event certificates, letters, acknowledgements, notices, awards an
 ## 7. MVP scope
 
 ### Included
-Authentication/session; template library/upload/versioning; PDF mapping and preview; spreadsheet import/mapping/validation; draft gallery and reconciliation; approval snapshot; resumable browser generation; individual/ZIP downloads; retention/cleanup/account deletion; CI/security/performance release gates for the private prototype.
+Authentication/session; template library/upload/versioning; PDF mapping and preview; spreadsheet import/mapping/validation; draft gallery and reconciliation; approval snapshot; on-demand Web Worker generation; individual/streaming ZIP downloads; retention/cleanup/account deletion; CI/security/performance release gates for the private prototype.
 
 ### Excluded/deferred
 Email delivery; Gmail/Outlook mailbox connection; full Canva-like editor; OCR/scanned PDFs; universal PDF replacement; image/signature fields; credential verification/QR; correction/revocation/reissue; teams; external integrations/public API; product analytics and monetization decisions; final branding and public launch.
@@ -83,10 +83,10 @@ Email delivery; Gmail/Outlook mailbox connection; full Canva-like editor; OCR/sc
 - API repository: Hono + TypeScript.
 - Identity: Google Identity Services, verified server-side (signature, audience, issuer, expiry); key user by Google `sub`, not email.
 - Session: opaque random HttpOnly cookie; store only token hash, expiry and revocation state in MongoDB.
-- Database: MongoDB for metadata, row states, snapshots, claims, outputs metadata, cleanup tasks and audit-minimal events.
-- Object storage: private R2 for template PDFs, job source files, outputs and archives. Direct browser transfer using short-lived scoped URLs.
-- PDF: PDF.js for render/text/geometry inspection; `pdf-lib` is a candidate for supported fields/overlays/font embedding. Exact feasibility proven using fixtures.
-- Execution: bounded Web Worker chunks and MongoDB claims/leases advanced by the active browser. MongoDB queue records do not execute on their own.
+- Database: MongoDB for metadata, row states, snapshots, audit events, and user settings.
+- Object storage: Cloudinary for base template PDFs (`templates/{userId}/...`). Generated recipient PDFs are produced JIT on the client and are not stored in cloud storage.
+- PDF: PDF.js for render/text/geometry inspection; `pdf-lib` + `@pdf-lib/fontkit` for client-side deterministic PDF overlay generation.
+- Execution: Off-main-thread Web Worker generation and streaming ZIP (`client-zip`) with 1,000-item volume partitioning.
 - API contract: OpenAPI and Zod; generate/version frontend client types across repositories. Exact generator tooling remains open.
 - Progress: polling persisted server state.
 - First prototype: downloads-first, no live email sends.

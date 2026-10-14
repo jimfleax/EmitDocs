@@ -368,6 +368,7 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({
         return (
           <Tooltip
             key={`token-${idx}`}
+            asChild
             content={`Click to convert placeholder "{{${token.key}}}" into an editable field`}
             side="top"
           >

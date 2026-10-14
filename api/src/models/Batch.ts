@@ -54,13 +54,14 @@ export interface IBatch extends Document {
   name: string;
   status: BatchStatus;
   currentImportRevision: number;
-  approvedSnapshotId?: mongoose.Types.ObjectId;
+  approvedSnapshotId?: mongoose.Types.ObjectId | null;
   totalRows: number;
   validRows: number;
   invalidRows: number;
   duplicateRows: number;
   version: number;
   retentionHours: number;
+  expiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,13 +90,14 @@ const BatchSchema = new Schema<IBatch>(
       default: 'draft',
     },
     currentImportRevision: { type: Number, default: 0 },
-    approvedSnapshotId: { type: Schema.Types.ObjectId, default: null },
+    approvedSnapshotId: { type: Schema.Types.ObjectId, ref: 'ApprovedSnapshot', default: null },
     totalRows: { type: Number, default: 0 },
     validRows: { type: Number, default: 0 },
     invalidRows: { type: Number, default: 0 },
     duplicateRows: { type: Number, default: 0 },
     version: { type: Number, default: 1 },
     retentionHours: { type: Number, default: 168 },
+    expiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

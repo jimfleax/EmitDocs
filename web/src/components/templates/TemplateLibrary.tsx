@@ -21,6 +21,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { toast } from "@/components/ui/toast";
 import { TemplateLibrarySkeleton } from "@/components/skeletons/TemplateLibrarySkeleton";
 
 interface TemplateVersion {
@@ -164,6 +165,7 @@ export function TemplateLibrary() {
           const message =
             err instanceof Error ? err.message : "Failed to fetch templates";
           setError(message);
+          toast.error("Failed to load templates", message);
         }
       } finally {
         if (!isCancelled) {
@@ -212,11 +214,17 @@ export function TemplateLibrary() {
         );
       }
       setTemplates((prev) => prev.filter((t) => t._id !== id));
+      toast.success(
+        "Template deleted",
+        deleteTarget?.name
+          ? `"${deleteTarget.name}" was permanently removed.`
+          : "The template has been permanently removed.",
+      );
       setDeleteTarget(null);
       setCascadeWarning(null);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Delete failed";
-      alert(message);
+      toast.error("Failed to delete template", message);
     } finally {
       setIsDeleting(false);
     }

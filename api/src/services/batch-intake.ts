@@ -15,6 +15,7 @@ import { Batch, IBatch } from '../models/Batch.js';
 import { BatchImport, IBatchImport } from '../models/BatchImport.js';
 import { DraftRow } from '../models/DraftRow.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
+import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
 import { validateDraftRow, FieldMappingItem } from './spreadsheet/row-validator.js';
 import { detectDuplicatesAcrossRows } from './spreadsheet/duplicate-detector.js';
 import { calculateReimportDiff } from './spreadsheet/diff-calculator.js';
@@ -474,6 +475,13 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
     throw new BatchNotFoundError('Batch not found or access denied');
   }
 
+  if (batch.status === 'generating' || batch.status === 'ready_for_download') {
+    throw new ConcurrencyConflictError(
+      'Cannot edit row while batch generation is in progress',
+      'BATCH_GENERATION_IN_PROGRESS'
+    );
+  }
+
   if (expectedRevision !== undefined && batch.currentImportRevision !== expectedRevision) {
     throw new ConcurrencyConflictError('Stale batch revision', 'STALE_BATCH_REVISION');
   }
@@ -560,6 +568,9 @@ export async function patchRowOverride(input: PatchRowOverrideInput): Promise<Pa
 
   // Invalidate approval state
   if (batch.approvedSnapshotId || batch.status === 'awaiting_approval' || batch.status === 'approved') {
+    if (batch.approvedSnapshotId) {
+      await ApprovedSnapshot.findByIdAndUpdate(batch.approvedSnapshotId, { status: 'superseded' });
+    }
     batch.approvedSnapshotId = null as any;
     batch.status = 'review';
   }

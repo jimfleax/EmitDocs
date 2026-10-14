@@ -13,6 +13,7 @@ import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { Badge } from "@/components/ui/Badge";
+import { toast } from "@/components/ui/toast";
 import {
   Select,
   SelectTrigger,
@@ -229,12 +230,18 @@ export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {
       }
 
       const { batch } = await res.json();
+      toast.success(
+        "Batch created",
+        `"${batchName.trim()}" is ready for data import.`,
+      );
       navigate({
         to: "/app/batches/$batchId/import",
         params: { batchId: batch._id },
       });
     } catch (err: any) {
-      setError(err.message || "Error creating batch");
+      const message = err.message || "Error creating batch";
+      setError(message);
+      toast.error("Failed to create batch", message);
       setIsSubmitting(false);
     }
   };

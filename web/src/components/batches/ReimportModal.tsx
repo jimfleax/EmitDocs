@@ -16,6 +16,7 @@ import {
 } from "./MatchResolutionTable";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 import type { ParsedSpreadsheetResult } from "@/lib/spreadsheet/spreadsheet-parser";
 import type { ReimportDiffResult } from "@/types/diff";
 
@@ -54,6 +55,8 @@ export function ReimportModal({
   const [diffResult, setDiffResult] = useState<ReimportDiffResult | null>(null);
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [isSubmittingReconcile, setIsSubmittingReconcile] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgressText, setUploadProgressText] = useState<string | undefined>();
 
   // Resolutions
   const [conflictDecisions, setConflictDecisions] = useState<
@@ -75,7 +78,9 @@ export function ReimportModal({
     fileMeta: { name: string; size: number; type: string },
   ) => {
     try {
+      setIsUploading(true);
       setParsedResult(result);
+      setUploadProgressText("Initializing re-import session...");
 
       // Create new import revision
       const initRes = await fetch(`/api/batches/${batchId}/imports`, {
@@ -103,6 +108,7 @@ export function ReimportModal({
       const totalChunks = Math.ceil(rows.length / CHUNK_SIZE);
 
       for (let i = 0; i < totalChunks; i++) {
+        setUploadProgressText(`Uploading chunk ${i + 1} of ${totalChunks}...`);
         const start = i * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, rows.length);
         const chunkRows = rows.slice(start, end).map((r, idx) => ({
@@ -130,6 +136,7 @@ export function ReimportModal({
       }
 
       // Finalize raw chunks
+      setUploadProgressText("Validating spreadsheet rows...");
       const finalizeRes = await fetch(
         `/api/batches/${batchId}/imports/${importId}/finalize`,
         {
@@ -151,9 +158,16 @@ export function ReimportModal({
         );
       }
 
+      toast.success(
+        "Spreadsheet uploaded",
+        "Spreadsheet data processed. Map columns to proceed.",
+      );
       setStep(2);
     } catch (err: any) {
       toast.error("Import Failed", err.message);
+    } finally {
+      setIsUploading(false);
+      setUploadProgressText(undefined);
     }
   };
 
@@ -265,8 +279,14 @@ export function ReimportModal({
 
           <button
             type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:bg-slate-800 transition-colors"
+            disabled={isUploading}
+            onClick={isUploading ? undefined : onClose}
+            className={cn(
+              "p-2 rounded-xl text-slate-400 transition-colors",
+              isUploading
+                ? "opacity-30 cursor-not-allowed"
+                : "hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:bg-slate-800",
+            )}
           >
             <X className="w-4 h-4" />
           </button>
@@ -280,7 +300,11 @@ export function ReimportModal({
                 Upload revised XLSX or CSV spreadsheet. Differences against
                 current Revision {currentRevision} will be computed.
               </p>
-              <DataFilePicker onParsed={handleFileParsed} />
+              <DataFilePicker
+                onParsed={handleFileParsed}
+                isLoading={isUploading}
+                loadingText={uploadProgressText}
+              />
             </div>
           )}
 

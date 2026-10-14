@@ -15,6 +15,8 @@ import { DraftRow } from '../models/DraftRow.js';
 import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
 import { getJsonBody } from '../lib/request.js';
+import { isTransactionUnsupportedError } from '../lib/transactions.js';
+export { isTransactionUnsupportedError };
 import {
   BatchIntake,
   BatchNotFoundError,
@@ -22,6 +24,12 @@ import {
   ChunkMismatchError,
   BatchIntakeValidationError,
 } from '../services/batch-intake.js';
+import {
+  BatchApproval,
+  StaleVersionConflictError,
+  BatchApprovalValidationError,
+  GenerationInProgressError,
+} from '../services/batch-approval.js';
 
 /**
  * @desc Creates a new bulk issuance batch attached to a template and verified mapped version.
@@ -585,7 +593,7 @@ export const patchDraftRow = async (c: Context) => {
       return c.json({ error: err.message }, 404);
     }
     if (err instanceof ConcurrencyConflictError) {
-      return c.json({ error: err.code }, 409);
+      return c.json({ error: err.code, code: err.code, message: err.message }, 409);
     }
     return c.json({ error: err.message || 'Failed to update draft row' }, 500);
   }
@@ -772,38 +780,6 @@ export const getBatchActivity = async (c: Context) => {
 };
 
 /**
- * Helper function determining if an error indicates that MongoDB transactions or sessions
- * are unsupported by the active deployment (e.g. standalone Mongo instances).
- *
- * @param {any} err - Caught error object from database operation or session initialization.
- * @returns {boolean} True if error indicates transactions/sessions are unsupported.
- */
-export function isTransactionUnsupportedError(err: any): boolean {
-  if (!err) return false;
-  if (err.code === 20 || err.code === 263 || err.code === 148) {
-    return true;
-  }
-  if (
-    err.codeName === 'IllegalOperation' ||
-    err.codeName === 'CommandNotSupported' ||
-    err.codeName === 'OperationNotSupportedInTransaction'
-  ) {
-    return true;
-  }
-  const msg = typeof err.message === 'string' ? err.message.toLowerCase() : '';
-  return (
-    msg.includes('replica set member or mongos') ||
-    msg.includes('transactions are not supported') ||
-    msg.includes('does not support transactions') ||
-    msg.includes('does not support retryable writes') ||
-    msg.includes('sessions are not supported') ||
-    msg.includes('standalone') ||
-    msg.includes('not supported by this deployment') ||
-    msg.includes('transaction management is not supported')
-  );
-}
-
-/**
  * Deletes a batch and cascades deletion to all associated draft rows and batch import records.
  *
  * @desc Atomically claims the batch for deletion before cleanup, then permanently removes the batch
@@ -819,12 +795,13 @@ export const deleteBatch = async (c: Context) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   const id = c.req.param('id');
+  let previousStatus: string | null = null;
   try {
     // Atomically claim the batch for deletion before cleanup, coordinating with generation state transitions
     const batch = await Batch.findOneAndUpdate(
       { _id: id, ownerId: user.id, status: { $ne: 'generating' } },
       { $set: { status: 'deleting' } },
-      { new: true }
+      { new: false }
     );
     if (!batch) {
       const existing = await Batch.findOne({ _id: id, ownerId: user.id });
@@ -836,6 +813,7 @@ export const deleteBatch = async (c: Context) => {
       }
       return c.json({ error: 'Cannot delete batch' }, 400);
     }
+    previousStatus = batch.status;
 
     // Wrap permanent cascade delete in a Mongoose session transaction where supported, fallback gracefully
     let session: mongoose.ClientSession | null = null;
@@ -885,8 +863,147 @@ export const deleteBatch = async (c: Context) => {
 
     return c.json({ success: true, message: 'Batch deleted' });
   } catch (err: any) {
+    if (previousStatus && previousStatus !== 'deleting') {
+      try {
+        await Batch.updateOne(
+          { _id: id, ownerId: user.id, status: 'deleting' },
+          { $set: { status: previousStatus } }
+        );
+      } catch {
+        // Status restoration failed or unsupported
+      }
+    }
     return c.json({ error: err.message || 'Failed to delete batch' }, 500);
   }
 };
+
+/**
+ * @desc Retrieves preflight review summary and verification metrics before batch approval.
+ * @route GET /api/batches/:id/approval-preflight
+ * @access Private
+ */
+export const getApprovalPreflight = async (c: Context) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const batchId = c.req.param('id');
+  if (!batchId) return c.json({ error: 'Batch ID is required' }, 400);
+
+  try {
+    const result = await BatchApproval.getApprovalPreflight({ batchId, ownerId: user.id });
+    return c.json(result);
+  } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: err.message }, 404);
+    }
+    return c.json({ error: err.message || 'Failed to fetch approval preflight' }, 500);
+  }
+};
+
+/**
+ * @desc Freezes valid batch rows into an immutable snapshot under optimistic concurrency checks.
+ * @route POST /api/batches/:id/approve
+ * @access Private
+ */
+export const approveBatch = async (c: Context) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const batchId = c.req.param('id');
+  if (!batchId) return c.json({ error: 'Batch ID is required' }, 400);
+
+  try {
+    const body = await getJsonBody(c);
+    const {
+      expectedBatchVersion,
+      expectedTemplateVersion,
+      expectedImportRevision,
+      retentionHours,
+      idempotencyKey,
+    } = body || {};
+
+    if (!idempotencyKey) {
+      return c.json({ error: 'Missing required field idempotencyKey', code: 'MISSING_IDEMPOTENCY_KEY' }, 400);
+    }
+
+    const result = await BatchApproval.approveBatch({
+      batchId,
+      ownerId: user.id,
+      expectedBatchVersion,
+      expectedTemplateVersion,
+      expectedImportRevision,
+      retentionHours,
+      idempotencyKey,
+    });
+
+    return c.json({ snapshot: result.snapshot }, 200);
+  } catch (err: any) {
+    if (err instanceof BatchNotFoundError) {
+      return c.json({ error: err.message }, 404);
+    }
+    if (err instanceof StaleVersionConflictError) {
+      return c.json({ error: err.message, code: err.code }, 409);
+    }
+    if (err instanceof GenerationInProgressError) {
+      return c.json({ error: err.message, code: err.code }, 409);
+    }
+    if (err instanceof BatchApprovalValidationError) {
+      return c.json({ error: err.message, code: err.code }, 400);
+    }
+    return c.json({ error: err.message || 'Failed to approve batch' }, 500);
+  }
+};
+
+/**
+ * @desc Retrieves the currently active approved snapshot for a batch.
+ * @route GET /api/batches/:id/snapshot
+ * @access Private
+ */
+export const getApprovedSnapshot = async (c: Context) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const batchId = c.req.param('id');
+  if (!batchId) return c.json({ error: 'Batch ID is required' }, 400);
+
+  try {
+    const snapshot = await BatchApproval.getApprovedSnapshot({ batchId, ownerId: user.id });
+    if (!snapshot) {
+      return c.json({ error: 'No approved snapshot found for this batch' }, 404);
+    }
+    return c.json({ snapshot });
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to fetch approved snapshot' }, 500);
+  }
+};
+
+/**
+ * @desc Retrieves paginated approved recipient records for a frozen snapshot.
+ * @route GET /api/batches/:id/snapshot/recipients
+ * @access Private
+ */
+export const getApprovedRecipients = async (c: Context) => {
+  const user = c.get('user');
+  if (!user) return c.json({ error: 'Unauthorized' }, 401);
+
+  const batchId = c.req.param('id');
+  if (!batchId) return c.json({ error: 'Batch ID is required' }, 400);
+
+  const page = parseInt(c.req.query('page') || '1', 10);
+  const limit = parseInt(c.req.query('limit') || '50', 10);
+
+  try {
+    const result = await BatchApproval.getApprovedRecipients({
+      batchId,
+      ownerId: user.id,
+      page,
+      limit,
+    });
+    return c.json(result);
+  } catch (err: any) {
+    return c.json({ error: err.message || 'Failed to fetch approved recipients' }, 500);
+  }
+};
+
 
 

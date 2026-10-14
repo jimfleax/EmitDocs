@@ -33,19 +33,18 @@
 
 - Snapshot contains template version/source checksum, mapping/style hash, import revision, effective data, overrides and canonical digest.
 - Staged snapshot is approved only after count/digest reconciliation.
-- Each output tied to an immutable snapshot recipient.
-- One active browser lease per batch. Chunk and concurrency limits configurable and benchmarked.
-- Browser closure pauses work; persisted checkpoints enable resume after return.
-- Cancel at safe boundary; preserve completed files. ZIP is bounded/split or stopped gracefully under tested cap.
+- Generated PDFs are computed on-the-go in a Web Worker; zero individual recipient PDFs are uploaded or stored in Cloudinary/cloud storage.
+- UI provides instant (<20ms) single-recipient preview and download.
+- ZIP packaging streams directly in the browser via `client-zip` with 1,000-document volume splitting and bounded memory (<150MB).
+- Cancel at safe boundary. Closing browser leaves batch in `approved` state ready to regenerate/download on return.
 
 ## Retention/deletion
 
 - Allowed presets: 24 hours, 7 days, 30 days; 7-day default, 30-day max.
-- Saved template PDF retained until template deletion. Job imports, row PII, snapshots, previews, outputs and ZIPs follow job retention.
-- Abandoned draft retention starts at creation; output timer starts when generation reaches terminal state; exact expiry is persisted and never silently extended.
-- After job expiry, keep aggregate counts/timestamps only. Future unsent mail expires as `expired_unsent`.
-- Daily cleanup sweep issues direct R2 deletes and records/retries errors; R2 lifecycle is backstop; MongoDB TTL is not cleanup for R2.
-- Enforce logical expiry immediately, deny fresh download URLs and remove regular UI access even if physical deletion pending. Disclose possible physical deletion delay.
+- Saved template PDF retained in Cloudinary until explicit template deletion. Job imports, row PII, and snapshot recipient data follow batch retention.
+- Batch expiry strictly prunes MongoDB recipient PII and snapshot records (via TTL/pruner). Zero Cloudinary deletion calls needed for batch expiry.
+- Cloudinary deletion API calls occur strictly upon explicit template deletion or complete user account deletion.
+- Enforce logical expiry immediately, deny recipient access and remove regular UI access. Disclose possible physical deletion delay.
 - Account deletion requires confirmation, immediate session revocation, stop new work and schedule owned-resource deletion. Retain only non-identifying cleanup evidence.
 
 ## Logging, errors and accessibility

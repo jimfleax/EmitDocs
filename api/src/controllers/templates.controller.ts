@@ -156,11 +156,12 @@ export const getTemplateById = async (c: Context) => {
  * Permanently deletes a template.
  * Checks for cascade confirmation if dependent batches exist.
  * Returns HTTP 409 CASCADE_CONFIRMATION_REQUIRED if confirmCascade is omitted.
+ * Performs post-deletion mark-and-sweep cleanup of unreferenced Cloudinary assets for the owner.
  * 
- * @desc Permanently deletes a template and its versions, optionally cascading to batches.
+ * @desc Permanently deletes a template and its versions, optionally cascading to batches and purging unreferenced assets.
  * @route DELETE /api/templates/:id
  * @access Private
- * @returns {Promise<Response>} 200 JSON with `{ success: true, message: 'Template deleted' }`, or 409 if batches exist, or 404 if not found.
+ * @returns {Promise<Response>} 200 JSON with `{ success: true, message: 'Template deleted', cleanup?: CloudinaryCleanupSummary }`, or 409 if batches exist, or 404 if not found.
  */
 export const deleteTemplate = async (c: Context) => {
   const user = c.get('user');

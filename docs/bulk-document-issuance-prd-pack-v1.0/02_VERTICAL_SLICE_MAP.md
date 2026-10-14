@@ -10,9 +10,9 @@ Each stage must deliver a coherent, testable user capability across UI, API, per
 | 3 | CORE-04 | User imports spreadsheet and sees validated rows | Batch, parser, validation rules, MongoDB | Row errors and duplicate warnings are accurate |
 | 4 | CORE-05 | User reviews every draft, edits and reconciles re-imports | Preview pipeline, import revisions | No silent row loss/matching |
 | 5 | CORE-06 | User approves immutable data/template revision | Template/import versions and row state | Snapshot digest/count stable and immutable |
-| 6 | CORE-07 | User generates PDFs with progress/resume | Snapshot, R2, MongoDB lease/checkpoint | Interruption/retries don't duplicate or misassign outputs |
-| 7 | CORE-08 | User downloads PDFs/ZIP archives | Output records, signed URLs, ZIP strategy | Archive integrity and limits tested |
-| 8 | CORE-09 | Files expire and deletion is retried | All resources plus cleanup ledger | Logical expiry, cleanup retry and account deletion pass |
+| 6 | CORE-07 | User generates PDFs on-demand in Web Worker | Snapshot, Cloudinary base template, Web Worker | Instant preview (<20ms) and non-blocking background generation work |
+| 7 | CORE-08 | User streams batch into bounded ZIP archives | Approved snapshot, `client-zip`, volume splitter | Streaming ZIP generates client-side without cloud storage; volume splitting works |
+| 8 | CORE-09 | Batch PII expires; templates/account deleted | MongoDB TTL, Cloudinary template API | Logical expiry prunes MongoDB PII; Cloudinary removes deleted templates |
 | 9 | CORE-10 | Maintainer can run private pilot safely | All prior stages, CI, runbooks | Private pilot gates pass; public blocker documented |
 | Deferred | D-01 | Send one attached PDF per recipient | Provider/account eligibility, quota/expiry preflight | Correct attachments, reconciliation and abuse controls pass |
 | Deferred | D-02 | Lightweight PDF editor | CORE-02/03 | Edits save as immutable template versions |
@@ -28,9 +28,10 @@ Each stage must deliver a coherent, testable user capability across UI, API, per
 - Auth and PDF fixture work can proceed in parallel, but no real data before ownership/security tests pass.
 - Import parsing should use bounded chunks, not one large JSON request.
 - Review and snapshot creation must agree on import revisions, manual overrides, validation and canonical digest.
-- One browser dispatcher owns a batch lease. The MongoDB queue records work but doesn't autonomously execute.
-- Browser close pauses generation; persisted checkpoints enable recovery on return.
-- Outputs are durable in R2, not only in browser memory. ZIP generation has tested memory/splitting limits.
+- Batch generation runs in a client-side Web Worker; the API and MongoDB serve immutable snapshot metadata.
+- Generated PDFs are created on-the-go and are never stored in Cloudinary/cloud storage.
+- ZIP packaging streams directly in the browser via `client-zip` with 1,000-document volume splitting.
+- Retention prunes MongoDB recipient PII upon expiry; Cloudinary deletions only occur on explicit template/account delete.
 - Retention and deletion are required before real-data pilots.
 - Email is not a dependency of generation/downloads and remains disabled in the first live prototype.
 

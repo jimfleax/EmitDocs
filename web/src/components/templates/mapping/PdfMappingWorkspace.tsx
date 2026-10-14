@@ -171,10 +171,21 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
 
   // Concurrency & saving
   const [isSaving, setIsSaving] = useState(false);
+  const [hasSavedOnce, setHasSavedOnce] = useState(false);
   const [saveSuccessMessage, setSaveSuccessMessage] = useState<string | null>(
     null,
   );
   const [casError, setCasError] = useState<string | null>(null);
+
+  // Distinguishes initial draft mapping creation from subsequent version modifications
+  const isInitialCreate = useMemo(() => {
+    if (hasSavedOnce) return false;
+    if (!version) return true;
+    if (version.status === "draft") return true;
+    if (!version.fieldMappings || version.fieldMappings.length === 0)
+      return true;
+    return false;
+  }, [version, hasSavedOnce]);
 
   // Viewport configuration for coordinate transformation (scale: 1.0 for canonical canvas)
   const currentViewport: ViewportConfig = useMemo(
@@ -730,10 +741,11 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
 
       const data = await res.json();
       setVersion(data.version);
+      setHasSavedOnce(true);
       const successMsg = `Saved as immutable Version ${data.version.version}!`;
       setSaveSuccessMessage(successMsg);
       toast.success(
-        "Template Saved",
+        "Template Mappings Saved",
         `Version ${data.version.version} created and published successfully.`,
       );
       setTimeout(() => setSaveSuccessMessage(null), 4000);
@@ -1082,17 +1094,32 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-slate-100 flex flex-col rounded-3xl lg:rounded-[28px]">
-      {/* Fixed Top-Left Back Button */}
-      <Tooltip content="Back to Template Details" side="bottom">
-        <Link
-          to="/app/templates/$templateId"
-          params={{ templateId }}
-          className="absolute top-3 left-3 z-40 flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md hover:shadow-lg rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-white transition-all select-none"
-        >
-          <ArrowLeft size={16} weight="bold" />
-          <span>Back</span>
-        </Link>
-      </Tooltip>
+      {/* Fixed Top-Left Navigation & Template Metadata */}
+      <div className="absolute top-3 left-3 z-40 flex items-center gap-2">
+        <Tooltip content="Back to Template Details" side="bottom">
+          <Link
+            to="/app/templates/$templateId"
+            params={{ templateId }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md hover:shadow-lg rounded-xl text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-white transition-all select-none cursor-pointer"
+          >
+            <ArrowLeft size={16} weight="bold" />
+            <span>Back</span>
+          </Link>
+        </Tooltip>
+
+        {template && (
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-md border border-slate-200/90 shadow-md rounded-xl text-xs select-none">
+            <span className="font-semibold text-slate-800 truncate max-w-[140px] md:max-w-[200px]">
+              {template.name}
+            </span>
+            {version?.version !== undefined && (
+              <span className="px-1.5 py-0.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-md font-mono text-[10px] font-bold tracking-tight">
+                v{version.version}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
 
       {viewMode === "preview" ? (
         // Full Preview Mode
@@ -1186,6 +1213,7 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
               onChangeSamplePreset={setSamplePreset}
               onSaveVersion={handleSaveVersion}
               isSaving={isSaving}
+              isInitialCreate={isInitialCreate}
               saveSuccessMessage={saveSuccessMessage}
               casError={casError}
               onFitView={handleFitView}

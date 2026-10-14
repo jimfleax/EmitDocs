@@ -40,7 +40,6 @@ self.addEventListener('install', (event) => {
           )
         );
       })
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -83,7 +82,15 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const clone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+            caches.open(RUNTIME_CACHE).then((cache) => {
+              cache.put(request, clone);
+              cache.put('/index.html', response.clone());
+            });
+            // Keep precached index.html shell up to date with new deployments
+            caches.open(PRECACHE_NAME).then((cache) => {
+              cache.put('/index.html', response.clone());
+              cache.put('/', response.clone());
+            });
           }
           return response;
         })
@@ -91,7 +98,7 @@ self.addEventListener('fetch', (event) => {
           // Fallback to cached route or root index.html
           const cached = await caches.match(request);
           if (cached) return cached;
-          const spaShell = await caches.match('/index.html');
+          const spaShell = (await caches.match('/index.html')) || (await caches.match('/'));
           return spaShell || Response.error();
         })
     );
@@ -110,8 +117,15 @@ self.addEventListener('fetch', (event) => {
       fetch(request)
         .then((response) => {
           if (response.ok) {
-            const clone = response.clone();
-            caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+            const cacheControl = response.headers.get('Cache-Control') || '';
+            const isNoStoreOrPrivate =
+              cacheControl.toLowerCase().includes('no-store') ||
+              cacheControl.toLowerCase().includes('private');
+
+            if (!isNoStoreOrPrivate) {
+              const clone = response.clone();
+              caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, clone));
+            }
           }
           return response;
         })

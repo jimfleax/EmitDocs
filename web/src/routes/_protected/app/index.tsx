@@ -284,19 +284,24 @@ function AppIndexRoute() {
       try {
         setLoadingBatches(true);
         const res = await fetch("/api/batches", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (!isCancelled) {
-            const list: BatchItem[] = Array.isArray(data)
-              ? data
-              : Array.isArray(data?.batches)
-                ? data.batches
-                : [];
-            setBatches(list);
-          }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!isCancelled) {
+          const list: BatchItem[] = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.batches)
+              ? data.batches
+              : [];
+          setBatches(list);
         }
       } catch (err) {
         console.error("Failed to fetch batches:", err);
+        if (!isCancelled) {
+          toast.error(
+            "Failed to load batches",
+            err instanceof Error ? err.message : "Network error",
+          );
+        }
       } finally {
         if (!isCancelled) {
           setLoadingBatches(false);
@@ -308,19 +313,24 @@ function AppIndexRoute() {
       try {
         setLoadingTemplates(true);
         const res = await fetch("/api/templates", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json();
-          if (!isCancelled) {
-            const list: TemplateItem[] = Array.isArray(data)
-              ? data
-              : Array.isArray(data?.templates)
-                ? data.templates
-                : [];
-            setTemplates(list);
-          }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!isCancelled) {
+          const list: TemplateItem[] = Array.isArray(data)
+            ? data
+            : Array.isArray(data?.templates)
+              ? data.templates
+              : [];
+          setTemplates(list);
         }
       } catch (err) {
         console.error("Failed to fetch templates:", err);
+        if (!isCancelled) {
+          toast.error(
+            "Failed to load templates",
+            err instanceof Error ? err.message : "Network error",
+          );
+        }
       } finally {
         if (!isCancelled) {
           setLoadingTemplates(false);
@@ -407,11 +417,11 @@ function AppIndexRoute() {
   }, [batches]);
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 lg:gap-12 xl:gap-14 w-full min-w-0">
+    <div className="grid grid-cols-1 xl:grid-cols-12 gap-10 lg:gap-12 xl:gap-14 w-full h-full min-h-0 overflow-hidden">
       {/* ======================================================== */}
       {/* Left Main Column: Title & Two-Column Activity Lists      */}
       {/* ======================================================== */}
-      <div className="xl:col-span-8 space-y-10 sm:space-y-12 min-w-0">
+      <div className="xl:col-span-8 h-full min-h-0 overflow-y-auto custom-scrollbar space-y-10 sm:space-y-12 min-w-0 pr-2">
         {/* Header: Page Title & Date Range */}
         <div className="space-y-3.5 sm:space-y-4.5 pt-1 sm:pt-2">
           <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
@@ -737,7 +747,7 @@ function AppIndexRoute() {
       {/* ======================================================== */}
       {/* Right Column: 4 Metrics Cards, Activity Chart & Promo     */}
       {/* ======================================================== */}
-      <div className="xl:col-span-4 flex flex-col justify-between space-y-8 pt-6 xl:pt-0 xl:border-l xl:border-slate-100/80 xl:pl-10 min-w-0">
+      <div className="xl:col-span-4 h-full min-h-0 overflow-y-auto custom-scrollbar flex flex-col justify-between space-y-8 pt-6 xl:pt-0 xl:border-l xl:border-slate-100/80 xl:pl-10 min-w-0 pr-2">
         {/* 1. 4-Card Metrics Container */}
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3.5 sm:gap-4">

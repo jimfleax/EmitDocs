@@ -13,10 +13,11 @@ import {
   MagnifyingGlassMinus,
   ArrowsIn,
   FilePdf,
+  Warning,
+  X,
 } from "@phosphor-icons/react";
 import { PreviewDocumentPane } from "@/components/templates/mapping/PreviewDocumentPane";
 import { OverflowBadge } from "./OverflowBadge";
-import { Alert } from "@/components/ui/Alert";
 import { EmptyState } from "@/components/ui/EmptyState";
 import type { EngineWarning } from "@/lib/pdf-engine/pdf-preview-engine";
 import type { DraftRowItem } from "./RowEditor";
@@ -52,6 +53,10 @@ export function RecipientPreviewPanel({
   const [activePageIndex, setActivePageIndex] = useState<number>(0);
   const [warnings, setWarnings] = useState<EngineWarning[]>([]);
   const [jumpInput, setJumpInput] = useState<string>("");
+  const [dismissedRowId, setDismissedRowId] = useState<string | null>(null);
+  const isOverflowDismissed =
+    dismissedRowId !== null &&
+    dismissedRowId === (selectedRow?._id || selectedRow?.rowKey || "__current__");
 
   const pageCount = templateVersion?.pageCount || 1;
   const fieldMappings = useMemo(
@@ -209,14 +214,39 @@ export function RecipientPreviewPanel({
         </div>
       </div>
 
-      {/* Overflow Warning Notice */}
-      {hasOverflow && (
-        <div className="px-4 pt-3 shrink-0">
-          <Alert variant="warning" title="Layout Bounds Overflow">
-            One or more text fields exceed the bounding box on this certificate.
-            Values will be shrunk down or visually clipped. Review field size in
-            template editor or shorten row data.
-          </Alert>
+      {/* Compact Overflow Warning Notice */}
+      {hasOverflow && !isOverflowDismissed && (
+        <div className="px-4 pt-2.5 shrink-0">
+          <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-amber-50/90 border border-amber-200/90 rounded-xl text-xs text-amber-900 shadow-2xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <Warning
+                size={15}
+                weight="fill"
+                className="text-amber-500 shrink-0"
+              />
+              <div className="truncate text-xs">
+                <span className="font-bold text-amber-950 mr-1.5">
+                  Layout Bounds Overflow:
+                </span>
+                <span className="text-amber-800 text-[11px] sm:text-xs">
+                  Field content exceeds boundaries and will be scaled or clipped.
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setDismissedRowId(
+                  selectedRow?._id || selectedRow?.rowKey || "__current__",
+                )
+              }
+              className="p-1 text-amber-600 hover:text-amber-900 rounded-md hover:bg-amber-100 transition-colors shrink-0 cursor-pointer"
+              title="Dismiss warning"
+              aria-label="Dismiss warning"
+            >
+              <X size={13} weight="bold" />
+            </button>
+          </div>
         </div>
       )}
 

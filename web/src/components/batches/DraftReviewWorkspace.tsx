@@ -6,6 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "@tanstack/react-router";
 import {
   Eye,
   PencilSimple,
@@ -34,6 +35,7 @@ export interface DraftReviewWorkspaceProps {
  * @returns {JSX.Element} Review interface with left draft list and right-hand preview/editor pane.
  */
 export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
+  const navigate = useNavigate();
   const [batch, setBatch] = useState<any>(null);
   const [template, setTemplate] = useState<any>(null);
   const [templateVersion, setTemplateVersion] = useState<any>(null);
@@ -146,11 +148,17 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
   };
 
   const handleApproveBatch = () => {
-    if (!batch || batch.invalidRows > 0) return;
-    toast.success(
-      "Batch Approved",
-      "Draft rows verified. Ready for document generation.",
-    );
+    if (!batch || (batch.validRows === 0 && batch.totalRows > 0)) {
+      toast.warning(
+        "No Valid Rows",
+        "At least one valid recipient is required to approve the batch."
+      );
+      return;
+    }
+    navigate({
+      to: "/app/batches/$batchId/approve",
+      params: { batchId },
+    });
   };
 
   const titleSlot = (
@@ -212,10 +220,10 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
       <button
         type="button"
         onClick={handleApproveBatch}
-        disabled={!batch || batch.invalidRows > 0}
+        disabled={!batch || batch.validRows === 0}
         className={cn(
           "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all select-none",
-          batch && batch.invalidRows === 0
+          batch && batch.validRows > 0
             ? "bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 text-white dark:text-slate-950 cursor-pointer active:scale-[0.98]"
             : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed",
         )}

@@ -272,10 +272,12 @@ export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({
           return (
             <Tooltip
               key={`token-${idx}`}
+              asChild
               content={`Click to convert placeholder "{{${token.key}}}" into an editable field`}
               side="top"
             >
               <div
+                data-token-placeholder="true"
                 onClick={(e) => {
                   e.stopPropagation();
                   onConfirmToken(token);

@@ -7,7 +7,6 @@
   "main": "api/index.ts",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
     "build:tsc": "tsc"
   },
   "dependencies": {

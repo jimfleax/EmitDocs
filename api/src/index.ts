@@ -211,7 +211,7 @@ app.onError((err, c) => {
   )
 })
 
-import { getRequestListener } from '@hono/node-server'
+import { getRequestListener, serve } from '@hono/node-server'
 
 /**
  * Serverless function configuration disabling automated body parsing so raw streams remain readable.
@@ -231,3 +231,14 @@ export const honoApp = app
  * Default Node.js request listener handler for production deployment and local development.
  */
 export default getRequestListener(app.fetch)
+
+// In local Node development outside Vercel, start the HTTP server on port 3000
+if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
+  const port = Number(process.env.PORT) || 3000
+  serve({
+    fetch: app.fetch,
+    port,
+  }, (info) => {
+    console.log(`[EmitDocs API] Server listening on http://localhost:${info.port}`)
+  })
+}

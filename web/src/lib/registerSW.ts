@@ -13,7 +13,20 @@ export interface SWUpdateEventDetail {
 export const SW_UPDATE_EVENT = "emitdocs:sw-update-available";
 
 let swRegistration: ServiceWorkerRegistration | null = null;
+let latestWaitingWorker: ServiceWorker | null = null;
 let isUpdateListenerBound = false;
+
+/**
+ * Returns the currently waiting ServiceWorker instance, if one exists.
+ */
+export function getWaitingWorker(): ServiceWorker | null {
+  return (
+    latestWaitingWorker ||
+    (swRegistration?.waiting && navigator.serviceWorker?.controller
+      ? swRegistration.waiting
+      : null)
+  );
+}
 
 /**
  * Registers the Service Worker in production/supported environments.
@@ -42,6 +55,7 @@ export function registerServiceWorker(): void {
             navigator.serviceWorker.controller
           ) {
             // A new version has been installed and is waiting
+            latestWaitingWorker = newWorker;
             window.dispatchEvent(
               new CustomEvent<SWUpdateEventDetail>(SW_UPDATE_EVENT, {
                 detail: { registration, waitingWorker: newWorker },
@@ -53,6 +67,7 @@ export function registerServiceWorker(): void {
 
       // If a worker is already in waiting state on page load
       if (registration.waiting && navigator.serviceWorker.controller) {
+        latestWaitingWorker = registration.waiting;
         window.dispatchEvent(
           new CustomEvent<SWUpdateEventDetail>(SW_UPDATE_EVENT, {
             detail: {
@@ -91,7 +106,7 @@ export function registerServiceWorker(): void {
  * Tells the waiting Service Worker to skip waiting and activate immediately.
  */
 export function applyServiceWorkerUpdate(waitingWorker?: ServiceWorker | null): void {
-  const worker = waitingWorker || swRegistration?.waiting;
+  const worker = waitingWorker || latestWaitingWorker || swRegistration?.waiting;
   if (worker) {
     worker.postMessage({ type: "SKIP_WAITING" });
   } else {

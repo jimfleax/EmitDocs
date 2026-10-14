@@ -36,15 +36,26 @@ print_usage() {
   echo "  - api (backend)"
 }
 
+kill_tree() {
+  local pid=$1
+  local sig=${2:-TERM}
+  local children
+  children=$(pgrep -P "$pid" 2>/dev/null || true)
+  for child in $children; do
+    kill_tree "$child" "$sig"
+  done
+  kill -"$sig" "$pid" 2>/dev/null || true
+}
+
 cleanup() {
   trap - SIGINT SIGTERM EXIT
   echo -e "\n${COLOR_RED}Shutting down servers...${COLOR_RESET}"
   for pid in "${PIDS[@]}"; do
-    if kill -0 "$pid" 2>/dev/null; then
-      kill -TERM "$pid" 2>/dev/null
-    fi
+    kill_tree "$pid" TERM
   done
-  wait "${PIDS[@]}" 2>/dev/null
+  fuser -k 3000/tcp 2>/dev/null || true
+  fuser -k 5173/tcp 2>/dev/null || true
+  wait "${PIDS[@]}" 2>/dev/null || true
   exit 0
 }
 
@@ -116,6 +127,10 @@ while [[ $# -gt 0 ]]; do
       trap - SIGINT SIGTERM EXIT
       exit 0
       ;;
+    --vercel)
+      USE_VERCEL=1
+      shift
+      ;;
     *)
       echo "Unknown option: $1"
       print_usage
@@ -133,16 +148,31 @@ if [ "$RUN_FORMAT" -eq 1 ]; then
   run_format
 fi
 
+# Pre-flight: ensure ports 3000 and 5173 are free
+for port in 3000 5173; do
+  if lsof -i :"$port" >/dev/null 2>&1; then
+    echo -e "${COLOR_YELLOW}Port $port is in use. Releasing port...${COLOR_RESET}"
+    fuser -k "$port"/tcp 2>/dev/null || true
+    sleep 0.5
+  fi
+done
+
 # Concurrent Server Phase
 set +e
 
 echo -e "${COLOR_GREEN}Starting servers...${COLOR_RESET}"
 
+BACKEND_CMD="$PKG_MANAGER run dev"
+if [ "${USE_VERCEL:-0}" -eq 1 ]; then
+  BACKEND_CMD="vercel dev --yes"
+fi
+
 run_with_prefix "web" "$PKG_MANAGER run dev" "frontend" "$COLOR_BLUE"
-run_with_prefix "api" "vercel dev --yes" "backend" "$COLOR_GREEN"
+run_with_prefix "api" "$BACKEND_CMD" "backend" "$COLOR_GREEN"
 
 # Wait for the first server to exit (e.g. crash)
 wait -n
 
 echo -e "${COLOR_RED}A server has exited. Initiating shutdown...${COLOR_RESET}"
 cleanup
+

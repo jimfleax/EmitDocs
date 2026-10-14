@@ -42,12 +42,15 @@ import {
   ArrowsOutLineHorizontal,
   ArrowsOutLineVertical,
   Question,
+  Check,
+  CheckCircle,
 } from "@phosphor-icons/react";
 import type { AlignmentAction } from "@/lib/pdf-engine/alignment-tools";
 
 export interface FloatingTopToolbarProps {
   templateName?: string;
   versionNumber?: number;
+  isInitialCreate?: boolean;
   activePageIndex: number;
   pageCount: number;
   onPrevPage: () => void;
@@ -105,6 +108,7 @@ type TabType = "properties" | "fields" | "tokens" | "warnings";
 const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   templateName,
   versionNumber,
+  isInitialCreate = false,
   activePageIndex,
   pageCount,
   onPrevPage,
@@ -694,32 +698,71 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
             </Tooltip>
           )}
 
-          {/* Save Button */}
-          <div className="flex items-center gap-1 shrink-0">
+          {/* Version Badge & Save Action */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Version Badge */}
+            {versionNumber !== undefined && (
+              <Tooltip
+                content={`Active template version: v${versionNumber}`}
+                side="bottom"
+              >
+                <span className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 rounded-md font-mono text-[10px] font-bold shrink-0 transition-all select-none cursor-default">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
+                      saveSuccessMessage ? "bg-emerald-500 animate-pulse" : "bg-blue-500"
+                    }`}
+                  />
+                  v{versionNumber}
+                </span>
+              </Tooltip>
+            )}
+
             {casError && (
               <Tooltip content={casError} side="bottom">
-                <span className="text-[9px] text-red-600 bg-red-50 border border-red-200 px-1 py-0.5 rounded truncate max-w-[80px]">
+                <span className="text-[10px] font-medium text-red-600 bg-red-50 border border-red-200 px-1.5 py-0.5 rounded truncate max-w-[100px]">
                   Conflict
                 </span>
               </Tooltip>
             )}
-            {saveSuccessMessage && (
-              <span className="text-[9px] text-emerald-600 bg-emerald-50 border border-emerald-200 px-1 py-0.5 rounded truncate max-w-[80px]">
-                Saved
-              </span>
-            )}
+
             <Tooltip
-              content="Save and create new template version"
+              content={
+                isInitialCreate
+                  ? "Save and create initial template version"
+                  : `Save changes and publish new immutable version (v${(versionNumber ?? 1) + 1})`
+              }
               side="bottom"
             >
               <Button
                 size="sm"
                 disabled={isSaving}
                 onClick={onSaveVersion}
-                className="h-7 px-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-300 text-white rounded-lg text-[11px] font-semibold shadow-xs flex items-center gap-1 shrink-0 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                className={`h-7 px-2.5 rounded-lg text-[11px] font-semibold shadow-xs flex items-center gap-1.5 shrink-0 transition-all cursor-pointer disabled:cursor-not-allowed ${
+                  saveSuccessMessage
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20"
+                    : "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:bg-blue-300 text-white shadow-blue-500/20"
+                }`}
               >
-                <FloppyDisk size={12} weight="bold" />
-                <span>{isSaving ? "..." : "Create"}</span>
+                {isSaving ? (
+                  <>
+                    <ArrowClockwise
+                      size={12}
+                      weight="bold"
+                      className="animate-spin"
+                    />
+                    <span>Saving...</span>
+                  </>
+                ) : saveSuccessMessage ? (
+                  <>
+                    <Check size={12} weight="bold" />
+                    <span>Saved!</span>
+                  </>
+                ) : (
+                  <>
+                    <FloppyDisk size={12} weight="bold" />
+                    <span>{isInitialCreate ? "Create" : "Save"}</span>
+                  </>
+                )}
               </Button>
             </Tooltip>
           </div>
@@ -760,6 +803,14 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
             </Button>
           </Tooltip>
         </div>
+
+        {/* Floating Success Notification Pill when saved */}
+        {saveSuccessMessage && !isDrawerOpen && (
+          <div className="mt-2 px-3.5 py-1 bg-emerald-600/95 backdrop-blur-md text-white border border-emerald-400/80 rounded-full shadow-lg text-xs font-medium flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200 select-none">
+            <CheckCircle size={14} weight="fill" className="text-white shrink-0" />
+            <span>{saveSuccessMessage}</span>
+          </div>
+        )}
 
         {/* Attached Expandable Inspector Drawer */}
         {isDrawerOpen && (

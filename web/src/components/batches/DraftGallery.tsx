@@ -21,6 +21,7 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { DraftGallerySkeleton } from "@/components/skeletons/DraftGallerySkeleton";
+import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import type { DraftRowItem } from "./RowEditor";
 
@@ -127,7 +128,9 @@ export function DraftGallery({
         }
       } catch (err: any) {
         if (isMounted) {
-          setApiError(err.message || "Error loading draft gallery");
+          const message = err.message || "Error loading draft gallery";
+          setApiError(message);
+          toast.error("Failed to load drafts", message);
         }
       } finally {
         if (isMounted) {
@@ -203,7 +206,18 @@ export function DraftGallery({
       </div>
 
       {/* Row List / Table */}
-      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+      <div
+        className={cn(
+          "flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800 relative transition-opacity duration-150",
+          isLoading && rows.length > 0 && "opacity-50 pointer-events-none",
+        )}
+      >
+        {isLoading && rows.length > 0 && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-20 px-3 py-1 bg-white/90 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 rounded-full shadow-md text-[11px] font-semibold text-blue-600 flex items-center gap-1.5 backdrop-blur-xs">
+            <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
+            <span>Refreshing drafts...</span>
+          </div>
+        )}
         {isLoading && rows.length === 0 ? (
           <DraftGallerySkeleton count={6} />
         ) : apiError ? (

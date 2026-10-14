@@ -32,6 +32,35 @@ export function dismissToast(id: string) {
 }
 
 /**
+ * @desc Clears all active toast notifications.
+ */
+export function clearToasts() {
+  activeToasts = [];
+  notify();
+}
+
+/**
+ * @desc Subscribes an external listener to active toast changes.
+ * @param {ToastListener} listener - Callback invoked with cloned toast items.
+ * @returns {() => void} Unsubscribe function.
+ */
+export function subscribeToasts(listener: ToastListener): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+/**
+ * @desc Returns current snapshot of active toast notifications.
+ * @returns {ToastItem[]} Copy of active toasts.
+ */
+export function getActiveToasts(): ToastItem[] {
+  return [...activeToasts];
+}
+
+
+/**
  * @desc Triggers a toast notification with the given options or title message.
  * @param {Omit<ToastItem, "id"> | string} options - Toast message text or full configuration object.
  * @returns {string} Unique toast ID for programmatic dismissal.
@@ -87,6 +116,9 @@ toast.loading = (
   });
 
 toast.dismiss = dismissToast;
+toast.clear = clearToasts;
+toast.subscribe = subscribeToasts;
+toast.getActive = getActiveToasts;
 
 /**
  * @hook useToast
@@ -98,10 +130,7 @@ export function useToast() {
   const [items, setItems] = useState<ToastItem[]>(activeToasts);
 
   useEffect(() => {
-    listeners.add(setItems);
-    return () => {
-      listeners.delete(setItems);
-    };
+    return subscribeToasts(setItems);
   }, []);
 
   return { toasts: items, dismiss: dismissToast, toast };

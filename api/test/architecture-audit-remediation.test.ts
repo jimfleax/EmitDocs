@@ -318,6 +318,8 @@ async function runTests() {
     assert.ok(await Batch.findById(bRollback._id));
     assert.ok(await BatchImport.findById(impRollback._id));
     assert.strictEqual((await DraftRow.find({ batchId: bRollback._id })).length, 1);
+    const bRollbackDoc = await Batch.findById(bRollback._id);
+    assert.strictEqual(bRollbackDoc?.status, 'draft', 'Rollback must restore previous status');
   } finally {
     Template.deleteOne = originalDeleteOne;
     // Clean up rollback fixtures
@@ -329,6 +331,177 @@ async function runTests() {
   }
 
   console.log('   ✓ Full cascade permanent deletion and transactional rollback verified\n');
+
+  // =========================================================================
+  // Requirement 3c: Atomic dependent batch deletion & claim in template cascade
+  // =========================================================================
+  console.log('3c. Testing atomic dependent-batch cascade deletion & generating check...');
+  const tAtomic = await Template.create({ ownerId: testOwner, name: 'Atomic Cascade Template' });
+  const vAtomic = await TemplateVersion.create({
+    templateId: tAtomic._id,
+    ownerId: testOwner,
+    version: 1,
+    sourceObjectKey: `templates/${testOwner}/doc_atomic.pdf`,
+    bytes: 1024,
+    pageCount: 1,
+    status: 'active',
+    fieldMappings: sampleFieldMappings,
+    mappingHash: computeMappingHash(sampleFieldMappings),
+  });
+  tAtomic.currentVersionId = vAtomic._id as any;
+  await tAtomic.save();
+
+  const bAtomic1 = await Batch.create({
+    ownerId: testOwner,
+    templateId: tAtomic._id,
+    templateVersionId: vAtomic._id,
+    name: 'Atomic Batch 1',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 1,
+  });
+
+  const bAtomic2 = await Batch.create({
+    ownerId: testOwner,
+    templateId: tAtomic._id,
+    templateVersionId: vAtomic._id,
+    name: 'Atomic Batch 2',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 1,
+  });
+
+  // Intercept Batch.deleteMany inside transaction to simulate bAtomic2 becoming generating
+  const origBatchDeleteMany = Batch.deleteMany;
+  let simulatedRaceTriggered = false;
+  Batch.deleteMany = (async (query: any, opts: any) => {
+    if (opts?.session && query?._id?.$in && !simulatedRaceTriggered) {
+      simulatedRaceTriggered = true;
+      // Simulate that only 1 batch was deleted because the other was generating
+      return { acknowledged: true, deletedCount: 1 };
+    }
+    return origBatchDeleteMany.call(Batch, query, opts);
+  }) as any;
+
+  try {
+    await assert.rejects(
+      async () =>
+        TemplateLifecycle.deleteTemplate({
+          templateId: tAtomic._id,
+          ownerId: testOwner,
+          confirmCascade: true,
+        }),
+      (err: any) => {
+        assert.strictEqual(err instanceof TemplateValidationError, true);
+        assert.strictEqual(err.code, 'BATCH_GENERATING');
+        return true;
+      }
+    );
+
+    // Verify template and batches were NOT removed
+    assert.ok(await Template.findById(tAtomic._id));
+    assert.ok(await Batch.findById(bAtomic1._id));
+    assert.ok(await Batch.findById(bAtomic2._id));
+  } finally {
+    Batch.deleteMany = origBatchDeleteMany;
+    await Batch.deleteOne({ _id: bAtomic1._id });
+    await Batch.deleteOne({ _id: bAtomic2._id });
+    await TemplateVersion.deleteMany({ templateId: tAtomic._id });
+    await Template.deleteOne({ _id: tAtomic._id });
+  }
+  console.log('   ✓ Atomic dependent-batch cascade deletion & generating check verified\n');
+
+  // =========================================================================
+  // Requirement 3d: Fallback deletion order: DraftRow/BatchImport -> Batch -> TemplateVersion -> Template
+  // =========================================================================
+  console.log('3d. Testing fallback deletion order...');
+  const tFallbackOrder = await Template.create({ ownerId: testOwner, name: 'Fallback Order Template' });
+  const vFallbackOrder = await TemplateVersion.create({
+    templateId: tFallbackOrder._id,
+    ownerId: testOwner,
+    version: 1,
+    sourceObjectKey: `templates/${testOwner}/doc_fb_order.pdf`,
+    bytes: 1024,
+    pageCount: 1,
+    status: 'active',
+    fieldMappings: sampleFieldMappings,
+    mappingHash: computeMappingHash(sampleFieldMappings),
+  });
+  tFallbackOrder.currentVersionId = vFallbackOrder._id as any;
+  await tFallbackOrder.save();
+
+  const bFallbackOrder = await Batch.create({
+    ownerId: testOwner,
+    templateId: tFallbackOrder._id,
+    templateVersionId: vFallbackOrder._id,
+    name: 'Fallback Order Batch',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 1,
+  });
+
+  const deletionOrder: string[] = [];
+  const origMongooseStartSession = mongoose.startSession;
+  mongoose.startSession = (async () => {
+    const err: any = new Error('Transactions are not supported by this deployment');
+    err.code = 20;
+    err.codeName = 'IllegalOperation';
+    throw err;
+  }) as any;
+
+  const origDRDeleteMany = DraftRow.deleteMany;
+  const origBIDeleteMany = BatchImport.deleteMany;
+  const origBDeleteMany = Batch.deleteMany;
+  const origTVDeleteMany = TemplateVersion.deleteMany;
+  const origTDeleteOne = Template.deleteOne;
+
+  DraftRow.deleteMany = (async (...args: any[]) => {
+    deletionOrder.push('DraftRow');
+    return origDRDeleteMany.apply(DraftRow, args as any);
+  }) as any;
+  BatchImport.deleteMany = (async (...args: any[]) => {
+    deletionOrder.push('BatchImport');
+    return origBIDeleteMany.apply(BatchImport, args as any);
+  }) as any;
+  Batch.deleteMany = (async (...args: any[]) => {
+    deletionOrder.push('Batch');
+    return origBDeleteMany.apply(Batch, args as any);
+  }) as any;
+  TemplateVersion.deleteMany = (async (...args: any[]) => {
+    deletionOrder.push('TemplateVersion');
+    return origTVDeleteMany.apply(TemplateVersion, args as any);
+  }) as any;
+  Template.deleteOne = (async (...args: any[]) => {
+    deletionOrder.push('Template');
+    return origTDeleteOne.apply(Template, args as any);
+  }) as any;
+
+  try {
+    const res = await TemplateLifecycle.deleteTemplate({
+      templateId: tFallbackOrder._id,
+      ownerId: testOwner,
+      confirmCascade: true,
+    });
+    assert.strictEqual(res.success, true);
+    const batchIndex = deletionOrder.indexOf('Batch');
+    const drIndex = deletionOrder.indexOf('DraftRow');
+    const biIndex = deletionOrder.indexOf('BatchImport');
+    const tvIndex = deletionOrder.indexOf('TemplateVersion');
+    const tIndex = deletionOrder.indexOf('Template');
+
+    assert.ok(drIndex < batchIndex, 'DraftRow must be deleted before Batch');
+    assert.ok(biIndex < batchIndex, 'BatchImport must be deleted before Batch');
+    assert.ok(batchIndex < tvIndex, 'Batch must be deleted before TemplateVersion');
+    assert.ok(tvIndex < tIndex, 'TemplateVersion must be deleted before Template');
+  } finally {
+    mongoose.startSession = origMongooseStartSession;
+    DraftRow.deleteMany = origDRDeleteMany;
+    BatchImport.deleteMany = origBIDeleteMany;
+    Batch.deleteMany = origBDeleteMany;
+    TemplateVersion.deleteMany = origTVDeleteMany;
+    Template.deleteOne = origTDeleteOne;
+  }
+  console.log('   ✓ Fallback deletion ordering verified\n');
 
   // =========================================================================
   // Requirement 4: Deleting batch in 'generating' status returns 400
@@ -504,6 +677,7 @@ async function runTests() {
     // Verify batch was NOT removed, preserving the recovery path!
     const batchStillExists = await Batch.findById(bFallback._id);
     assert.ok(batchStillExists !== null, 'Batch must remain in DB when child deletion fails');
+    assert.strictEqual(batchStillExists.status, 'draft', 'Batch status must be restored to previous status when cleanup fails');
   } finally {
     DraftRow.deleteMany = originalDraftRowDeleteMany;
   }
@@ -540,12 +714,47 @@ async function runTests() {
   await deleteBatchController(delTxnErrorCtx as any);
   assert.strictEqual(delTxnErrorCtx._getResponse().status, 500);
   assert.strictEqual(delTxnErrorCtx._getResponse().data.error, 'TRANSACTION_WRITE_CONFLICT');
-  // Batch was not deleted by fallback
-  assert.ok((await Batch.findById(bTxnError._id)) !== null);
+  // Batch was not deleted by fallback and previous status was restored
+  const bTxnErrorDoc = await Batch.findById(bTxnError._id);
+  assert.ok(bTxnErrorDoc !== null);
+  assert.strictEqual(bTxnErrorDoc.status, 'draft', 'Batch status must be restored on transaction error');
 
   // Restore startSession and clean up bTxnError
   mongoose.startSession = originalStartSession;
   await Batch.deleteOne({ _id: bTxnError._id });
+
+  // 5c.4 Batch restoration does not overwrite concurrent status change away from 'deleting'
+  const bConcurrent = await Batch.create({
+    ownerId: testOwner,
+    templateId: t3._id,
+    templateVersionId: v3._id,
+    name: 'Concurrent Batch',
+    status: 'draft',
+    currentImportRevision: 0,
+    totalRows: 0,
+  });
+
+  const origBatchDeleteOne = Batch.deleteOne;
+  Batch.deleteOne = (async (query: any, opts: any) => {
+    // Concurrently change status away from 'deleting'
+    await Batch.updateOne({ _id: bConcurrent._id }, { $set: { status: 'approved' } });
+    throw new Error('SIMULATED_CLEANUP_FAILURE');
+  }) as any;
+
+  try {
+    const delConcurrentCtx = createMockContext({
+      user: mockUser,
+      params: { id: bConcurrent._id.toString() },
+    });
+    await deleteBatchController(delConcurrentCtx as any);
+    assert.strictEqual(delConcurrentCtx._getResponse().status, 500);
+
+    const bAfter = await Batch.findById(bConcurrent._id);
+    assert.strictEqual(bAfter?.status, 'approved', 'Conditional restoration must NOT overwrite concurrent status change');
+  } finally {
+    Batch.deleteOne = origBatchDeleteOne;
+    await Batch.deleteOne({ _id: bConcurrent._id });
+  }
 
   console.log('   ✓ Fallback safety, recovery path, and error restriction verified\n');
 
