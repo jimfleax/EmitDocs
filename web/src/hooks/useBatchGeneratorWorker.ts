@@ -10,12 +10,27 @@ import type {
   EngineWarning,
 } from "@/lib/pdf-engine/pdf-preview-engine";
 import { generatePdfWithOverlay } from "@/lib/pdf-engine/pdf-preview-engine";
+import { sanitizeRecipientFilename } from "@/lib/pdf-engine/filename-sanitizer";
+import { createStreamingZip, saveZipChunksAsBlob } from "@/lib/pdf-engine/streaming-zip";
 import type {
   WorkerInboundMessage,
   WorkerOutboundMessage,
   RecipientBatchItem,
   SingleRecipientItem,
 } from "@/workers/batch-generator.worker";
+
+export interface ZipExportProgress {
+  current: number;
+  total: number;
+  percent: number;
+  itemsPerSec: number;
+  etaSeconds: number;
+  elapsedSeconds: number;
+  activeRecipientKey: string | null;
+  activeDocName: string | null;
+  bytesEmitted: number;
+  volumeIndex: number;
+}
 
 export interface GenerationProgress {
   current: number;
@@ -60,7 +75,29 @@ export interface UseBatchGeneratorWorkerReturn {
   resume: () => void;
   cancel: () => void;
   reset: () => void;
+  isZipping: boolean;
+  zipProgress: ZipExportProgress;
+  startZipExport: (
+    recipients: RecipientBatchItem[],
+    volumeIndex?: number,
+    totalVolumes?: number,
+    zipFilename?: string
+  ) => Promise<{ success: boolean; totalBytes: number; durationMs: number }>;
+  cancelZipExport: () => void;
 }
+
+const initialZipProgress: ZipExportProgress = {
+  current: 0,
+  total: 0,
+  percent: 0,
+  itemsPerSec: 0,
+  etaSeconds: 0,
+  elapsedSeconds: 0,
+  activeRecipientKey: null,
+  activeDocName: null,
+  bytesEmitted: 0,
+  volumeIndex: 1,
+};
 
 const initialProgress: GenerationProgress = {
   current: 0,
@@ -82,6 +119,16 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
     Record<string, { byteLength: number; generatedAt: number }>
   >({});
   const [errorsMap, setErrorsMap] = useState<Record<string, string>>({});
+  const [isZipping, setIsZipping] = useState(false);
+  const isZippingRef = useRef(false);
+  const [zipProgress, setZipProgress] = useState<ZipExportProgress>(initialZipProgress);
+
+  const zipChunksRef = useRef<Uint8Array[]>([]);
+  const zipWritableRef = useRef<any>(null);
+  const zipResolverRef = useRef<{
+    resolve: (val: { success: boolean; totalBytes: number; durationMs: number }) => void;
+    reject: (err: any) => void;
+  } | null>(null);
 
   const workerRef = useRef<Worker | null>(null);
   const pendingInitResolver = useRef<{
@@ -198,8 +245,76 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
             break;
           }
 
+          case "ZIP_PROGRESS": {
+            const p = msg.payload;
+            setZipProgress({
+              current: p.current,
+              total: p.total,
+              percent: p.percent,
+              itemsPerSec: p.itemsPerSec,
+              etaSeconds: p.etaSeconds,
+              elapsedSeconds: Math.round(p.elapsedMs / 1000),
+              activeRecipientKey: p.activeRecipientKey,
+              activeDocName: p.activeDocName,
+              bytesEmitted: p.bytesEmitted,
+              volumeIndex: p.volumeIndex,
+            });
+            break;
+          }
+
+          case "ZIP_CHUNK": {
+            const { chunk } = msg.payload;
+            if (zipWritableRef.current) {
+              void zipWritableRef.current.write(chunk);
+            } else {
+              zipChunksRef.current.push(chunk);
+            }
+            break;
+          }
+
+          case "ZIP_COMPLETE": {
+            const { totalBytes, durationMs, zipFilename } = msg.payload;
+            isZippingRef.current = false;
+            setIsZipping(false);
+            if (zipWritableRef.current) {
+              const writable = zipWritableRef.current;
+              zipWritableRef.current = null;
+              void (async () => {
+                try {
+                  await writable.close();
+                } catch (e) {
+                  console.warn("Failed to close zip stream:", e);
+                } finally {
+                  zipResolverRef.current?.resolve({ success: true, totalBytes, durationMs });
+                  zipResolverRef.current = null;
+                }
+              })();
+            } else {
+              saveZipChunksAsBlob(zipChunksRef.current, zipFilename);
+              zipChunksRef.current = [];
+              zipResolverRef.current?.resolve({ success: true, totalBytes, durationMs });
+              zipResolverRef.current = null;
+            }
+            break;
+          }
+
           case "CANCELLED": {
             setStatus("cancelled");
+            isZippingRef.current = false;
+            setIsZipping(false);
+            if (zipWritableRef.current) {
+              try {
+                void zipWritableRef.current.abort();
+              } catch {
+                // Ignored
+              }
+              zipWritableRef.current = null;
+            }
+            zipChunksRef.current = [];
+            if (zipResolverRef.current) {
+              zipResolverRef.current.resolve({ success: false, totalBytes: 0, durationMs: 0 });
+              zipResolverRef.current = null;
+            }
             break;
           }
 
@@ -223,6 +338,23 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
               if (pendingInitResolver.current) {
                 pendingInitResolver.current.reject(new Error(message));
                 pendingInitResolver.current = null;
+              }
+            }
+            if (isZippingRef.current) {
+              isZippingRef.current = false;
+              setIsZipping(false);
+              if (zipWritableRef.current) {
+                try {
+                  void zipWritableRef.current.abort();
+                } catch {
+                  // Ignored
+                }
+                zipWritableRef.current = null;
+              }
+              zipChunksRef.current = [];
+              if (zipResolverRef.current) {
+                zipResolverRef.current.reject(new Error(message));
+                zipResolverRef.current = null;
               }
             }
             break;
@@ -510,6 +642,138 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
     setWarningsMap({});
     setGeneratedMap({});
     setErrorsMap({});
+    setIsZipping(false);
+    setZipProgress(initialZipProgress);
+  }, []);
+
+  const startZipExport = useCallback(
+    async (
+      recipients: RecipientBatchItem[],
+      volumeIndex = 1,
+      totalVolumes = 1,
+      zipFilename = "documents.zip"
+    ): Promise<{ success: boolean; totalBytes: number; durationMs: number }> => {
+      isZippingRef.current = true;
+      setIsZipping(true);
+      setZipProgress({
+        ...initialZipProgress,
+        total: recipients.length,
+        volumeIndex,
+      });
+      zipChunksRef.current = [];
+      zipWritableRef.current = null;
+
+      // Check for FileSystem Access API support
+      if (
+        typeof window !== "undefined" &&
+        "showSaveFilePicker" in window &&
+        typeof (window as any).showSaveFilePicker === "function"
+      ) {
+        try {
+          const handle = await (window as any).showSaveFilePicker({
+            suggestedName: zipFilename,
+            types: [
+              {
+                description: "ZIP Archive",
+                accept: { "application/zip": [".zip"] },
+              },
+            ],
+          });
+          zipWritableRef.current = await handle.createWritable();
+        } catch (err: any) {
+          if (err?.name === "AbortError") {
+            isZippingRef.current = false;
+            setIsZipping(false);
+            return { success: false, totalBytes: 0, durationMs: 0 };
+          }
+          // Fallback to in-memory Blob accumulation
+          zipWritableRef.current = null;
+        }
+      }
+
+      return new Promise((resolve, reject) => {
+        zipResolverRef.current = { resolve, reject };
+
+        if (!workerRef.current) {
+          // Fallback if running without worker
+          void (async () => {
+            try {
+              const baseBytes = fallbackBasePdfBytes.current;
+              const fieldMappings = fallbackFieldMappings.current || [];
+              if (!baseBytes) throw new Error("Worker not initialized with template");
+              const nonNullBase = baseBytes;
+
+              async function* fallbackEntries() {
+                for (const r of recipients) {
+                  const stringData: Record<string, string> = {};
+                  for (const [k, v] of Object.entries(r.effectiveData || {})) {
+                    stringData[k] = v !== null && v !== undefined ? String(v) : "";
+                  }
+                  const res = await generatePdfWithOverlay(nonNullBase, fieldMappings, stringData, {
+                    drawDebugBoxes: false,
+                  });
+                  const fname = sanitizeRecipientFilename(r.effectiveData, r.recipientKey);
+                  yield { name: fname, input: res.pdfBytes };
+                }
+              }
+
+              const stream = createStreamingZip(fallbackEntries());
+              const reader = stream.getReader();
+              const chunks: Uint8Array[] = [];
+              let totalBytes = 0;
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                if (value && value.length > 0) {
+                  chunks.push(value);
+                  totalBytes += value.length;
+                }
+              }
+
+              saveZipChunksAsBlob(chunks, zipFilename);
+              setIsZipping(false);
+              resolve({ success: true, totalBytes, durationMs: 0 });
+            } catch (err) {
+              setIsZipping(false);
+              reject(err);
+            }
+          })();
+          return;
+        }
+
+        workerRef.current.postMessage({
+          type: "START_ZIP_BATCH",
+          payload: {
+            recipients,
+            volumeIndex,
+            totalVolumes,
+            zipFilename,
+          },
+        });
+      });
+    },
+    [],
+  );
+
+  const cancelZipExport = useCallback((): void => {
+    if (zipWritableRef.current) {
+      try {
+        void zipWritableRef.current.abort();
+      } catch {
+        // Ignored
+      }
+      zipWritableRef.current = null;
+    }
+    zipChunksRef.current = [];
+    isZippingRef.current = false;
+    setIsZipping(false);
+    if (workerRef.current) {
+      workerRef.current.postMessage({ type: "CANCEL" });
+    }
+    if (zipResolverRef.current) {
+      zipResolverRef.current.resolve({ success: false, totalBytes: 0, durationMs: 0 });
+      zipResolverRef.current = null;
+    }
   }, []);
 
   return {
@@ -526,5 +790,9 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
     resume,
     cancel,
     reset,
+    isZipping,
+    zipProgress,
+    startZipExport,
+    cancelZipExport,
   };
 }

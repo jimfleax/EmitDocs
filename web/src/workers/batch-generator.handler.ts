@@ -9,6 +9,8 @@ import {
   type FieldMappingConfig,
   type EngineWarning,
 } from "../lib/pdf-engine/pdf-preview-engine";
+import { sanitizeRecipientFilename } from "../lib/pdf-engine/filename-sanitizer";
+import { createStreamingZip } from "../lib/pdf-engine/streaming-zip";
 
 export interface RecipientBatchItem {
   recipientKey: string;
@@ -42,6 +44,15 @@ export type WorkerInboundMessage =
       payload: {
         recipients: RecipientBatchItem[];
         startIndex?: number;
+      };
+    }
+  | {
+      type: "START_ZIP_BATCH";
+      payload: {
+        recipients: RecipientBatchItem[];
+        volumeIndex: number;
+        totalVolumes: number;
+        zipFilename: string;
       };
     }
   | { type: "PAUSE" }
@@ -101,6 +112,39 @@ export type WorkerOutboundMessage =
         totalGenerated: number;
         totalWarnings: number;
         durationMs: number;
+      };
+    }
+  | {
+      type: "ZIP_PROGRESS";
+      payload: {
+        current: number;
+        total: number;
+        percent: number;
+        itemsPerSec: number;
+        elapsedMs: number;
+        etaSeconds: number;
+        activeRecipientKey: string;
+        activeDocName: string;
+        bytesEmitted: number;
+        volumeIndex: number;
+      };
+    }
+  | {
+      type: "ZIP_CHUNK";
+      payload: {
+        chunk: Uint8Array;
+        bytesTotal: number;
+        volumeIndex: number;
+      };
+    }
+  | {
+      type: "ZIP_COMPLETE";
+      payload: {
+        volumeIndex: number;
+        totalDocuments: number;
+        totalBytes: number;
+        durationMs: number;
+        zipFilename: string;
       };
     }
   | { type: "CANCELLED" }
@@ -268,6 +312,28 @@ export class BatchGeneratorHandler {
         this.startTime = performance.now();
 
         void this.runBatchLoop();
+        break;
+      }
+
+      case "START_ZIP_BATCH": {
+        if (!this.cachedBasePdfBytes) {
+          this.emit({
+            type: "ERROR",
+            payload: {
+              message: "Worker not initialized with base template",
+              fatal: true,
+            },
+          });
+          return;
+        }
+
+        const { recipients, volumeIndex, totalVolumes, zipFilename } = msg.payload;
+        this.isGenerating = true;
+        this.isCancelled = false;
+        this.isPaused = false;
+        this.failedCount = 0;
+
+        void this.runZipExport(recipients, volumeIndex, totalVolumes, zipFilename);
         break;
       }
 
@@ -453,5 +519,136 @@ export class BatchGeneratorHandler {
         durationMs,
       },
     });
+  }
+
+  private async runZipExport(
+    recipients: RecipientBatchItem[],
+    volumeIndex: number,
+    _totalVolumes: number,
+    zipFilename: string
+  ): Promise<void> {
+    const total = recipients.length;
+    const startTime = performance.now();
+    let current = 0;
+    let totalBytesEmitted = 0;
+    const baseBytes = this.cachedBasePdfBytes!;
+    const fieldMappings = this.cachedFieldMappings;
+
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+
+    async function* generateZipEntries() {
+      for (let i = 0; i < total; i++) {
+        if (self.isCancelled) {
+          break;
+        }
+
+        const item = recipients[i];
+        let pdfBytes: Uint8Array;
+        try {
+          const stringData = toDataRecord(item.effectiveData);
+          const res = await generatePdfWithOverlay(baseBytes, fieldMappings, stringData, {
+            drawDebugBoxes: false,
+          });
+          pdfBytes = res.pdfBytes;
+        } catch {
+          self.failedCount++;
+          continue;
+        }
+
+        current++;
+        const filename = sanitizeRecipientFilename(item.effectiveData, item.recipientKey);
+        const elapsedMs = Math.max(1, performance.now() - startTime);
+        const itemsPerSec = Math.round((current / (elapsedMs / 1000)) * 10) / 10;
+        const remainingItems = total - current;
+        const etaSeconds = itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
+        const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+
+        self.emit({
+          type: "ZIP_PROGRESS",
+          payload: {
+            current,
+            total,
+            percent,
+            itemsPerSec,
+            elapsedMs: Math.round(elapsedMs),
+            etaSeconds,
+            activeRecipientKey: item.recipientKey,
+            activeDocName: filename,
+            bytesEmitted: totalBytesEmitted,
+            volumeIndex,
+          },
+        });
+
+        // Yield macrotask to allow cancel/pause messages
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
+
+        yield {
+          name: filename,
+          input: pdfBytes,
+          lastModified: new Date(0), // Deterministic timestamp
+        };
+      }
+    }
+
+    try {
+      const zipStream = createStreamingZip(generateZipEntries());
+      const reader = zipStream.getReader();
+
+      while (true) {
+        if (this.isCancelled) {
+          await reader.cancel();
+          this.isGenerating = false;
+          this.emit({ type: "CANCELLED" });
+          return;
+        }
+
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        if (value && value.length > 0) {
+          totalBytesEmitted += value.length;
+          this.emit(
+            {
+              type: "ZIP_CHUNK",
+              payload: {
+                chunk: value,
+                bytesTotal: totalBytesEmitted,
+                volumeIndex,
+              },
+            },
+            [value.buffer as ArrayBuffer]
+          );
+        }
+      }
+
+      if (this.isCancelled) {
+        this.isGenerating = false;
+        this.emit({ type: "CANCELLED" });
+        return;
+      }
+
+      const durationMs = Math.round(performance.now() - startTime);
+      this.isGenerating = false;
+      this.emit({
+        type: "ZIP_COMPLETE",
+        payload: {
+          volumeIndex,
+          totalDocuments: current,
+          totalBytes: totalBytesEmitted,
+          durationMs,
+          zipFilename,
+        },
+      });
+    } catch (err: any) {
+      this.isGenerating = false;
+      this.emit({
+        type: "ERROR",
+        payload: {
+          message: err?.message || String(err),
+          fatal: true,
+        },
+      });
+    }
   }
 }

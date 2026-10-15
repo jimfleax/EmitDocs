@@ -22,6 +22,10 @@ import { toast } from "@/components/ui/toast";
 import { GenerationProgressCard } from "./GenerationProgressCard";
 import { GenerationControls } from "./GenerationControls";
 import { RecipientStatusTable } from "./RecipientStatusTable";
+import { StreamingZipControls } from "./StreamingZipControls";
+import { StreamingProgressModal } from "./StreamingProgressModal";
+import type { BatchVolumeInfo } from "@/lib/pdf-engine/volume-partitioner";
+import { formatBytes } from "@/lib/pdf-engine/volume-partitioner";
 import { useBatchGeneratorWorker } from "@/hooks/useBatchGeneratorWorker";
 
 export interface ResultsWorkspaceProps {
@@ -34,7 +38,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
 
   const [batch, setBatch] = useState<any>(null);
   const [snapshot, setSnapshot] = useState<any>(null);
-  const [, setTemplateVersion] = useState<any>(null);
+  const [templateVersion, setTemplateVersion] = useState<any>(null);
   const [basePdfBytes, setBasePdfBytes] = useState<Uint8Array | null>(null);
 
   // Recipient rows
@@ -64,7 +68,69 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     pause,
     resume,
     cancel,
+    isZipping,
+    zipProgress,
+    startZipExport,
+    cancelZipExport,
   } = useBatchGeneratorWorker();
+
+  const [currentZippingVolume, setCurrentZippingVolume] = useState<number | undefined>(undefined);
+  const [currentZippingFilename, setCurrentZippingFilename] = useState<string>("documents.zip");
+  const [currentZippingLabel, setCurrentZippingLabel] = useState<string>("");
+
+  const handleDownloadVolume = async (volume: BatchVolumeInfo) => {
+    try {
+      setCurrentZippingVolume(volume.volumeIndex);
+      setCurrentZippingFilename(volume.filename);
+      setCurrentZippingLabel(volume.label);
+
+      let volumeRecipients: any[] = [];
+      const fetchLimit = 100;
+      const startPage = Math.floor(volume.startIndex / fetchLimit) + 1;
+      const endPage = Math.ceil(volume.endIndex / fetchLimit);
+
+      for (let p = startPage; p <= endPage; p++) {
+        const res = await fetch(
+          `/api/batches/${batchId}/snapshot/recipients?page=${p}&limit=${fetchLimit}`,
+          { credentials: "include" }
+        );
+        if (!res.ok) {
+          throw new Error(`Failed to load recipients for volume ${volume.volumeIndex}`);
+        }
+        const data = await res.json();
+        const pageRecipients = data.recipients || [];
+        volumeRecipients = volumeRecipients.concat(pageRecipients);
+      }
+
+      const pageOffset = (startPage - 1) * fetchLimit;
+      const sliceStart = volume.startIndex - pageOffset;
+      const sliceEnd = sliceStart + volume.documentCount;
+      const targetRecipients = volumeRecipients.slice(sliceStart, sliceEnd);
+
+      if (targetRecipients.length === 0) {
+        toast.warning("No Recipients", "No recipients found for this volume partition.");
+        return;
+      }
+
+      const result = await startZipExport(
+        targetRecipients,
+        volume.volumeIndex,
+        volume.totalVolumes,
+        volume.filename
+      );
+
+      if (result.success) {
+        toast.success(
+          "Download Complete",
+          `Successfully packaged ${result.totalBytes ? formatBytes(result.totalBytes) : ""} into ${volume.filename}.`
+        );
+      }
+    } catch (err: any) {
+      toast.error("ZIP Export Error", err.message || "Failed to download ZIP volume");
+    } finally {
+      setCurrentZippingVolume(undefined);
+    }
+  };
 
   // Load Batch & Snapshot
   const loadWorkspaceData = useCallback(async () => {
@@ -234,6 +300,16 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     if (days > 0) return `${days}d ${hours % 24}h remaining`;
     return `${hours}h remaining`;
   }, [snapshot, currentTime]);
+
+  const samplePdfSizes = useMemo(() => {
+    const samples: number[] = [];
+    for (const val of Object.values(generatedMap)) {
+      if (val && val.byteLength > 0) {
+        samples.push(val.byteLength);
+      }
+    }
+    return samples;
+  }, [generatedMap]);
 
   const isGenerationVisible =
     hasStartedGeneration ||
@@ -412,6 +488,22 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           </div>
         )}
 
+        {/* Streaming ZIP Controls (PRD-CORE-08) */}
+        {snapshot && (
+          <StreamingZipControls
+            batchName={batch?.name || "batch"}
+            totalRecipients={totalRecipients}
+            basePdfBytesLength={basePdfBytes?.byteLength}
+            fieldCount={templateVersion?.fieldMappings?.length}
+            samplePdfSizes={samplePdfSizes}
+            isZipping={isZipping}
+            currentZippingVolume={currentZippingVolume}
+            currentZipPercent={zipProgress.percent}
+            onDownloadVolume={handleDownloadVolume}
+            disabled={isLoading || isStarting || !basePdfBytes}
+          />
+        )}
+
         {/* Progress Card (hidden until batch generation is started) */}
         {isGenerationVisible && (
           <GenerationProgressCard
@@ -448,6 +540,15 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           limit={limit}
           onPageChange={handlePageChange}
           isLoading={isLoading}
+        />
+
+        {/* Streaming Progress Modal (PRD-CORE-08) */}
+        <StreamingProgressModal
+          isOpen={isZipping}
+          progress={zipProgress}
+          zipFilename={currentZippingFilename}
+          volumeLabel={currentZippingLabel}
+          onCancel={cancelZipExport}
         />
       </div>
     </PageShell>
