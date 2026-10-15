@@ -26,6 +26,8 @@ import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from './routes/_p
 import { Route as ProtectedAppTemplatesNewRouteImport } from './routes/_protected/app/templates/new'
 import { Route as ProtectedAppBatchesBatchIdApproveRouteImport } from './routes/_protected/app/batches/$batchId_.approve'
 import { Route as ProtectedAppBatchesBatchIdImportRouteImport } from './routes/_protected/app/batches/$batchId_.import'
+import { Route as ProtectedAppBatchesBatchIdProgressRouteImport } from './routes/_protected/app/batches/$batchId_.progress'
+import { Route as ProtectedAppBatchesBatchIdResultsRouteImport } from './routes/_protected/app/batches/$batchId_.results'
 import { Route as ProtectedAppBatchesBatchIdReviewRouteImport } from './routes/_protected/app/batches/$batchId_.review'
 import { Route as ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport } from './routes/_protected/app/templates/$templateId_.versions.$versionId'
 
@@ -119,6 +121,18 @@ const ProtectedAppBatchesBatchIdImportRoute =
     path: '/batches/$batchId/import',
     getParentRoute: () => ProtectedAppRoute,
   } as any)
+const ProtectedAppBatchesBatchIdProgressRoute =
+  ProtectedAppBatchesBatchIdProgressRouteImport.update({
+    id: '/batches/$batchId_/progress',
+    path: '/batches/$batchId/progress',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
+const ProtectedAppBatchesBatchIdResultsRoute =
+  ProtectedAppBatchesBatchIdResultsRouteImport.update({
+    id: '/batches/$batchId_/results',
+    path: '/batches/$batchId/results',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
 const ProtectedAppBatchesBatchIdReviewRoute =
   ProtectedAppBatchesBatchIdReviewRouteImport.update({
     id: '/batches/$batchId_/review',
@@ -149,6 +163,8 @@ export interface FileRoutesByFullPath {
   '/app/templates/': typeof ProtectedAppTemplatesIndexRoute
   '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
+  '/app/batches/$batchId/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
+  '/app/batches/$batchId/results': typeof ProtectedAppBatchesBatchIdResultsRoute
   '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
   '/app/templates/$templateId/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
 }
@@ -168,6 +184,8 @@ export interface FileRoutesByTo {
   '/app/templates': typeof ProtectedAppTemplatesIndexRoute
   '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
+  '/app/batches/$batchId/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
+  '/app/batches/$batchId/results': typeof ProtectedAppBatchesBatchIdResultsRoute
   '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
   '/app/templates/$templateId/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
 }
@@ -190,6 +208,8 @@ export interface FileRoutesById {
   '/_protected/app/templates/': typeof ProtectedAppTemplatesIndexRoute
   '/_protected/app/batches/$batchId_/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
   '/_protected/app/batches/$batchId_/import': typeof ProtectedAppBatchesBatchIdImportRoute
+  '/_protected/app/batches/$batchId_/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
+  '/_protected/app/batches/$batchId_/results': typeof ProtectedAppBatchesBatchIdResultsRoute
   '/_protected/app/batches/$batchId_/review': typeof ProtectedAppBatchesBatchIdReviewRoute
   '/_protected/app/templates/$templateId_/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
 }
@@ -212,6 +232,8 @@ export interface FileRouteTypes {
     | '/app/templates/'
     | '/app/batches/$batchId/approve'
     | '/app/batches/$batchId/import'
+    | '/app/batches/$batchId/progress'
+    | '/app/batches/$batchId/results'
     | '/app/batches/$batchId/review'
     | '/app/templates/$templateId/versions/$versionId'
   fileRoutesByTo: FileRoutesByTo
@@ -231,6 +253,8 @@ export interface FileRouteTypes {
     | '/app/templates'
     | '/app/batches/$batchId/approve'
     | '/app/batches/$batchId/import'
+    | '/app/batches/$batchId/progress'
+    | '/app/batches/$batchId/results'
     | '/app/batches/$batchId/review'
     | '/app/templates/$templateId/versions/$versionId'
   id:
@@ -252,6 +276,8 @@ export interface FileRouteTypes {
     | '/_protected/app/templates/'
     | '/_protected/app/batches/$batchId_/approve'
     | '/_protected/app/batches/$batchId_/import'
+    | '/_protected/app/batches/$batchId_/progress'
+    | '/_protected/app/batches/$batchId_/results'
     | '/_protected/app/batches/$batchId_/review'
     | '/_protected/app/templates/$templateId_/versions/$versionId'
   fileRoutesById: FileRoutesById
@@ -388,6 +414,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppBatchesBatchIdImportRouteImport
       parentRoute: typeof ProtectedAppRoute
     }
+    '/_protected/app/batches/$batchId_/progress': {
+      id: '/_protected/app/batches/$batchId_/progress'
+      path: '/batches/$batchId/progress'
+      fullPath: '/app/batches/$batchId/progress'
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdProgressRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
+    '/_protected/app/batches/$batchId_/results': {
+      id: '/_protected/app/batches/$batchId_/results'
+      path: '/batches/$batchId/results'
+      fullPath: '/app/batches/$batchId/results'
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdResultsRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
     '/_protected/app/batches/$batchId_/review': {
       id: '/_protected/app/batches/$batchId_/review'
       path: '/batches/$batchId/review'
@@ -414,6 +454,8 @@ interface ProtectedAppRouteChildren {
   ProtectedAppTemplatesIndexRoute: typeof ProtectedAppTemplatesIndexRoute
   ProtectedAppBatchesBatchIdApproveRoute: typeof ProtectedAppBatchesBatchIdApproveRoute
   ProtectedAppBatchesBatchIdImportRoute: typeof ProtectedAppBatchesBatchIdImportRoute
+  ProtectedAppBatchesBatchIdProgressRoute: typeof ProtectedAppBatchesBatchIdProgressRoute
+  ProtectedAppBatchesBatchIdResultsRoute: typeof ProtectedAppBatchesBatchIdResultsRoute
   ProtectedAppBatchesBatchIdReviewRoute: typeof ProtectedAppBatchesBatchIdReviewRoute
   ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute: typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
 }
@@ -428,6 +470,10 @@ const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
   ProtectedAppBatchesBatchIdApproveRoute:
     ProtectedAppBatchesBatchIdApproveRoute,
   ProtectedAppBatchesBatchIdImportRoute: ProtectedAppBatchesBatchIdImportRoute,
+  ProtectedAppBatchesBatchIdProgressRoute:
+    ProtectedAppBatchesBatchIdProgressRoute,
+  ProtectedAppBatchesBatchIdResultsRoute:
+    ProtectedAppBatchesBatchIdResultsRoute,
   ProtectedAppBatchesBatchIdReviewRoute: ProtectedAppBatchesBatchIdReviewRoute,
   ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute:
     ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute,
