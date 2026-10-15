@@ -57,7 +57,8 @@ export type WorkerInboundMessage =
     }
   | { type: "PAUSE" }
   | { type: "RESUME" }
-  | { type: "CANCEL" };
+  | { type: "CANCEL" }
+  | { type: "CANCEL_ZIP" };
 
 export type WorkerOutboundMessage =
   | { type: "INIT_READY" }
@@ -145,16 +146,27 @@ export type WorkerOutboundMessage =
         totalBytes: number;
         durationMs: number;
         zipFilename: string;
+        failedCount?: number;
+        failedRecipientKeys?: string[];
+        failedKeys?: string[];
       };
     }
-  | { type: "CANCELLED" }
+  | {
+      type: "CANCELLED";
+      scope?: "batch" | "zip";
+      payload?: {
+        scope?: "batch" | "zip";
+      };
+    }
   | {
       type: "ERROR";
+      scope?: "batch" | "zip";
       payload: {
         message: string;
         fatal: boolean;
         recipientKey?: string;
         requestId?: string;
+        scope?: "batch" | "zip";
       };
     };
 
@@ -174,6 +186,8 @@ export class BatchGeneratorHandler {
   private isGenerating = false;
   private isPaused = false;
   private isCancelled = false;
+  private isZipping = false;
+  private zipCancelled = false;
   private currentRecipients: RecipientBatchItem[] = [];
   private currentIndex = 0;
   private startTime = 0;
@@ -221,6 +235,14 @@ export class BatchGeneratorHandler {
 
   public isGeneratingState(): boolean {
     return this.isGenerating;
+  }
+
+  public isZippingState(): boolean {
+    return this.isZipping;
+  }
+
+  public isZipCancelState(): boolean {
+    return this.zipCancelled;
   }
 
   public async postMessage(msg: WorkerInboundMessage): Promise<void> {
@@ -319,19 +341,19 @@ export class BatchGeneratorHandler {
         if (!this.cachedBasePdfBytes) {
           this.emit({
             type: "ERROR",
+            scope: "zip",
             payload: {
               message: "Worker not initialized with base template",
               fatal: true,
+              scope: "zip",
             },
           });
           return;
         }
 
         const { recipients, volumeIndex, totalVolumes, zipFilename } = msg.payload;
-        this.isGenerating = true;
-        this.isCancelled = false;
-        this.isPaused = false;
-        this.failedCount = 0;
+        this.isZipping = true;
+        this.zipCancelled = false;
 
         void this.runZipExport(recipients, volumeIndex, totalVolumes, zipFilename);
         break;
@@ -366,7 +388,15 @@ export class BatchGeneratorHandler {
         this.pauseStartTime = 0;
         if (!this.isGenerating) {
           this.currentRecipients = [];
-          this.emit({ type: "CANCELLED" });
+          this.emit({ type: "CANCELLED", scope: "batch", payload: { scope: "batch" } });
+        }
+        break;
+      }
+
+      case "CANCEL_ZIP": {
+        this.zipCancelled = true;
+        if (!this.isZipping) {
+          this.emit({ type: "CANCELLED", scope: "zip", payload: { scope: "zip" } });
         }
         break;
       }
@@ -378,7 +408,7 @@ export class BatchGeneratorHandler {
       if (this.isCancelled) {
         this.isGenerating = false;
         this.currentRecipients = [];
-        this.emit({ type: "CANCELLED" });
+        this.emit({ type: "CANCELLED", scope: "batch", payload: { scope: "batch" } });
         return;
       }
 
@@ -497,7 +527,7 @@ export class BatchGeneratorHandler {
 
     if (this.isCancelled) {
       this.currentRecipients = [];
-      this.emit({ type: "CANCELLED" });
+      this.emit({ type: "CANCELLED", scope: "batch", payload: { scope: "batch" } });
       return;
     }
 
@@ -533,13 +563,14 @@ export class BatchGeneratorHandler {
     let totalBytesEmitted = 0;
     const baseBytes = this.cachedBasePdfBytes!;
     const fieldMappings = this.cachedFieldMappings;
+    const failedRecipientKeys: string[] = [];
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
 
     async function* generateZipEntries() {
       for (let i = 0; i < total; i++) {
-        if (self.isCancelled) {
+        if (self.zipCancelled) {
           break;
         }
 
@@ -552,22 +583,48 @@ export class BatchGeneratorHandler {
           });
           pdfBytes = res.pdfBytes;
         } catch {
-          self.failedCount++;
+          failedRecipientKeys.push(item.recipientKey);
+
+          const processed = i + 1;
+          const elapsedMs = Math.max(1, performance.now() - startTime);
+          const itemsPerSec = Math.round((processed / (elapsedMs / 1000)) * 10) / 10;
+          const remainingItems = total - processed;
+          const etaSeconds = itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
+          const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+
+          self.emit({
+            type: "ZIP_PROGRESS",
+            payload: {
+              current: processed,
+              total,
+              percent,
+              itemsPerSec,
+              elapsedMs: Math.round(elapsedMs),
+              etaSeconds,
+              activeRecipientKey: item.recipientKey,
+              activeDocName: "",
+              bytesEmitted: totalBytesEmitted,
+              volumeIndex,
+            },
+          });
+
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
           continue;
         }
 
         current++;
         const filename = sanitizeRecipientFilename(item.effectiveData, item.recipientKey);
+        const processed = i + 1;
         const elapsedMs = Math.max(1, performance.now() - startTime);
-        const itemsPerSec = Math.round((current / (elapsedMs / 1000)) * 10) / 10;
-        const remainingItems = total - current;
+        const itemsPerSec = Math.round((processed / (elapsedMs / 1000)) * 10) / 10;
+        const remainingItems = total - processed;
         const etaSeconds = itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
-        const percent = total > 0 ? Math.min(100, Math.round((current / total) * 100)) : 0;
+        const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
         self.emit({
           type: "ZIP_PROGRESS",
           payload: {
-            current,
+            current: processed,
             total,
             percent,
             itemsPerSec,
@@ -596,10 +653,10 @@ export class BatchGeneratorHandler {
       const reader = zipStream.getReader();
 
       while (true) {
-        if (this.isCancelled) {
+        if (this.zipCancelled) {
           await reader.cancel();
-          this.isGenerating = false;
-          this.emit({ type: "CANCELLED" });
+          this.isZipping = false;
+          this.emit({ type: "CANCELLED", scope: "zip", payload: { scope: "zip" } });
           return;
         }
 
@@ -608,28 +665,29 @@ export class BatchGeneratorHandler {
 
         if (value && value.length > 0) {
           totalBytesEmitted += value.length;
+          const chunk = value.slice();
           this.emit(
             {
               type: "ZIP_CHUNK",
               payload: {
-                chunk: value,
+                chunk,
                 bytesTotal: totalBytesEmitted,
                 volumeIndex,
               },
             },
-            [value.buffer as ArrayBuffer]
+            [chunk.buffer as ArrayBuffer]
           );
         }
       }
 
-      if (this.isCancelled) {
-        this.isGenerating = false;
-        this.emit({ type: "CANCELLED" });
+      if (this.zipCancelled) {
+        this.isZipping = false;
+        this.emit({ type: "CANCELLED", scope: "zip", payload: { scope: "zip" } });
         return;
       }
 
       const durationMs = Math.round(performance.now() - startTime);
-      this.isGenerating = false;
+      this.isZipping = false;
       this.emit({
         type: "ZIP_COMPLETE",
         payload: {
@@ -638,15 +696,20 @@ export class BatchGeneratorHandler {
           totalBytes: totalBytesEmitted,
           durationMs,
           zipFilename,
+          failedCount: failedRecipientKeys.length,
+          failedRecipientKeys,
+          failedKeys: failedRecipientKeys,
         },
       });
     } catch (err: any) {
-      this.isGenerating = false;
+      this.isZipping = false;
       this.emit({
         type: "ERROR",
+        scope: "zip",
         payload: {
           message: err?.message || String(err),
           fatal: true,
+          scope: "zip",
         },
       });
     }

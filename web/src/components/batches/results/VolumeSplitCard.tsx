@@ -21,6 +21,7 @@ export interface VolumeSplitCardProps {
   isAnyZipping: boolean;
   currentPercent?: number;
   onDownload: (volume: BatchVolumeInfo) => void;
+  disabled?: boolean;
 }
 
 export function VolumeSplitCard({
@@ -29,6 +30,7 @@ export function VolumeSplitCard({
   isAnyZipping,
   currentPercent = 0,
   onDownload,
+  disabled = false,
 }: VolumeSplitCardProps) {
   const isPendingAnother = isAnyZipping && !isCurrentZipping;
 
@@ -98,7 +100,7 @@ export function VolumeSplitCard({
           <Button
             type="button"
             className="w-full justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer active:scale-[0.98] bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white disabled:opacity-40 disabled:cursor-not-allowed border-0"
-            disabled={isPendingAnother}
+            disabled={disabled || isPendingAnother}
             onClick={() => onDownload(volume)}
           >
             <DownloadSimple className="w-4 h-4" />

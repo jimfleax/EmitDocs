@@ -79,6 +79,32 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   const [currentZippingLabel, setCurrentZippingLabel] = useState<string>("");
 
   const handleDownloadVolume = async (volume: BatchVolumeInfo) => {
+    let fileHandleOrWritable: any = null;
+
+    if (
+      typeof window !== "undefined" &&
+      "showSaveFilePicker" in window &&
+      typeof (window as any).showSaveFilePicker === "function"
+    ) {
+      try {
+        fileHandleOrWritable = await (window as any).showSaveFilePicker({
+          suggestedName: volume.filename,
+          types: [
+            {
+              description: "ZIP Archive",
+              accept: { "application/zip": [".zip"] },
+            },
+          ],
+        });
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          return;
+        }
+        toast.error("ZIP Export Error", err.message || "Failed to open save file picker");
+        return;
+      }
+    }
+
     try {
       setCurrentZippingVolume(volume.volumeIndex);
       setCurrentZippingFilename(volume.filename);
@@ -116,13 +142,18 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
         targetRecipients,
         volume.volumeIndex,
         volume.totalVolumes,
-        volume.filename
+        volume.filename,
+        fileHandleOrWritable
       );
 
       if (result.success) {
+        const failureDetails =
+          result.failedCount && result.failedCount > 0
+            ? ` (${result.failedCount} failed: ${result.failedRecipientKeys?.join(", ") || ""})`
+            : "";
         toast.success(
           "Download Complete",
-          `Successfully packaged ${result.totalBytes ? formatBytes(result.totalBytes) : ""} into ${volume.filename}.`
+          `Successfully packaged ${result.totalBytes ? formatBytes(result.totalBytes) : ""} into ${volume.filename}.${failureDetails}`
         );
       }
     } catch (err: any) {
@@ -301,15 +332,9 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     return `${hours}h remaining`;
   }, [snapshot, currentTime]);
 
-  const samplePdfSizes = useMemo(() => {
-    const samples: number[] = [];
-    for (const val of Object.values(generatedMap)) {
-      if (val && val.byteLength > 0) {
-        samples.push(val.byteLength);
-      }
-    }
-    return samples;
-  }, [generatedMap]);
+  // Keep the volume plan stable across part downloads: derive boundaries
+  // strictly from stable inputs (template size, field count) so generatedMap changes cannot shift startIndex or endIndex.
+  const samplePdfSizes = useMemo<number[]>(() => [], []);
 
   const isGenerationVisible =
     hasStartedGeneration ||

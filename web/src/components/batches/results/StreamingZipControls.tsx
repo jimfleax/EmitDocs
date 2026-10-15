@@ -46,7 +46,7 @@ export function StreamingZipControls({
   totalRecipients,
   basePdfBytesLength,
   fieldCount,
-  samplePdfSizes,
+  samplePdfSizes: _samplePdfSizes,
   isZipping,
   currentZippingVolume,
   currentZipPercent = 0,
@@ -63,12 +63,13 @@ export function StreamingZipControls({
   const activeBaseName = customName.trim() || defaultSlug;
   const isCustomized = Boolean(customName.trim() && customName.trim() !== defaultSlug);
 
+  // Derive volume boundaries strictly from stable inputs (template size, field count)
+  // so generatedMap changes cannot shift startIndex or endIndex across part downloads.
   const volumes = useMemo(() => {
     return calculateBatchVolumes(totalRecipients, activeBaseName, basePdfBytesLength, {
       fieldCount,
-      samplePdfSizes,
     });
-  }, [totalRecipients, activeBaseName, basePdfBytesLength, fieldCount, samplePdfSizes]);
+  }, [totalRecipients, activeBaseName, basePdfBytesLength, fieldCount]);
 
   const totalEstimatedBytes = useMemo(() => {
     return volumes.reduce((acc, v) => acc + v.estimatedSizeBytes, 0);
@@ -253,6 +254,7 @@ export function StreamingZipControls({
               isAnyZipping={isZipping}
               currentPercent={currentZippingVolume === vol.volumeIndex ? currentZipPercent : 0}
               onDownload={onDownloadVolume}
+              disabled={disabled}
             />
           ))}
         </div>

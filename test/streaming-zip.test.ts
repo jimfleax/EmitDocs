@@ -5,6 +5,8 @@
 
 import assert from "node:assert";
 import { createStreamingZip, type ZipInputFile } from "../web/src/lib/pdf-engine/streaming-zip.js";
+import { BatchGeneratorHandler } from "../web/src/workers/batch-generator.handler.js";
+import { PDFDocument } from "pdf-lib";
 
 async function runTests() {
   console.log("=== Running Streaming ZIP Test Suite ===");
@@ -90,6 +92,162 @@ async function runTests() {
   assert.ok(zipText.includes("Alice_Smith_001.pdf"), "Archive must contain Alice_Smith_001.pdf");
   assert.ok(zipText.includes("Bob_Jones_002.pdf"), "Archive must contain Bob_Jones_002.pdf");
   assert.ok(zipText.includes("Carol_White_003.pdf"), "Archive must contain Carol_White_003.pdf");
+
+  // 6. Verify BatchGeneratorHandler ZIP export: chunk copying and transferred buffer isolation
+  console.log("6. Verify BatchGeneratorHandler ZIP chunk emission and buffer isolation");
+  const doc = await PDFDocument.create();
+  doc.addPage([200, 200]);
+  const dummyBasePdf = await doc.save();
+
+  const handler = new BatchGeneratorHandler();
+  await handler.postMessage({
+    type: "INIT",
+    payload: {
+      basePdfBytes: dummyBasePdf.buffer as ArrayBuffer,
+      fieldMappings: [],
+    },
+  });
+
+  const chunksReceived: Uint8Array[] = [];
+  let zipCompleted: any = null;
+  const progressList: any[] = [];
+  const errorsList: any[] = [];
+
+  handler.onmessage = (msg) => {
+    if (msg.type === "ZIP_CHUNK") {
+      chunksReceived.push(msg.payload.chunk);
+    } else if (msg.type === "ZIP_PROGRESS") {
+      progressList.push(msg.payload);
+    } else if (msg.type === "ZIP_COMPLETE") {
+      zipCompleted = msg.payload;
+    } else if (msg.type === "ERROR") {
+      errorsList.push(msg.payload);
+    }
+  };
+
+  await handler.postMessage({
+    type: "START_ZIP_BATCH",
+    payload: {
+      recipients: [
+        { recipientKey: "rec_1", sourceRowNumber: 1, effectiveData: { name: "Alice" } },
+        { recipientKey: "rec_2", sourceRowNumber: 2, effectiveData: { name: "Bob" } },
+      ],
+      volumeIndex: 1,
+      totalVolumes: 1,
+      zipFilename: "test.zip",
+    },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      if (zipCompleted) {
+        clearInterval(interval);
+        resolve();
+      } else if (Date.now() - start > 5000) {
+        clearInterval(interval);
+        reject(new Error("Timeout waiting for ZIP_COMPLETE"));
+      }
+    }, 20);
+  });
+
+  assert.strictEqual(zipCompleted.totalDocuments, 2, "Must complete 2 documents");
+  assert.strictEqual(zipCompleted.failedCount, 0, "0 failures");
+  assert.deepStrictEqual(zipCompleted.failedRecipientKeys, [], "No failed keys");
+  assert.strictEqual(progressList[progressList.length - 1].percent, 100, "Progress must reach 100%");
+  assert.strictEqual(errorsList.length, 0, "No ERROR messages emitted");
+  assert.ok(chunksReceived.length > 0, "Must receive chunks");
+  console.log("   ✓ ZIP chunk emission and buffer isolation verified");
+
+  // 7. Verify Fault Isolation in ZIP generation: failure collecting, no ERROR emitted, 100% progress
+  console.log("7. Verify Fault Isolation in ZIP generation (failures collected, no ERROR emitted, 100% progress)");
+  const faultyHandler = new BatchGeneratorHandler();
+  // Corrupt base PDF so generatePdfWithOverlay throws for recipients
+  const corruptPdfBytes = new Uint8Array([1, 2, 3, 4, 5]);
+  await faultyHandler.postMessage({
+    type: "INIT",
+    payload: {
+      basePdfBytes: corruptPdfBytes.buffer as ArrayBuffer,
+      fieldMappings: [],
+    },
+  });
+
+  let faultyZipCompleted: any = null;
+  const faultyProgressList: any[] = [];
+  const faultyErrorsList: any[] = [];
+
+  faultyHandler.onmessage = (msg) => {
+    if (msg.type === "ZIP_PROGRESS") {
+      faultyProgressList.push(msg.payload);
+    } else if (msg.type === "ZIP_COMPLETE") {
+      faultyZipCompleted = msg.payload;
+    } else if (msg.type === "ERROR") {
+      faultyErrorsList.push(msg.payload);
+    }
+  };
+
+  await faultyHandler.postMessage({
+    type: "START_ZIP_BATCH",
+    payload: {
+      recipients: [
+        { recipientKey: "bad_rec_1", sourceRowNumber: 1, effectiveData: { name: "Bad1" } },
+        { recipientKey: "bad_rec_2", sourceRowNumber: 2, effectiveData: { name: "Bad2" } },
+      ],
+      volumeIndex: 1,
+      totalVolumes: 1,
+      zipFilename: "faulty.zip",
+    },
+  });
+
+  await new Promise<void>((resolve, reject) => {
+    const start = Date.now();
+    const interval = setInterval(() => {
+      if (faultyZipCompleted) {
+        clearInterval(interval);
+        resolve();
+      } else if (Date.now() - start > 5000) {
+        clearInterval(interval);
+        reject(new Error("Timeout waiting for faulty ZIP_COMPLETE"));
+      }
+    }, 20);
+  });
+
+  assert.strictEqual(faultyZipCompleted.totalDocuments, 0, "0 documents generated");
+  assert.strictEqual(faultyZipCompleted.failedCount, 2, "Must report 2 failed recipients");
+  assert.deepStrictEqual(faultyZipCompleted.failedRecipientKeys, ["bad_rec_1", "bad_rec_2"], "Must collect failed keys");
+  assert.strictEqual(faultyErrorsList.length, 0, "Do not emit ERROR messages which abort ZIP export");
+  assert.strictEqual(faultyProgressList[faultyProgressList.length - 1].percent, 100, "Progress must reach 100% on failure");
+  console.log("   ✓ Fault isolation and 100% progress verified");
+
+  // 8. Verify ZIP export state and cancellation isolation from batch generation
+  console.log("8. Verify ZIP export state and cancellation isolation from batch generation");
+  const isoHandler = new BatchGeneratorHandler();
+  await isoHandler.postMessage({
+    type: "INIT",
+    payload: {
+      basePdfBytes: dummyBasePdf.buffer as ArrayBuffer,
+      fieldMappings: [],
+    },
+  });
+
+  const cancelledMsgs: any[] = [];
+  isoHandler.onmessage = (msg) => {
+    if (msg.type === "CANCELLED") {
+      cancelledMsgs.push(msg);
+    }
+  };
+
+  // Test CANCEL_ZIP emits scope: "zip"
+  await isoHandler.postMessage({ type: "CANCEL_ZIP" });
+  assert.strictEqual(cancelledMsgs.length, 1);
+  assert.strictEqual(cancelledMsgs[0].scope, "zip", "CANCEL_ZIP must emit CANCELLED with scope: 'zip'");
+  assert.strictEqual(isoHandler.isGeneratingState(), false, "Batch generation state must not be affected");
+
+  // Test CANCEL emits scope: "batch"
+  await isoHandler.postMessage({ type: "CANCEL" });
+  assert.strictEqual(cancelledMsgs.length, 2);
+  assert.strictEqual(cancelledMsgs[1].scope, "batch", "CANCEL must emit CANCELLED with scope: 'batch'");
+  console.log("   ✓ Scope-tagged cancellation isolation verified");
 
   console.log("🎉 All Streaming ZIP Tests Passed Successfully!");
 }

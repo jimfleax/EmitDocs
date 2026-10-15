@@ -53,6 +53,15 @@ export type WorkerStatus =
   | "cancelled"
   | "error";
 
+export interface ZipExportResult {
+  success: boolean;
+  totalBytes: number;
+  durationMs: number;
+  failedCount?: number;
+  failedRecipientKeys?: string[];
+  failedKeys?: string[];
+}
+
 export interface UseBatchGeneratorWorkerReturn {
   status: WorkerStatus;
   progress: GenerationProgress;
@@ -81,8 +90,9 @@ export interface UseBatchGeneratorWorkerReturn {
     recipients: RecipientBatchItem[],
     volumeIndex?: number,
     totalVolumes?: number,
-    zipFilename?: string
-  ) => Promise<{ success: boolean; totalBytes: number; durationMs: number }>;
+    zipFilename?: string,
+    fileHandleOrWritable?: any
+  ) => Promise<ZipExportResult>;
   cancelZipExport: () => void;
 }
 
@@ -125,8 +135,10 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
 
   const zipChunksRef = useRef<Uint8Array[]>([]);
   const zipWritableRef = useRef<any>(null);
+  const zipWriteChainRef = useRef<Promise<void>>(Promise.resolve());
+  const zipWriteErrorRef = useRef<any>(null);
   const zipResolverRef = useRef<{
-    resolve: (val: { success: boolean; totalBytes: number; durationMs: number }) => void;
+    resolve: (val: ZipExportResult) => void;
     reject: (err: any) => void;
   } | null>(null);
 
@@ -265,7 +277,17 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           case "ZIP_CHUNK": {
             const { chunk } = msg.payload;
             if (zipWritableRef.current) {
-              void zipWritableRef.current.write(chunk);
+              const writable = zipWritableRef.current;
+              zipWriteChainRef.current = zipWriteChainRef.current
+                .then(async () => {
+                  if (zipWriteErrorRef.current) return;
+                  await writable.write(chunk);
+                })
+                .catch((err) => {
+                  if (!zipWriteErrorRef.current) {
+                    zipWriteErrorRef.current = err;
+                  }
+                });
             } else {
               zipChunksRef.current.push(chunk);
             }
@@ -273,53 +295,96 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           }
 
           case "ZIP_COMPLETE": {
-            const { totalBytes, durationMs, zipFilename } = msg.payload;
+            const { totalBytes, durationMs, zipFilename, failedCount, failedRecipientKeys, failedKeys } = msg.payload;
             isZippingRef.current = false;
             setIsZipping(false);
+            const resolvedFailedKeys = failedRecipientKeys || failedKeys || [];
+            const resolvedFailedCount = failedCount ?? resolvedFailedKeys.length;
             if (zipWritableRef.current) {
               const writable = zipWritableRef.current;
-              zipWritableRef.current = null;
               void (async () => {
                 try {
+                  await zipWriteChainRef.current;
+                  if (zipWriteErrorRef.current) {
+                    throw zipWriteErrorRef.current;
+                  }
                   await writable.close();
+                  zipResolverRef.current?.resolve({
+                    success: true,
+                    totalBytes,
+                    durationMs,
+                    failedCount: resolvedFailedCount,
+                    failedRecipientKeys: resolvedFailedKeys,
+                    failedKeys: resolvedFailedKeys,
+                  });
                 } catch (e) {
-                  console.warn("Failed to close zip stream:", e);
+                  console.warn("Failed to write or close zip stream:", e);
+                  try {
+                    void writable.abort(e);
+                  } catch {
+                    // Ignored
+                  }
+                  zipResolverRef.current?.reject(e);
                 } finally {
-                  zipResolverRef.current?.resolve({ success: true, totalBytes, durationMs });
+                  zipWritableRef.current = null;
                   zipResolverRef.current = null;
+                  zipWriteChainRef.current = Promise.resolve();
+                  zipWriteErrorRef.current = null;
                 }
               })();
             } else {
               saveZipChunksAsBlob(zipChunksRef.current, zipFilename);
               zipChunksRef.current = [];
-              zipResolverRef.current?.resolve({ success: true, totalBytes, durationMs });
+              zipResolverRef.current?.resolve({
+                success: true,
+                totalBytes,
+                durationMs,
+                failedCount: resolvedFailedCount,
+                failedRecipientKeys: resolvedFailedKeys,
+                failedKeys: resolvedFailedKeys,
+              });
               zipResolverRef.current = null;
             }
             break;
           }
 
           case "CANCELLED": {
-            setStatus("cancelled");
-            isZippingRef.current = false;
-            setIsZipping(false);
-            if (zipWritableRef.current) {
-              try {
-                void zipWritableRef.current.abort();
-              } catch {
-                // Ignored
+            const scope = (msg as any).scope || (msg as any).payload?.scope;
+            if (scope === "zip") {
+              isZippingRef.current = false;
+              setIsZipping(false);
+              if (zipWritableRef.current) {
+                try {
+                  void zipWritableRef.current.abort();
+                } catch {
+                  // Ignored
+                }
+                zipWritableRef.current = null;
               }
-              zipWritableRef.current = null;
+              zipChunksRef.current = [];
+              zipWriteChainRef.current = Promise.resolve();
+              zipWriteErrorRef.current = null;
+              if (zipResolverRef.current) {
+                zipResolverRef.current.resolve({
+                  success: false,
+                  totalBytes: 0,
+                  durationMs: 0,
+                  failedCount: 0,
+                  failedRecipientKeys: [],
+                  failedKeys: [],
+                });
+                zipResolverRef.current = null;
+              }
+              break;
             }
-            zipChunksRef.current = [];
-            if (zipResolverRef.current) {
-              zipResolverRef.current.resolve({ success: false, totalBytes: 0, durationMs: 0 });
-              zipResolverRef.current = null;
-            }
+
+            setStatus("cancelled");
             break;
           }
 
           case "ERROR": {
             const { message, fatal, recipientKey, requestId } = msg.payload;
+            const isZipError = (msg as any).scope === "zip" || (msg.payload as any)?.scope === "zip";
             const resolverKey = requestId || recipientKey;
             if (resolverKey) {
               const resolver = pendingSingleResolvers.current.get(resolverKey);
@@ -332,7 +397,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
             if (recipientKey) {
               setErrorsMap((prev) => ({ ...prev, [recipientKey]: message }));
             }
-            if (fatal) {
+            if (fatal && !isZipError) {
               setStatus("error");
               setError(message);
               if (pendingInitResolver.current) {
@@ -340,7 +405,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
                 pendingInitResolver.current = null;
               }
             }
-            if (isZippingRef.current) {
+            if (isZipError) {
               isZippingRef.current = false;
               setIsZipping(false);
               if (zipWritableRef.current) {
@@ -352,6 +417,8 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
                 zipWritableRef.current = null;
               }
               zipChunksRef.current = [];
+              zipWriteChainRef.current = Promise.resolve();
+              zipWriteErrorRef.current = null;
               if (zipResolverRef.current) {
                 zipResolverRef.current.reject(new Error(message));
                 zipResolverRef.current = null;
@@ -651,8 +718,9 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
       recipients: RecipientBatchItem[],
       volumeIndex = 1,
       totalVolumes = 1,
-      zipFilename = "documents.zip"
-    ): Promise<{ success: boolean; totalBytes: number; durationMs: number }> => {
+      zipFilename = "documents.zip",
+      fileHandleOrWritable?: any
+    ): Promise<ZipExportResult> => {
       isZippingRef.current = true;
       setIsZipping(true);
       setZipProgress({
@@ -662,9 +730,29 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
       });
       zipChunksRef.current = [];
       zipWritableRef.current = null;
+      zipWriteChainRef.current = Promise.resolve();
+      zipWriteErrorRef.current = null;
 
-      // Check for FileSystem Access API support
-      if (
+      if (fileHandleOrWritable !== undefined) {
+        if (fileHandleOrWritable) {
+          if (typeof fileHandleOrWritable.createWritable === "function") {
+            try {
+              zipWritableRef.current = await fileHandleOrWritable.createWritable();
+            } catch (err: any) {
+              isZippingRef.current = false;
+              setIsZipping(false);
+              if (err?.name === "AbortError") {
+                return { success: false, totalBytes: 0, durationMs: 0 };
+              }
+              throw err;
+            }
+          } else {
+            zipWritableRef.current = fileHandleOrWritable;
+          }
+        } else {
+          zipWritableRef.current = null;
+        }
+      } else if (
         typeof window !== "undefined" &&
         "showSaveFilePicker" in window &&
         typeof (window as any).showSaveFilePicker === "function"
@@ -681,17 +769,16 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           });
           zipWritableRef.current = await handle.createWritable();
         } catch (err: any) {
+          isZippingRef.current = false;
+          setIsZipping(false);
           if (err?.name === "AbortError") {
-            isZippingRef.current = false;
-            setIsZipping(false);
             return { success: false, totalBytes: 0, durationMs: 0 };
           }
-          // Fallback to in-memory Blob accumulation
-          zipWritableRef.current = null;
+          throw err;
         }
       }
 
-      return new Promise((resolve, reject) => {
+      return new Promise<ZipExportResult>((resolve, reject) => {
         zipResolverRef.current = { resolve, reject };
 
         if (!workerRef.current) {
@@ -703,36 +790,72 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
               if (!baseBytes) throw new Error("Worker not initialized with template");
               const nonNullBase = baseBytes;
 
+              const failedRecipientKeys: string[] = [];
               async function* fallbackEntries() {
                 for (const r of recipients) {
                   const stringData: Record<string, string> = {};
                   for (const [k, v] of Object.entries(r.effectiveData || {})) {
                     stringData[k] = v !== null && v !== undefined ? String(v) : "";
                   }
-                  const res = await generatePdfWithOverlay(nonNullBase, fieldMappings, stringData, {
-                    drawDebugBoxes: false,
-                  });
-                  const fname = sanitizeRecipientFilename(r.effectiveData, r.recipientKey);
-                  yield { name: fname, input: res.pdfBytes };
+                  try {
+                    const res = await generatePdfWithOverlay(nonNullBase, fieldMappings, stringData, {
+                      drawDebugBoxes: false,
+                    });
+                    const fname = sanitizeRecipientFilename(r.effectiveData, r.recipientKey);
+                    yield { name: fname, input: res.pdfBytes };
+                  } catch {
+                    failedRecipientKeys.push(r.recipientKey);
+                  }
                 }
               }
 
               const stream = createStreamingZip(fallbackEntries());
               const reader = stream.getReader();
-              const chunks: Uint8Array[] = [];
-              let totalBytes = 0;
-              while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (value && value.length > 0) {
-                  chunks.push(value);
-                  totalBytes += value.length;
+              if (zipWritableRef.current) {
+                const writable = zipWritableRef.current;
+                zipWritableRef.current = null;
+                let totalBytes = 0;
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  if (value && value.length > 0) {
+                    await writable.write(value);
+                    totalBytes += value.length;
+                  }
                 }
-              }
+                await writable.close();
+                setIsZipping(false);
+                resolve({
+                  success: true,
+                  totalBytes,
+                  durationMs: 0,
+                  failedCount: failedRecipientKeys.length,
+                  failedRecipientKeys,
+                  failedKeys: failedRecipientKeys,
+                });
+              } else {
+                const chunks: Uint8Array[] = [];
+                let totalBytes = 0;
+                while (true) {
+                  const { done, value } = await reader.read();
+                  if (done) break;
+                  if (value && value.length > 0) {
+                    chunks.push(value);
+                    totalBytes += value.length;
+                  }
+                }
 
-              saveZipChunksAsBlob(chunks, zipFilename);
-              setIsZipping(false);
-              resolve({ success: true, totalBytes, durationMs: 0 });
+                saveZipChunksAsBlob(chunks, zipFilename);
+                setIsZipping(false);
+                resolve({
+                  success: true,
+                  totalBytes,
+                  durationMs: 0,
+                  failedCount: failedRecipientKeys.length,
+                  failedRecipientKeys,
+                  failedKeys: failedRecipientKeys,
+                });
+              }
             } catch (err) {
               setIsZipping(false);
               reject(err);
@@ -765,13 +888,22 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
       zipWritableRef.current = null;
     }
     zipChunksRef.current = [];
+    zipWriteChainRef.current = Promise.resolve();
+    zipWriteErrorRef.current = null;
     isZippingRef.current = false;
     setIsZipping(false);
     if (workerRef.current) {
-      workerRef.current.postMessage({ type: "CANCEL" });
+      workerRef.current.postMessage({ type: "CANCEL_ZIP" });
     }
     if (zipResolverRef.current) {
-      zipResolverRef.current.resolve({ success: false, totalBytes: 0, durationMs: 0 });
+      zipResolverRef.current.resolve({
+        success: false,
+        totalBytes: 0,
+        durationMs: 0,
+        failedCount: 0,
+        failedRecipientKeys: [],
+        failedKeys: [],
+      });
       zipResolverRef.current = null;
     }
   }, []);
