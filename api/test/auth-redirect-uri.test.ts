@@ -104,4 +104,90 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
       process.env.VITE_API_BASE_URL = originalViteUrl;
     }
   });
+
+  it("always includes https://emitdocs.jimfleax.in in allowed origins", () => {
+    const allowed = getAllowedOrigins();
+    assert.ok(
+      allowed.includes("https://emitdocs.jimfleax.in"),
+      "Allowed origins must include production custom domain emitdocs.jimfleax.in"
+    );
+  });
+
+  describe("Cross-Domain Cookie Configuration", () => {
+    it("sets SameSite=None and Secure=true in production for cross-domain cookie acceptance", async () => {
+      const prodAuth = betterAuth({
+        baseURL: "https://emitdocs-api.vercel.app",
+        trustedOrigins: getAllowedOrigins(),
+        advanced: {
+          trustedProxyHeaders: true,
+          defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+          },
+        },
+        secret: "test-secret-at-least-32-characters-long",
+        socialProviders: {
+          google: { clientId: "test-id", clientSecret: "test-secret" },
+        },
+      });
+
+      const res = await prodAuth.api.signInSocial({
+        body: {
+          provider: "google",
+          callbackURL: "https://emitdocs.jimfleax.in/app",
+        },
+      });
+
+      assert.ok(res?.url);
+      // When invoked through API handler, headers or response sets cookie
+      const authResponse = await prodAuth.handler(
+        new Request("https://emitdocs-api.vercel.app/api/auth/sign-in/social", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            provider: "google",
+            callbackURL: "https://emitdocs.jimfleax.in/app",
+          }),
+        })
+      );
+
+      const cookieHeader = authResponse.headers.get("set-cookie");
+      assert.ok(cookieHeader, "Must set state cookie");
+      assert.ok(cookieHeader.includes("SameSite=None"), "Must set SameSite=None in production");
+      assert.ok(cookieHeader.includes("Secure"), "Must set Secure flag when SameSite=None");
+    });
+
+    it("sets SameSite=Lax in development for standard localhost workflows", async () => {
+      const devAuth = betterAuth({
+        baseURL: "http://localhost:3000",
+        trustedOrigins: getAllowedOrigins(),
+        advanced: {
+          trustedProxyHeaders: true,
+          defaultCookieAttributes: {
+            sameSite: "lax",
+            secure: false,
+          },
+        },
+        secret: "test-secret-at-least-32-characters-long",
+        socialProviders: {
+          google: { clientId: "test-id", clientSecret: "test-secret" },
+        },
+      });
+
+      const authResponse = await devAuth.handler(
+        new Request("http://localhost:3000/api/auth/sign-in/social", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            provider: "google",
+            callbackURL: "http://localhost:5173/app",
+          }),
+        })
+      );
+
+      const cookieHeader = authResponse.headers.get("set-cookie");
+      assert.ok(cookieHeader, "Must set state cookie");
+      assert.ok(cookieHeader.includes("SameSite=Lax"), "Must set SameSite=Lax in development");
+    });
+  });
 });

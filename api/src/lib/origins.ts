@@ -14,6 +14,7 @@ import { resolveAuthBaseURL } from './auth-url.js';
  * Canonical production and default local development origins.
  */
 const CANONICAL_ORIGINS = [
+  'https://emitdocs.jimfleax.in',
   'https://emitdocs.vercel.app',
   'http://localhost:5173',
   'http://localhost:3000',

@@ -16,6 +16,8 @@ import { getAllowedOrigins } from "./lib/origins.js";
 import { resolveAuthBaseURL } from "./lib/auth-url.js";
 import 'dotenv/config';
 
+const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
+
 /**
  * @type {ReturnType<typeof betterAuth>}
  * @description Central Better-Auth authentication handler instance.
@@ -24,6 +26,10 @@ export const auth = betterAuth({
   baseURL: resolveAuthBaseURL(),
   advanced: {
     trustedProxyHeaders: true,
+    defaultCookieAttributes: {
+      sameSite: isProduction ? 'none' : 'lax',
+      secure: isProduction,
+    },
   },
   database: mongodbAdapter(db),
   trustedOrigins: getAllowedOrigins(),
