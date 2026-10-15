@@ -104,4 +104,41 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
       process.env.VITE_API_BASE_URL = originalViteUrl;
     }
   });
+
+  describe("Vercel & Production Environment Protection", () => {
+    it("rejects localhost in Vercel environment and uses VERCEL_PROJECT_PRODUCTION_URL", () => {
+      const baseURL = resolveAuthBaseURL({
+        VERCEL: "1",
+        BETTER_AUTH_URL: "http://localhost:3000",
+        VERCEL_PROJECT_PRODUCTION_URL: "emitdocs-api.vercel.app",
+        VERCEL_URL: "emitdocs-api-preview.vercel.app",
+      });
+      assert.strictEqual(baseURL, "https://emitdocs-api.vercel.app");
+    });
+
+    it("rejects localhost in Vercel environment and falls back to VERCEL_URL", () => {
+      const baseURL = resolveAuthBaseURL({
+        VERCEL: "1",
+        BETTER_AUTH_URL: "http://localhost:3000",
+        VERCEL_URL: "emitdocs-api-preview.vercel.app",
+      });
+      assert.strictEqual(baseURL, "https://emitdocs-api-preview.vercel.app");
+    });
+
+    it("defaults to canonical https://emitdocs-api.vercel.app when running on Vercel with no env", () => {
+      const baseURL = resolveAuthBaseURL({
+        VERCEL: "1",
+      });
+      assert.strictEqual(baseURL, "https://emitdocs-api.vercel.app");
+    });
+
+    it("honors valid deployed VITE_API_BASE_URL in Vercel environment", () => {
+      const baseURL = resolveAuthBaseURL({
+        VERCEL: "1",
+        VITE_API_BASE_URL: "https://emitdocs-api.vercel.app",
+        BETTER_AUTH_URL: "http://localhost:3000",
+      });
+      assert.strictEqual(baseURL, "https://emitdocs-api.vercel.app");
+    });
+  });
 });
