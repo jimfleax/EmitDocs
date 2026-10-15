@@ -1,5 +1,5 @@
 /**
- * @file SwipeToast.jsx
+ * @file SwipeToast.tsx
  * @description Gesture-driven, swipeable toast notification component with timer fuse and physics spring settlement.
  * @architecture Implements physics-based drag dismissal using motion/react and custom rubberbanding calculations.
  * @agent_note Supports touch drag, keyboard Escape dismissal, and auto-dismiss fuses.
@@ -8,6 +8,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import {
   animate,
   motion,
@@ -25,7 +26,7 @@ import {
   Loading03Icon,
 } from "@hugeicons/core-free-icons";
 
-const EASE_OUT = [0.23, 1, 0.32, 1];
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 const FLICK = 0.11;
 const DEAD_ZONE = 3;
 const RESIST_PX = 24;
@@ -35,16 +36,43 @@ const BURN = [{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }];
 const HAS_STARTING_STYLE =
   typeof window !== "undefined" && "CSSStartingStyleRule" in window;
 
-const rubberband = (over, dim, c = 0.55) =>
+const rubberband = (over: number, dim: number, c = 0.55): number =>
   (over * dim * c) / (dim + c * Math.abs(over));
-const velocityOf = (hist) => {
+
+const velocityOf = (hist: [number, number][]): number => {
   if (hist.length < 2) return 0;
-  const [t0, y0] = hist[0];
-  const [t1, y1] = hist[hist.length - 1];
+  const [t0, y0] = hist[0]!;
+  const [t1, y1] = hist[hist.length - 1]!;
   return performance.now() - t1 > 100 ? 0 : (y1 - y0) / Math.max(1, t1 - t0);
 };
 
-const TOAST_VARIANTS = {
+export type SwipeToastVariant =
+  | "default"
+  | "success"
+  | "error"
+  | "failure"
+  | "warning"
+  | "info"
+  | "loading";
+
+export type SwipeToastCloseReason =
+  | "timeout"
+  | "swipe"
+  | "action"
+  | "close"
+  | "escape"
+  | "programmatic";
+
+export interface ToastVariantConfig {
+  background: string;
+  color: string;
+  fuseColor: string;
+  icon: ReactNode;
+  duration?: number;
+  dismissible?: boolean;
+}
+
+const TOAST_VARIANTS: Record<SwipeToastVariant, ToastVariantConfig> = {
   default: {
     background: "#ffffff",
     color: "#0f172a",
@@ -123,15 +151,68 @@ const TOAST_VARIANTS = {
   },
 };
 
+export interface SwipeToastProps {
+  /** The feedback category preset. Default: 'default' */
+  variant?: SwipeToastVariant;
+  /** The first line of the toast. Default: 'File archived' */
+  title?: ReactNode;
+  /** The dimmer second line. Empty hides it. Default: '' */
+  description?: ReactNode;
+  /** An 18px icon before the text. If omitted, uses variant icon. */
+  icon?: ReactNode;
+  /** The inverted button label. Empty hides it. Default: '' */
+  actionLabel?: ReactNode;
+  /** Called when the action is pressed, before the close. */
+  onAction?: () => void;
+  /** Flip to false to close from outside. True again re-enters. Default: true */
+  open?: boolean;
+  /** Called after the exit, and after the inline slot has collapsed. */
+  onClose?: (reason: SwipeToastCloseReason) => void;
+  /** The card surface color, and the action text color. */
+  background?: string;
+  /** Ink: title, description and action fill color. */
+  color?: string;
+  /** The burning fuse line color. */
+  fuseColor?: string;
+  /** Card width in pixels, capped at parent when inline. Default: 356 */
+  width?: number;
+  /** Corner radius in pixels. Default: 12 */
+  radius?: number;
+  /** How long the rise and drop take in ms. Default: 400 */
+  slideMs?: number;
+  /** Overshoot of the return after an abandoned swipe. Default: 0.2 */
+  settleBounce?: number;
+  /** How far a slow drag must go before release dismisses in px. Default: 40 */
+  swipeDistance?: number;
+  /** Milliseconds until it closes itself. Default: 4000 (0 for loading/infinite). */
+  duration?: number;
+  /** Which edge the line burns along. Default: 'bottom' */
+  fuse?: "bottom" | "top" | "none";
+  /** Hovering freezes the line and timer. Default: true */
+  pauseOnHover?: boolean;
+  /** Adds a cross at the end of the row. Default: false */
+  closeButton?: boolean;
+  /** In flow inside parent instead of fixed to bottom-right of viewport. Default: false */
+  inline?: boolean;
+  /** Off removes the swipe and Escape. Default: true */
+  dismissible?: boolean;
+  /** Extra classes for the root container. Default: '' */
+  className?: string;
+}
+
+interface DragState {
+  id: number;
+  startY: number;
+  grab: number | null;
+  moved: boolean;
+  hist: [number, number][];
+}
+
+type ToastPhase = "open" | "closing" | "gone";
+
 /**
  * @component SwipeToast
  * @description Renders a toast notification card with gesture-based dismiss, fuse timer, and action buttons.
- * @param {Object} props - Component properties.
- * @param {string} [props.variant="default"] - Category preset (default, success, error, warning, info, loading).
- * @param {React.ReactNode} [props.title="File archived"] - Primary title message.
- * @param {React.ReactNode} [props.description=""] - Supporting text.
- * @param {Function} [props.onClose] - Callback fired when toast finishes closing.
- * @state Manages drag coordinates, timeout fuse animation, and exit settlement.
  */
 export default function SwipeToast({
   variant = "default",
@@ -157,7 +238,7 @@ export default function SwipeToast({
   inline = false,
   dismissible,
   className = "",
-}) {
+}: SwipeToastProps) {
   const variantConfig = TOAST_VARIANTS[variant] || TOAST_VARIANTS.default;
   const resolvedBg = background ?? variantConfig.background;
   const resolvedColor = color ?? variantConfig.color;
@@ -171,26 +252,26 @@ export default function SwipeToast({
       : (variantConfig.dismissible ?? true);
 
   const reduce = useReducedMotion();
-  const [phase, setPhase] = useState("open");
+  const [phase, setPhase] = useState<ToastPhase>("open");
   const [instant, setInstant] = useState(false);
   const [swiping, setSwiping] = useState(false);
   const [mounted, setMounted] = useState(HAS_STARTING_STYLE);
-  const cardRef = useRef(null);
-  const fuseRef = useRef(null);
-  const anim = useRef(null);
-  const drag = useRef(null);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  const fuseRef = useRef<HTMLElement | null>(null);
+  const anim = useRef<Animation | null>(null);
+  const drag = useRef<DragState | null>(null);
   const flags = useRef({
     hover: false,
     interacting: false,
     focus: false,
     hidden: false,
   });
-  const lastInput = useRef("pointer");
-  const pendingClose = useRef(null);
-  const closeTimer = useRef(undefined);
-  const reason = useRef("timeout");
+  const lastInput = useRef<"pointer" | "keyboard">("pointer");
+  const pendingClose = useRef<SwipeToastCloseReason | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const reason = useRef<SwipeToastCloseReason>("timeout");
   const leaving = useRef(false);
-  const phaseRef = useRef(phase);
+  const phaseRef = useRef<ToastPhase>(phase);
   const latest = useRef({ onClose, onAction, slideMs, inline });
 
   useEffect(() => {
@@ -209,7 +290,8 @@ export default function SwipeToast({
     if (f.hover || f.interacting || f.focus || f.hidden) a.pause();
     else if (a.playState === "paused") a.play();
   };
-  const finish = (why) => {
+
+  const finish = (why: SwipeToastCloseReason) => {
     setPhase("gone");
     leaving.current = false;
     if (latest.current.inline)
@@ -219,7 +301,8 @@ export default function SwipeToast({
       );
     else latest.current.onClose?.(why);
   };
-  const close = (why) => {
+
+  const close = (why: SwipeToastCloseReason) => {
     if (phaseRef.current !== "open" || leaving.current) return;
     if (drag.current) {
       pendingClose.current = why;
@@ -239,6 +322,7 @@ export default function SwipeToast({
       now ? 0 : latest.current.slideMs * EXIT + 60,
     );
   };
+
   const rescue = () => {
     clearTimeout(closeTimer.current);
     setInstant(false);
@@ -252,9 +336,11 @@ export default function SwipeToast({
     else if (phaseRef.current !== "open") rescue();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
   useEffect(() => {
     if (!HAS_STARTING_STYLE) requestAnimationFrame(() => setMounted(true));
   }, []);
+
   useEffect(() => {
     if (phase !== "open" || resolvedDuration <= 0 || !fuseRef.current)
       return undefined;
@@ -273,6 +359,7 @@ export default function SwipeToast({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, resolvedDuration]);
+
   useEffect(() => {
     if (!pauseOnHover) {
       flags.current.hover = false;
@@ -280,6 +367,7 @@ export default function SwipeToast({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pauseOnHover]);
+
   useEffect(() => {
     const onVisibility = () => {
       flags.current.hidden = document.hidden;
@@ -294,7 +382,7 @@ export default function SwipeToast({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const swipeOut = (dy, v) => {
+  const swipeOut = (dy: number, v: number) => {
     anim.current?.pause();
     leaving.current = true;
     pendingClose.current = null;
@@ -310,14 +398,16 @@ export default function SwipeToast({
       finish("swipe"),
     );
   };
-  const onPointerDown = (e) => {
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     lastInput.current = "pointer";
+    const target = e.target as HTMLElement | null;
     if (
       e.button !== 0 ||
       !resolvedDismissible ||
       drag.current ||
       leaving.current ||
-      e.target.closest("button")
+      target?.closest("button")
     )
       return;
     if (phaseRef.current === "closing") rescue();
@@ -335,7 +425,8 @@ export default function SwipeToast({
     flags.current.interacting = true;
     syncFuse();
   };
-  const onPointerMove = (e) => {
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     if (d.grab === null) {
@@ -350,7 +441,8 @@ export default function SwipeToast({
     d.hist.push([performance.now(), next]);
     if (d.hist.length > 4) d.hist.shift();
   };
-  const onPointerUp = (e) => {
+
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
     if (!d || d.id !== e.pointerId) return;
     drag.current = null;
@@ -394,16 +486,18 @@ export default function SwipeToast({
           ? "relative w-full max-w-[var(--st-w)] transition-[grid-template-rows] duration-[var(--st-slide)] [transition-timing-function:cubic-bezier(0.23,1,0.32,1)]"
           : "fixed right-4 md:right-8 bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] md:bottom-[calc(2rem+env(safe-area-inset-bottom,0px))] z-[999999999] max-w-[calc(100vw-2rem)] md:max-w-[calc(100vw-4rem)] w-auto"
       } ${className}`.trim()}
-      style={{
-        gridTemplateRows: inline ? (isClosed ? "0fr" : "1fr") : "1fr",
-        "--st-bg": resolvedBg,
-        "--st-ink": resolvedColor,
-        "--st-fuse": resolvedFuseColor,
-        "--st-w": `${width}px`,
-        "--st-radius": `${radius}px`,
-        "--st-slide": `${slideMs}ms`,
-        "--st-gap": "10px",
-      }}
+      style={
+        {
+          gridTemplateRows: inline ? (isClosed ? "0fr" : "1fr") : "1fr",
+          "--st-bg": resolvedBg,
+          "--st-ink": resolvedColor,
+          "--st-fuse": resolvedFuseColor,
+          "--st-w": `${width}px`,
+          "--st-radius": `${radius}px`,
+          "--st-slide": `${slideMs}ms`,
+          "--st-gap": "10px",
+        } as CSSProperties
+      }
     >
       <div className="min-h-0">
         <div
@@ -452,7 +546,7 @@ export default function SwipeToast({
               syncFuse();
             }}
             onBlur={(e) => {
-              if (!e.currentTarget.contains(e.relatedTarget)) {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
                 flags.current.focus = false;
                 syncFuse();
               }
