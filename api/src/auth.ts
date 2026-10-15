@@ -13,6 +13,7 @@ import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "@better-auth/mongo-adapter";
 import { db } from "./lib/db.js";
 import { getAllowedOrigins } from "./lib/origins.js";
+import { resolveAuthBaseURL } from "./lib/auth-url.js";
 import 'dotenv/config';
 
 /**
@@ -20,6 +21,7 @@ import 'dotenv/config';
  * @description Central Better-Auth authentication handler instance.
  */
 export const auth = betterAuth({
+  baseURL: resolveAuthBaseURL(),
   database: mongodbAdapter(db),
   trustedOrigins: getAllowedOrigins(),
   socialProviders: {
@@ -29,3 +31,4 @@ export const auth = betterAuth({
     },
   },
 });
+

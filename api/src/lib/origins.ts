@@ -8,6 +8,8 @@
  *               `CANONICAL_ORIGINS` or supply comma-separated values in `ALLOWED_ORIGINS` env var.
  */
 
+import { resolveAuthBaseURL } from './auth-url.js';
+
 /**
  * Canonical production and default local development origins.
  */
@@ -61,6 +63,19 @@ export function getAllowedOrigins(): string[] {
       // Add http counterpart for network / local proxy testing
       originsSet.add(`http://${origin.slice('https://'.length)}`);
     }
+  }
+
+  // Ensure resolved auth base URL origin is included if valid
+  try {
+    const authBase = resolveAuthBaseURL();
+    if (authBase) {
+      const parsedOrigin = new URL(authBase).origin;
+      if (parsedOrigin && parsedOrigin !== 'null') {
+        originsSet.add(normalizeOrigin(parsedOrigin));
+      }
+    }
+  } catch {
+    // Gracefully handle malformed URL configurations
   }
 
   // Always ensure canonical origins are present
