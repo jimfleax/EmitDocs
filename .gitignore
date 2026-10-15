@@ -51,3 +51,5 @@ coverage/
 
 # Scratch directory for temporary scripts/docs
 scratch/
+docs/
+.tanstack/
