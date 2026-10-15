@@ -22,6 +22,9 @@ import 'dotenv/config';
  */
 export const auth = betterAuth({
   baseURL: resolveAuthBaseURL(),
+  advanced: {
+    trustedProxyHeaders: true,
+  },
   database: mongodbAdapter(db),
   trustedOrigins: getAllowedOrigins(),
   socialProviders: {
