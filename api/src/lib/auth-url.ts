@@ -9,9 +9,11 @@
  * Resolves and normalizes the Better-Auth base URL.
  *
  * Precedence:
- * 1. env.VITE_API_BASE_URL (trimmed)
- * 2. env.BETTER_AUTH_URL (trimmed)
- * 3. "http://localhost:3000" (default)
+ * 1. env.BETTER_AUTH_URL (trimmed)
+ * 2. env.FRONTEND_URL (trimmed)
+ * 3. env.VITE_API_BASE_URL (trimmed)
+ * 4. Production fallback: "https://emitdocs.jimfleax.in" (when NODE_ENV === 'production' or VERCEL === '1')
+ * 5. Development default: "http://localhost:3000"
  *
  * Normalization:
  * - Trims whitespace
@@ -21,10 +23,12 @@
  * @returns {string} Normalized base URL for Better-Auth.
  */
 export function resolveAuthBaseURL(env: Record<string, string | undefined> = process.env): string {
+  const isProduction = env.NODE_ENV === "production" || env.VERCEL === "1";
   const rawUrl =
-    env.VITE_API_BASE_URL?.trim() ||
     env.BETTER_AUTH_URL?.trim() ||
-    "http://localhost:3000";
+    env.FRONTEND_URL?.trim() ||
+    env.VITE_API_BASE_URL?.trim() ||
+    (isProduction ? "https://emitdocs.jimfleax.in" : "http://localhost:3000");
 
   return rawUrl
     .replace(/\/+$/, "")

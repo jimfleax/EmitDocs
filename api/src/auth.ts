@@ -27,7 +27,7 @@ export const auth = betterAuth({
   advanced: {
     trustedProxyHeaders: true,
     defaultCookieAttributes: {
-      sameSite: isProduction ? 'none' : 'lax',
+      sameSite: 'lax',
       secure: isProduction,
     },
   },

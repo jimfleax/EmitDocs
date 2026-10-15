@@ -2,26 +2,24 @@
  * @file auth-client.ts
  * @description Better Auth client instance configuration for React frontend.
  * @architecture Initializes authentication client talking to the backend API base URL for session and user state.
- *               Dynamically resolves between configured environment variables and current origin.
- * @agent_note Relies on VITE_API_BASE_URL environment variable, defaulting to window.location.origin in production
- *             or http://localhost:3000 in local development.
+ *               Dynamically resolves between current origin and configured environment variables.
+ * @agent_note Always resolves to window.location.origin in browser environments to leverage the same-origin reverse proxy,
+ *             defaulting to VITE_API_BASE_URL or http://localhost:3000 in non-browser / SSR contexts.
  */
 
 import { createAuthClient } from "better-auth/react";
 
 /**
  * Resolves the client API base URL dynamically.
- * Prioritizes VITE_API_BASE_URL if set (and not localhost in production),
- * falling back to window.location.origin in browser environments or localhost:3000.
+ * In browser runtime, always resolves to window.location.origin so requests go through the
+ * same-origin reverse proxy (/api/*), enabling first-party cookies.
+ * Falls back to VITE_API_BASE_URL or http://localhost:3000 in non-browser / SSR contexts.
  */
 function getClientBaseURL(): string {
-  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
-  if (envUrl && (import.meta.env.DEV || !envUrl.includes("localhost"))) {
-    return envUrl;
-  }
   if (typeof window !== "undefined" && window.location?.origin) {
     return window.location.origin;
   }
+  const envUrl = import.meta.env.VITE_API_BASE_URL?.trim();
   return envUrl || "http://localhost:3000";
 }
 

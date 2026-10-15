@@ -29,28 +29,44 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
     );
   });
 
-  it("resolves deployed production URL when VITE_API_BASE_URL is deployed domain", async () => {
-    const baseURL = resolveAuthBaseURL({ VITE_API_BASE_URL: "https://emitdocs.vercel.app" });
+  it("resolves BETTER_AUTH_URL with highest priority", () => {
+    const baseURL = resolveAuthBaseURL({
+      BETTER_AUTH_URL: "https://emitdocs.jimfleax.in",
+      FRONTEND_URL: "https://other.jimfleax.in",
+      VITE_API_BASE_URL: "https://api.jimfleax.in",
+    });
+    assert.strictEqual(baseURL, "https://emitdocs.jimfleax.in");
+  });
+
+  it("resolves FRONTEND_URL when BETTER_AUTH_URL is absent", () => {
+    const baseURL = resolveAuthBaseURL({
+      FRONTEND_URL: "https://emitdocs.jimfleax.in",
+      VITE_API_BASE_URL: "https://api.jimfleax.in",
+    });
+    assert.strictEqual(baseURL, "https://emitdocs.jimfleax.in");
+  });
+
+  it("resolves VITE_API_BASE_URL when higher priority vars are absent", () => {
+    const baseURL = resolveAuthBaseURL({
+      VITE_API_BASE_URL: "https://emitdocs.vercel.app",
+    });
     assert.strictEqual(baseURL, "https://emitdocs.vercel.app");
+  });
 
-    const testAuth = betterAuth({
-      baseURL,
-      secret: "test-secret-at-least-32-characters-long",
-      socialProviders: {
-        google: { clientId: "test-client-id", clientSecret: "test-client-secret" },
-      },
-    });
+  it("defaults to canonical production domain in production when env vars are absent", () => {
+    const baseURLNodeEnv = resolveAuthBaseURL({ NODE_ENV: "production" });
+    assert.strictEqual(baseURLNodeEnv, "https://emitdocs.jimfleax.in");
 
-    const res = await testAuth.api.signInSocial({
-      body: { provider: "google", callbackURL: "https://emitdocs.vercel.app/app" },
-    });
+    const baseURLVercel = resolveAuthBaseURL({ VERCEL: "1" });
+    assert.strictEqual(baseURLVercel, "https://emitdocs.jimfleax.in");
+  });
 
-    assert.ok(res?.url);
-    const parsed = new URL(res.url);
-    assert.strictEqual(
-      parsed.searchParams.get("redirect_uri"),
-      "https://emitdocs.vercel.app/api/auth/callback/google"
-    );
+  it("defaults to localhost:3000 in development when env vars are absent", () => {
+    const baseURL = resolveAuthBaseURL({});
+    assert.strictEqual(baseURL, "http://localhost:3000");
+
+    const baseURLDev = resolveAuthBaseURL({ NODE_ENV: "development" });
+    assert.strictEqual(baseURLDev, "http://localhost:3000");
   });
 
   it("normalizes and strips trailing /api or slash to prevent broken callback URLs", () => {
@@ -67,11 +83,6 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
     assert.strictEqual(baseURLWithTrailingApiSlashes, "http://localhost:3000");
   });
 
-  it("falls back to BETTER_AUTH_URL if VITE_API_BASE_URL is missing", () => {
-    const baseURL = resolveAuthBaseURL({ BETTER_AUTH_URL: "https://api.emitdocs.com" });
-    assert.strictEqual(baseURL, "https://api.emitdocs.com");
-  });
-
   it("falls back when environment variables contain only whitespace", () => {
     const baseURL = resolveAuthBaseURL({
       VITE_API_BASE_URL: "   ",
@@ -86,9 +97,28 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
     assert.strictEqual(baseURLWithFallback, "https://api.emitdocs.com");
   });
 
-  it("falls back to default localhost:3000 when both variables are absent", () => {
-    const baseURL = resolveAuthBaseURL({});
-    assert.strictEqual(baseURL, "http://localhost:3000");
+  it("generates redirect_uri with canonical production domain for Google OAuth", async () => {
+    const baseURL = resolveAuthBaseURL({ NODE_ENV: "production" });
+    assert.strictEqual(baseURL, "https://emitdocs.jimfleax.in");
+
+    const testAuth = betterAuth({
+      baseURL,
+      secret: "test-secret-at-least-32-characters-long",
+      socialProviders: {
+        google: { clientId: "test-client-id", clientSecret: "test-client-secret" },
+      },
+    });
+
+    const res = await testAuth.api.signInSocial({
+      body: { provider: "google", callbackURL: "https://emitdocs.jimfleax.in/app" },
+    });
+
+    assert.ok(res?.url);
+    const parsed = new URL(res.url);
+    assert.strictEqual(
+      parsed.searchParams.get("redirect_uri"),
+      "https://emitdocs.jimfleax.in/api/auth/callback/google"
+    );
   });
 
   it("includes resolved auth base URL origin in allowed origins", () => {
@@ -113,16 +143,17 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
     );
   });
 
-  describe("Cross-Domain Cookie Configuration", () => {
-    it("sets SameSite=None and Secure=true in production for cross-domain cookie acceptance", async () => {
+  describe("Cookie Configuration", () => {
+    it("sets SameSite=Lax and Secure=true in production for first-party same-origin cookie", async () => {
+      const isProduction = true;
       const prodAuth = betterAuth({
-        baseURL: "https://emitdocs-api.vercel.app",
+        baseURL: "https://emitdocs.jimfleax.in",
         trustedOrigins: getAllowedOrigins(),
         advanced: {
           trustedProxyHeaders: true,
           defaultCookieAttributes: {
-            sameSite: "none",
-            secure: true,
+            sameSite: "lax",
+            secure: isProduction,
           },
         },
         secret: "test-secret-at-least-32-characters-long",
@@ -131,17 +162,8 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
         },
       });
 
-      const res = await prodAuth.api.signInSocial({
-        body: {
-          provider: "google",
-          callbackURL: "https://emitdocs.jimfleax.in/app",
-        },
-      });
-
-      assert.ok(res?.url);
-      // When invoked through API handler, headers or response sets cookie
       const authResponse = await prodAuth.handler(
-        new Request("https://emitdocs-api.vercel.app/api/auth/sign-in/social", {
+        new Request("https://emitdocs.jimfleax.in/api/auth/sign-in/social", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -153,11 +175,12 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
 
       const cookieHeader = authResponse.headers.get("set-cookie");
       assert.ok(cookieHeader, "Must set state cookie");
-      assert.ok(cookieHeader.includes("SameSite=None"), "Must set SameSite=None in production");
-      assert.ok(cookieHeader.includes("Secure"), "Must set Secure flag when SameSite=None");
+      assert.ok(cookieHeader.includes("SameSite=Lax"), "Must set SameSite=Lax in production");
+      assert.ok(cookieHeader.includes("Secure"), "Must set Secure flag in production");
     });
 
-    it("sets SameSite=Lax in development for standard localhost workflows", async () => {
+    it("sets SameSite=Lax and Secure=false in development for standard localhost workflows", async () => {
+      const isProduction = false;
       const devAuth = betterAuth({
         baseURL: "http://localhost:3000",
         trustedOrigins: getAllowedOrigins(),
@@ -165,7 +188,7 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
           trustedProxyHeaders: true,
           defaultCookieAttributes: {
             sameSite: "lax",
-            secure: false,
+            secure: isProduction,
           },
         },
         secret: "test-secret-at-least-32-characters-long",
@@ -188,6 +211,7 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
       const cookieHeader = authResponse.headers.get("set-cookie");
       assert.ok(cookieHeader, "Must set state cookie");
       assert.ok(cookieHeader.includes("SameSite=Lax"), "Must set SameSite=Lax in development");
+      assert.ok(!cookieHeader.includes("Secure"), "Must not set Secure flag in development");
     });
 
     it("successfully validates state via database storage even when browser drops state cookie", async () => {
@@ -204,7 +228,7 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
       };
 
       const statelessAuth = betterAuth({
-        baseURL: "https://emitdocs-api.vercel.app",
+        baseURL: "https://emitdocs.jimfleax.in",
         trustedOrigins: getAllowedOrigins(),
         secondaryStorage: memoryStorage,
         account: {
@@ -213,7 +237,7 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
         advanced: {
           trustedProxyHeaders: true,
           defaultCookieAttributes: {
-            sameSite: "none",
+            sameSite: "lax",
             secure: true,
           },
         },
@@ -225,7 +249,7 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
 
       // Initiate sign-in
       const initRes = await statelessAuth.handler(
-        new Request("https://emitdocs-api.vercel.app/api/auth/sign-in/social", {
+        new Request("https://emitdocs.jimfleax.in/api/auth/sign-in/social", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
@@ -246,7 +270,7 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
       // Simulate OAuth callback with NO cookie (cross-site cookie dropped by browser)
       const callbackRes = await statelessAuth.handler(
         new Request(
-          `https://emitdocs-api.vercel.app/api/auth/callback/google?state=${state}&code=test_code`,
+          `https://emitdocs.jimfleax.in/api/auth/callback/google?state=${state}&code=test_code`,
           {
             method: "GET",
           }
