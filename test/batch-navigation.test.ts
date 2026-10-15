@@ -97,6 +97,13 @@ assert.deepStrictEqual(
   'failed without snapshot must route to review workspace'
 );
 
+// deleting -> batches catalog
+assert.deepStrictEqual(
+  getBatchDestinationRoute({ _id: 'b13', status: 'deleting' }),
+  { to: '/app/batches', path: '/app/batches' },
+  'deleting must route to batches catalog'
+);
+
 console.log('✓ All destination routes verified.');
 
 // 2. Test getBatchActionLabel
@@ -111,6 +118,7 @@ assert.strictEqual(getBatchActionLabel('generating'), 'View Progress');
 assert.strictEqual(getBatchActionLabel('paused'), 'Resume Generation');
 assert.strictEqual(getBatchActionLabel('cancelled'), 'View Batch');
 assert.strictEqual(getBatchActionLabel('failed'), 'View Details');
+assert.strictEqual(getBatchActionLabel('deleting'), 'Deleting...');
 console.log('✓ All action labels verified.');
 
 // 3. Test getBatchStatusBadge
@@ -125,6 +133,7 @@ assert.deepStrictEqual(getBatchStatusBadge('generating'), { label: 'Generating',
 assert.deepStrictEqual(getBatchStatusBadge('paused'), { label: 'Paused', variant: 'warning' });
 assert.deepStrictEqual(getBatchStatusBadge('failed'), { label: 'Failed', variant: 'error' });
 assert.deepStrictEqual(getBatchStatusBadge('cancelled'), { label: 'Cancelled', variant: 'error' });
+assert.deepStrictEqual(getBatchStatusBadge('deleting'), { label: 'Deleting', variant: 'neutral' });
 console.log('✓ All status badges verified.');
 
 console.log('\n===========================================================');

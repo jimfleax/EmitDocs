@@ -11,6 +11,9 @@ import {
   Users,
   Copy,
   Check,
+  ShieldCheck,
+  CaretRight,
+  CaretDown,
 } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
@@ -41,6 +44,9 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   const limit = 100;
 
   const [copiedDigest, setCopiedDigest] = useState(false);
+  const [copiedId, setCopiedId] = useState(false);
+  const [showAuditDetails, setShowAuditDetails] = useState(false);
+  const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
 
   const [isStarting, setIsStarting] = useState(false);
 
@@ -51,6 +57,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     error: workerError,
     warningsMap,
     generatedMap,
+    errorsMap,
     initializeWorker,
     generateSingle,
     startBatch,
@@ -155,6 +162,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   // Trigger batch generation
   const handleStartGeneration = async () => {
     try {
+      setHasStartedGeneration(true);
       setIsStarting(true);
       let allRecipients: any[] = [];
       let currentPage = 1;
@@ -172,7 +180,12 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
         const data = await res.json();
         const pageRecipients = data.recipients || [];
         allRecipients = allRecipients.concat(pageRecipients);
-        totalPages = typeof data.totalPages === "number" ? data.totalPages : 1;
+        totalPages =
+          typeof data.totalPages === "number"
+            ? data.totalPages
+            : typeof data.total === "number" && typeof fetchLimit === "number"
+              ? Math.ceil(data.total / fetchLimit)
+              : 1;
         currentPage++;
       } while (currentPage <= totalPages);
 
@@ -197,6 +210,14 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     setTimeout(() => setCopiedDigest(false), 2000);
   };
 
+  const handleCopyId = () => {
+    if (!snapshot?._id) return;
+    navigator.clipboard.writeText(snapshot._id);
+    setCopiedId(true);
+    toast.success("Snapshot ID Copied", "Snapshot ID copied to clipboard.");
+    setTimeout(() => setCopiedId(false), 2000);
+  };
+
   const [currentTime, setCurrentTime] = useState(() => Date.now());
 
   useEffect(() => {
@@ -213,6 +234,14 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     if (days > 0) return `${days}d ${hours % 24}h remaining`;
     return `${hours}h remaining`;
   }, [snapshot, currentTime]);
+
+  const isGenerationVisible =
+    hasStartedGeneration ||
+    workerStatus === "generating" ||
+    workerStatus === "paused" ||
+    workerStatus === "completed" ||
+    workerStatus === "cancelled" ||
+    progress.current > 0;
 
   const titleSlot = (
     <div className="flex flex-wrap items-center gap-2.5">
@@ -252,98 +281,149 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
 
         {/* Snapshot Summary Banner */}
         {snapshot && (
-          <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-              {/* Snapshot ID */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Snapshot ID
-                </span>
-                <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 truncate block mt-0.5">
-                  {snapshot._id}
-                </span>
-              </div>
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              {/* Operational Metrics */}
+              <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                {/* Total Recipients */}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200/60 dark:border-blue-800/60 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                    <Users className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                      Recipients
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                      {totalRecipients.toLocaleString()} records
+                    </span>
+                  </div>
+                </div>
 
-              {/* Total Recipients */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Total Recipients
-                </span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <Users className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
-                    {totalRecipients.toLocaleString()} records
-                  </span>
+                <div className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+                {/* Expiration Countdown */}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-200/60 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400">
+                    <ClockCountdown className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                      Retention Expiry
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      {expirationText}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-800" />
+
+                {/* Template Version */}
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200/60 dark:border-indigo-800/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                    <FilePdf className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                      Template
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Version {snapshot.templateVersion || 1}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Expiration Countdown */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Snapshot Expiry
-                </span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <ClockCountdown className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    {expirationText}
-                  </span>
-                </div>
-              </div>
-
-              {/* Template Version */}
-              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Template Version
-                </span>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <FilePdf className="w-3.5 h-3.5 text-indigo-500" />
-                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
-                    Version {snapshot.templateVersion || 1}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Cryptographic SHA-256 Digest Bar */}
-            <div className="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <Hash className="w-4 h-4 text-slate-500 shrink-0" />
-                <div className="min-w-0">
-                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
-                    Canonical Snapshot Digest (SHA-256)
-                  </span>
-                  <code className="text-xs font-mono text-slate-800 dark:text-slate-200 truncate block select-all">
-                    {snapshot.canonicalDigest}
-                  </code>
-                </div>
-              </div>
-
+              {/* Collapsible Audit Drawer Toggle */}
               <button
                 type="button"
-                onClick={handleCopyDigest}
-                className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors shrink-0 cursor-pointer"
-                title="Copy SHA-256 digest"
+                onClick={() => setShowAuditDetails((prev) => !prev)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors cursor-pointer select-none"
               >
-                {copiedDigest ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
+                <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
+                <span>{showAuditDetails ? "Hide Audit Details" : "Audit Details"}</span>
+                {showAuditDetails ? (
+                  <CaretDown className="w-3 h-3 text-slate-400" />
                 ) : (
-                  <Copy className="w-3.5 h-3.5" />
+                  <CaretRight className="w-3 h-3 text-slate-400" />
                 )}
               </button>
             </div>
+
+            {/* Collapsible Audit Details */}
+            {showAuditDetails && (
+              <div className="pt-3 border-t border-slate-100 dark:border-slate-800 space-y-3 animate-in fade-in duration-150">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Snapshot ID */}
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                        Snapshot ID
+                      </span>
+                      <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 truncate block mt-0.5 select-all">
+                        {snapshot._id}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyId}
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors shrink-0 cursor-pointer"
+                      title="Copy Snapshot ID"
+                    >
+                      {copiedId ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Cryptographic SHA-256 Digest */}
+                  <div className="md:col-span-2 p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Hash className="w-4 h-4 text-slate-500 shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
+                          Canonical Snapshot Digest (SHA-256)
+                        </span>
+                        <code className="text-xs font-mono text-slate-800 dark:text-slate-200 truncate block select-all mt-0.5">
+                          {snapshot.canonicalDigest}
+                        </code>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyDigest}
+                      className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-white dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors shrink-0 cursor-pointer"
+                      title="Copy SHA-256 digest"
+                    >
+                      {copiedDigest ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Progress Card */}
-        <GenerationProgressCard
-          current={progress.current}
-          total={progress.total || totalRecipients}
-          percent={progress.percent}
-          itemsPerSec={progress.itemsPerSec}
-          etaSeconds={progress.etaSeconds}
-          warningsCount={progress.warningsCount}
-          status={workerStatus}
-        />
+        {/* Progress Card (hidden until batch generation is started) */}
+        {isGenerationVisible && (
+          <GenerationProgressCard
+            current={progress.current}
+            total={progress.total || totalRecipients}
+            percent={progress.percent}
+            itemsPerSec={progress.itemsPerSec}
+            etaSeconds={progress.etaSeconds}
+            warningsCount={progress.warningsCount}
+            status={workerStatus}
+          />
+        )}
 
         {/* Controls */}
         <GenerationControls
@@ -353,6 +433,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           onResume={resume}
           onCancel={cancel}
           disabled={isLoading || isStarting || !basePdfBytes}
+          totalRecipients={totalRecipients}
         />
 
         {/* Recipient Status Table */}
@@ -360,6 +441,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           recipients={recipients}
           generatedMap={generatedMap}
           warningsMap={warningsMap}
+          errorsMap={errorsMap}
           onGenerateSingle={generateSingle}
           totalCount={totalRecipients}
           page={page}

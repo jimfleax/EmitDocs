@@ -933,9 +933,9 @@ function AppIndexRoute() {
 
           <Link
             to="/app/batches/new"
-            className="block w-full py-2.5 px-4 rounded-xl bg-slate-950 hover:bg-slate-900 active:scale-[0.98] text-white font-semibold text-xs tracking-wide text-center transition-all shadow-sm cursor-pointer select-none"
+            className="block w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.98] text-white font-semibold text-xs tracking-wide text-center transition-all shadow-sm shadow-blue-500/20 cursor-pointer select-none"
           >
-            QUICK START GUIDE
+            START NEW BATCH
           </Link>
         </div>
       </div>

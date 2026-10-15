@@ -44,6 +44,7 @@ export interface UseBatchGeneratorWorkerReturn {
   error: string | null;
   warningsMap: Record<string, EngineWarning[]>;
   generatedMap: Record<string, { byteLength: number; generatedAt: number }>;
+  errorsMap: Record<string, string>;
   initializeWorker: (
     basePdfBytes: ArrayBuffer,
     fieldMappings: FieldMappingConfig[],
@@ -80,6 +81,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
   const [generatedMap, setGeneratedMap] = useState<
     Record<string, { byteLength: number; generatedAt: number }>
   >({});
+  const [errorsMap, setErrorsMap] = useState<Record<string, string>>({});
 
   const workerRef = useRef<Worker | null>(null);
   const pendingInitResolver = useRef<{
@@ -211,6 +213,9 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
                 pendingSingleResolvers.current.delete(resolverKey);
                 resolver.reject(new Error(message));
               }
+            }
+            if (recipientKey) {
+              setErrorsMap((prev) => ({ ...prev, [recipientKey]: message }));
             }
             if (fatal) {
               setStatus("error");
@@ -410,6 +415,10 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
             }
           } catch (err: any) {
             console.warn("Fallback generation error:", err);
+            setErrorsMap((prev) => ({
+              ...prev,
+              [r.recipientKey]: err?.message || String(err),
+            }));
           }
 
           const current = idx + 1;
@@ -500,6 +509,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
     setProgress(initialProgress);
     setWarningsMap({});
     setGeneratedMap({});
+    setErrorsMap({});
   }, []);
 
   return {
@@ -508,6 +518,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
     error,
     warningsMap,
     generatedMap,
+    errorsMap,
     initializeWorker,
     generateSingle,
     startBatch,

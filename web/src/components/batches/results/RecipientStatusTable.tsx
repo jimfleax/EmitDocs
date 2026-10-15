@@ -24,6 +24,7 @@ export interface RecipientStatusTableProps {
   }>;
   generatedMap: Record<string, { byteLength: number; generatedAt: number }>;
   warningsMap: Record<string, EngineWarning[]>;
+  errorsMap?: Record<string, string>;
   onGenerateSingle: (recipient: {
     recipientKey: string;
     effectiveData: Record<string, any>;
@@ -43,6 +44,7 @@ export function RecipientStatusTable({
   recipients,
   generatedMap,
   warningsMap,
+  errorsMap,
   onGenerateSingle,
   totalCount,
   page,
@@ -84,7 +86,7 @@ export function RecipientStatusTable({
           <MagnifyingGlass className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Search key or name..."
+            placeholder="Search recipient or name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
@@ -94,26 +96,25 @@ export function RecipientStatusTable({
 
       {/* Table Element */}
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse text-xs">
+        <table className="w-full text-center border-collapse text-xs">
           <thead>
             <tr className="border-b border-slate-100 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-950/50 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              <th className="py-2.5 px-4 w-16">Row</th>
-              <th className="py-2.5 px-4">Recipient Key</th>
-              <th className="py-2.5 px-4">Effective Details</th>
-              <th className="py-2.5 px-4">Status</th>
-              <th className="py-2.5 px-4 text-right">Actions</th>
+              <th className="py-3 px-4 w-20 text-center">Row</th>
+              <th className="py-3 px-4 text-center">Recipient Details</th>
+              <th className="py-3 px-4 w-40 text-center">Status</th>
+              <th className="py-3 px-4 w-44 text-center">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400 text-xs">
+                <td colSpan={4} className="py-8 text-center text-slate-400 text-xs">
                   Loading recipients...
                 </td>
               </tr>
             ) : filteredRecipients.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-8 text-center text-slate-400 text-xs">
+                <td colSpan={4} className="py-8 text-center text-slate-400 text-xs">
                   No matching recipient records found.
                 </td>
               </tr>
@@ -122,6 +123,7 @@ export function RecipientStatusTable({
                 const isGenerated = Boolean(generatedMap[rec.recipientKey]);
                 const warnings = warningsMap[rec.recipientKey] || [];
                 const hasWarnings = warnings.length > 0;
+                const rowError = errorsMap?.[rec.recipientKey];
 
                 const primaryName =
                   rec.effectiveData.studentName ||
@@ -141,46 +143,65 @@ export function RecipientStatusTable({
                     key={rec.recipientKey}
                     className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors"
                   >
-                    <td className="py-2.5 px-4 font-mono text-slate-500">
+                    <td
+                      className="py-3 px-4 font-mono text-slate-500 align-middle whitespace-nowrap text-center"
+                      title={`Record Key: ${rec.recipientKey}`}
+                    >
                       #{rec.sourceRowNumber}
                     </td>
 
-                    <td className="py-2.5 px-4 font-mono font-semibold text-slate-800 dark:text-slate-200">
-                      {rec.recipientKey}
-                    </td>
-
-                    <td className="py-2.5 px-4">
-                      <div className="font-semibold text-slate-900 dark:text-slate-100">
+                    <td className="py-3 px-4 align-middle text-center">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 text-center">
                         {primaryName}
                       </div>
                       {secondaryId && (
-                        <div className="text-[11px] font-mono text-slate-400">
+                        <div className="text-[11px] font-mono text-slate-400 mt-0.5 text-center">
                           {secondaryId}
                         </div>
                       )}
                     </td>
 
-                    <td className="py-2.5 px-4">
-                      {hasWarnings ? (
-                        <Badge variant="warning" size="sm" shape="pill" dot>
-                          Warned ({warnings.length})
-                        </Badge>
+                    <td className="py-3 px-4 align-middle whitespace-nowrap text-center">
+                      {rowError ? (
+                        <div className="flex flex-col items-center gap-1 justify-center">
+                          <Badge variant="error" size="sm" shape="pill" title={rowError}>
+                            Failed
+                          </Badge>
+                          <span
+                            className="text-[10px] text-rose-600 dark:text-rose-400 max-w-[180px] truncate text-center"
+                            title={rowError}
+                          >
+                            {rowError}
+                          </span>
+                        </div>
+                      ) : hasWarnings ? (
+                        <div className="flex justify-center">
+                          <Badge variant="warning" size="sm" shape="pill" dot>
+                            Warned ({warnings.length})
+                          </Badge>
+                        </div>
                       ) : isGenerated ? (
-                        <Badge variant="success" size="sm" shape="pill">
-                          Generated
-                        </Badge>
+                        <div className="flex justify-center">
+                          <Badge variant="success" size="sm" shape="pill">
+                            Generated
+                          </Badge>
+                        </div>
                       ) : (
-                        <Badge variant="neutral" size="sm" shape="pill">
-                          Pending
-                        </Badge>
+                        <div className="flex justify-center">
+                          <Badge variant="neutral" size="sm" shape="pill">
+                            Pending
+                          </Badge>
+                        </div>
                       )}
                     </td>
 
-                    <td className="py-2.5 px-4 text-right">
-                      <SingleRecipientAction
-                        recipient={rec}
-                        onGenerateSingle={onGenerateSingle}
-                      />
+                    <td className="py-3 px-4 text-center align-middle whitespace-nowrap">
+                      <div className="flex justify-center">
+                        <SingleRecipientAction
+                          recipient={rec}
+                          onGenerateSingle={onGenerateSingle}
+                        />
+                      </div>
                     </td>
                   </tr>
                 );

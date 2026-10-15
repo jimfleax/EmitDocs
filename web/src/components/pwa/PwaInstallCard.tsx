@@ -64,7 +64,7 @@ export function PwaInstallCard() {
         type="button"
         onClick={handleInstall}
         disabled={isInstalling}
-        className="w-full py-1.5 px-3 rounded-lg bg-slate-950 hover:bg-slate-900 active:scale-[0.98] text-white font-semibold text-xs tracking-wide text-center transition-all shadow-2xs cursor-pointer select-none flex items-center justify-center gap-1.5 disabled:opacity-50"
+        className="w-full py-1.5 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white font-semibold text-xs tracking-wide text-center transition-all shadow-xs cursor-pointer select-none flex items-center justify-center gap-1.5 disabled:opacity-50"
       >
         <span>{isInstalling ? "INSTALLING..." : "INSTALL APP"}</span>
       </button>

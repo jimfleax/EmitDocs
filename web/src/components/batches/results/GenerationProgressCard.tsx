@@ -67,7 +67,7 @@ export function GenerationProgressCard({
   };
 
   return (
-    <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+    <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
       {/* Top Header & Badge */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>

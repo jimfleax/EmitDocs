@@ -86,7 +86,7 @@ function DebugErrorsPage() {
             onClick={() => setVariant("standalone")}
             className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
               variant === "standalone"
-                ? "bg-indigo-600 text-white"
+                ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-400 hover:text-white"
             }`}
           >
@@ -97,7 +97,7 @@ function DebugErrorsPage() {
             onClick={() => setVariant("embedded")}
             className={`px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
               variant === "embedded"
-                ? "bg-indigo-600 text-white"
+                ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-400 hover:text-white"
             }`}
           >

@@ -426,32 +426,47 @@ async function runAcceptanceCriteriaMatrix() {
     assert.strictEqual(pausedPayload.current, 3, 'Worker must pause cleanly at recipient 3 boundary');
     assert.strictEqual(generatedRecipientsAC4.length, 3, 'Generated items while paused must equal 3');
 
-    // Wait to verify no leaked processing while paused
-    await new Promise((r) => setTimeout(r, 30));
+    // Wait to verify no leaked processing while paused and accumulate pause time
+    const pauseWaitMs = 150;
+    const pauseRecordedStart = performance.now();
+    await new Promise((r) => setTimeout(r, pauseWaitMs));
     assert.strictEqual(generatedRecipientsAC4.length, 3, 'No further items must generate while paused');
 
     // Resume execution
-    let batchCompleteAC4 = false;
+    let batchCompletePayloadAC4: any = null;
+    const resumeProgressPayloads: any[] = [];
     await new Promise<void>((resolve) => {
       worker4.onmessage = (msg) => {
         if (msg.type === 'RECIPIENT_GENERATED') {
           generatedRecipientsAC4.push(msg.payload.recipientKey);
+        } else if (msg.type === 'PROGRESS') {
+          resumeProgressPayloads.push(msg.payload);
         } else if (msg.type === 'BATCH_COMPLETE') {
-          batchCompleteAC4 = true;
+          batchCompletePayloadAC4 = msg.payload;
           resolve();
         }
       };
       worker4.postMessage({ type: 'RESUME' });
     });
 
-    assert.strictEqual(batchCompleteAC4, true, 'Batch must complete after resume');
+    const totalRealTimeElapsed = performance.now() - pauseRecordedStart;
+    assert.ok(batchCompletePayloadAC4, 'Batch must complete after resume');
     assert.strictEqual(generatedRecipientsAC4.length, 10, 'All 10 recipients must be generated across pause/resume');
     assert.deepStrictEqual(
       generatedRecipientsAC4,
       dbRecipients.map((r) => r.recipientKey),
       'Generation sequence must continue seamlessly from index 4 to 10 without restarting from 0'
     );
-    console.log('   ✓ AC4 Passed: Clean boundary pause at 3 and seamless resume from 4 through 10 verified.\n');
+    // durationMs and progress elapsedMs must have pauseWaitMs subtracted
+    assert.ok(
+      batchCompletePayloadAC4.durationMs < totalRealTimeElapsed - (pauseWaitMs - 50),
+      `BATCH_COMPLETE durationMs (${batchCompletePayloadAC4.durationMs}ms) must exclude pause time (~${pauseWaitMs}ms) from total real time (${totalRealTimeElapsed.toFixed(1)}ms)`
+    );
+    assert.ok(
+      resumeProgressPayloads.every((p) => p.itemsPerSec > 0 && p.elapsedMs >= 0),
+      'Progress metrics must maintain valid positive throughput and elapsedMs after pause'
+    );
+    console.log('   ✓ AC4 Passed: Clean boundary pause at 3, pause duration excluded from elapsed time, and seamless resume from 4 through 10 verified.\n');
 
     // -------------------------------------------------------------------------
     // AC5: Immediate cancellation & resource cleanup
@@ -565,6 +580,88 @@ async function runAcceptanceCriteriaMatrix() {
     // Confirm that warnings did not abort batch completion
     assert.strictEqual(Object.keys(recipientWarningsMap).length, 10, 'All 10 recipients must complete despite warnings');
     console.log('   ✓ AC7 Passed: Overflow and glyph warnings flagged in isolation without aborting batch.\n');
+
+    // -------------------------------------------------------------------------
+    // AC7b: Fault isolation - row error progress emission and failure tracking
+    // -------------------------------------------------------------------------
+    console.log('--- Testing AC7b: Fault Isolation & Row Failure Progress/Tracking ---');
+    const worker7b = new BatchGeneratorHandler();
+    worker7b.postMessage({
+      type: 'INIT',
+      payload: { basePdfBytes: basePdfBytes.buffer, fieldMappings },
+    });
+
+    const errorEvents7b: any[] = [];
+    const progressEvents7b: any[] = [];
+    let completePayload7b: any = null;
+
+    const testRecipientsWithFailure = [
+      {
+        recipientKey: 'rec_ok_1',
+        sourceRowNumber: 1,
+        effectiveData: { studentName: 'Alice' },
+      },
+      {
+        recipientKey: 'rec_fail_2',
+        sourceRowNumber: 2,
+        get effectiveData() {
+          throw new Error('Simulated processing failure for row 2');
+        },
+      },
+      {
+        recipientKey: 'rec_ok_3',
+        sourceRowNumber: 3,
+        effectiveData: { studentName: 'Charlie' },
+      },
+    ];
+
+    await new Promise<void>((resolve) => {
+      worker7b.onmessage = (msg) => {
+        if (msg.type === 'ERROR') {
+          errorEvents7b.push(msg.payload);
+        } else if (msg.type === 'PROGRESS') {
+          progressEvents7b.push(msg.payload);
+        } else if (msg.type === 'BATCH_COMPLETE') {
+          completePayload7b = msg.payload;
+          resolve();
+        }
+      };
+      worker7b.postMessage({
+        type: 'START_BATCH',
+        payload: {
+          recipients: testRecipientsWithFailure,
+        },
+      });
+    });
+
+    assert.strictEqual(errorEvents7b.length, 1, 'Exactly 1 error event must be emitted for the failing row');
+    assert.strictEqual(errorEvents7b[0].recipientKey, 'rec_fail_2', 'Error must be associated with the failed recipientKey');
+    assert.strictEqual(errorEvents7b[0].fatal, false, 'Row failure must be non-fatal');
+    assert.strictEqual(progressEvents7b.length, 3, 'PROGRESS must be emitted for every row including the failed row');
+    assert.strictEqual(progressEvents7b[1].activeRecipientKey, 'rec_fail_2', 'Progress must record activeRecipientKey for failed row');
+    assert.strictEqual(completePayload7b.totalGenerated, 2, 'BATCH_COMPLETE.totalGenerated must exclude failed rows');
+
+    // Verify START_BATCH resets failure count
+    let completePayload7bReset: any = null;
+    await new Promise<void>((resolve) => {
+      worker7b.onmessage = (msg) => {
+        if (msg.type === 'BATCH_COMPLETE') {
+          completePayload7bReset = msg.payload;
+          resolve();
+        }
+      };
+      worker7b.postMessage({
+        type: 'START_BATCH',
+        payload: {
+          recipients: [
+            { recipientKey: 'rec_reset_1', sourceRowNumber: 1, effectiveData: { studentName: 'David' } },
+            { recipientKey: 'rec_reset_2', sourceRowNumber: 2, effectiveData: { studentName: 'Eve' } },
+          ],
+        },
+      });
+    });
+    assert.strictEqual(completePayload7bReset.totalGenerated, 2, 'START_BATCH must reset failure count');
+    console.log('   ✓ AC7b Passed: Row failure emits PROGRESS, records error per recipient, and excludes failure from totalGenerated.\n');
 
     // -------------------------------------------------------------------------
     // AC8: Deterministic byte output parity

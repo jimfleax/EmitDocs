@@ -6,6 +6,7 @@
  */
 
 export type BatchRoutePath =
+  | "/app/batches"
   | "/app/batches/$batchId/import"
   | "/app/batches/$batchId/review"
   | "/app/batches/$batchId/approve"
@@ -13,7 +14,7 @@ export type BatchRoutePath =
 
 export interface BatchRouteTarget {
   to: BatchRoutePath;
-  params: { batchId: string };
+  params?: { batchId?: string };
   path: string;
 }
 
@@ -39,6 +40,7 @@ export interface NavigableBatch {
  * - generating | paused                   -> /app/batches/$batchId/results
  * - cancelled | failed (with snapshot)    -> /app/batches/$batchId/results
  * - cancelled | failed (without snapshot) -> /app/batches/$batchId/review
+ * - deleting                              -> /app/batches
  * - default                               -> /app/batches/$batchId/review
  *
  * @param batch Object containing batch ID, status, and optional approvedSnapshotId reference.
@@ -95,6 +97,12 @@ export function getBatchDestinationRoute(batch: NavigableBatch): BatchRouteTarge
         path: `/app/batches/${batchId}/review`,
       };
 
+    case "deleting":
+      return {
+        to: "/app/batches",
+        path: "/app/batches",
+      };
+
     default:
       return {
         to: "/app/batches/$batchId/review",
@@ -130,6 +138,8 @@ export function getBatchActionLabel(status: string): string {
       return "View Batch";
     case "failed":
       return "View Details";
+    case "deleting":
+      return "Deleting...";
     default:
       return "View Documents";
   }
@@ -161,6 +171,8 @@ export function getBatchStatusBadge(status: string): BatchBadgeConfig {
       return { label: "Failed", variant: "error" };
     case "cancelled":
       return { label: "Cancelled", variant: "error" };
+    case "deleting":
+      return { label: "Deleting", variant: "neutral" };
     default:
       return { label: status, variant: "neutral" };
   }

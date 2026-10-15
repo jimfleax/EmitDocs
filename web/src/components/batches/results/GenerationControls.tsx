@@ -14,6 +14,7 @@ export interface GenerationControlsProps {
   onResume: () => void;
   onCancel: () => void;
   disabled?: boolean;
+  totalRecipients?: number;
 }
 
 export function GenerationControls({
@@ -23,6 +24,7 @@ export function GenerationControls({
   onResume,
   onCancel,
   disabled = false,
+  totalRecipients,
 }: GenerationControlsProps) {
   const isGenerating = status === "generating";
   const isPaused = status === "paused";
@@ -30,16 +32,87 @@ export function GenerationControls({
   const isCompleted = status === "completed";
   const isCancelled = status === "cancelled";
 
+  const renderStatusDetails = () => {
+    if (isGenerating) {
+      return (
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+          <div>
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+              Generating Batch
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+              Rendering PDFs in background Web Worker
+            </span>
+          </div>
+        </div>
+      );
+    }
+    if (isPaused) {
+      return (
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          <div>
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+              Generation Paused
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+              Worker halted cleanly at document boundary
+            </span>
+          </div>
+        </div>
+      );
+    }
+    if (isCompleted) {
+      return (
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <div>
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+              Generation Complete
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+              All approved documents generated
+            </span>
+          </div>
+        </div>
+      );
+    }
+    if (isCancelled) {
+      return (
+        <div className="flex items-center gap-2.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+          <div>
+            <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+              Generation Cancelled
+            </span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+              Worker queue drained and stopped
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex items-center gap-2.5">
+        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+        <div>
+          <span className="text-xs font-bold text-slate-900 dark:text-slate-100 block">
+            Batch Generation Engine
+          </span>
+          <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+            {totalRecipients
+              ? `Ready to generate ${totalRecipients.toLocaleString()} documents on-demand`
+              : "Ready to generate all approved documents"}
+          </span>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-          Engine Controls:
-        </span>
-        <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 uppercase">
-          [{status}]
-        </span>
-      </div>
+      {renderStatusDetails()}
 
       <div className="flex items-center gap-2.5">
         {/* Start / Restart Generation */}
@@ -49,8 +122,8 @@ export function GenerationControls({
             onClick={onStart}
             disabled={disabled}
             className={cn(
-              "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer active:scale-[0.98]",
-              "bg-slate-950 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-900 dark:hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+              "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer active:scale-[0.98]",
+              "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white disabled:opacity-40 disabled:cursor-not-allowed"
             )}
           >
             {isCompleted || isCancelled ? (

@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   X,
   MagnifyingGlassPlus,
@@ -59,6 +60,16 @@ export function SinglePdfPreviewModal({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
+
+  // Lock background scroll when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isOpen]);
 
   // PDF.js render loop
   useEffect(() => {
@@ -201,13 +212,18 @@ export function SinglePdfPreviewModal({
 
   const hasWarnings = warnings.length > 0;
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
+      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
     >
-      <div className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
+      <div
+        className="relative w-full max-w-4xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center gap-3">
@@ -357,4 +373,10 @@ export function SinglePdfPreviewModal({
       </div>
     </div>
   );
+
+  if (typeof document !== "undefined") {
+    return createPortal(modalContent, document.body);
+  }
+
+  return modalContent;
 }

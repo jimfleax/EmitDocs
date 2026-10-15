@@ -5,7 +5,7 @@
  * @agent_note Fetches template details via /api/templates/:id and synchronizes the active template ID with local storage.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "@tanstack/react-router";
 import {
   FilePdf,
@@ -61,11 +61,52 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
   const [template, setTemplate] = useState<Template | null>(null);
   const [versions, setVersions] = useState<TemplateVersion[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
+  const [batchesError, setBatchesError] = useState<string | null>(null);
+  const [loadingBatches, setLoadingBatches] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [imageErrorUrl, setImageErrorUrl] = useState<string | null>(null);
   const hasImageError =
     !!template?.thumbnailUrl && imageErrorUrl === template.thumbnailUrl;
+
+  const fetchBatches = useCallback(async () => {
+    try {
+      setLoadingBatches(true);
+      setBatchesError(null);
+      const batchRes = await fetch("/api/batches", { credentials: "include" });
+      if (!batchRes.ok) {
+        let errorMsg = `Failed to load batches (${batchRes.status})`;
+        try {
+          const errData = await batchRes.json();
+          if (errData?.error) {
+            errorMsg = errData.error;
+          }
+        } catch {
+          // Non-JSON error response fallback
+        }
+        throw new Error(errorMsg);
+      }
+      const batchData = await batchRes.json();
+      const list = Array.isArray(batchData)
+        ? batchData
+        : Array.isArray(batchData?.batches)
+          ? batchData.batches
+          : [];
+      const associated = list.filter((b: any) => {
+        const bTid = typeof b.templateId === "object" ? b.templateId?._id : b.templateId;
+        return bTid === templateId;
+      });
+      setBatches(associated);
+    } catch (batchErr: unknown) {
+      const msg =
+        batchErr instanceof Error
+          ? batchErr.message
+          : "Failed to load batches for this template";
+      setBatchesError(msg);
+    } finally {
+      setLoadingBatches(false);
+    }
+  }, [templateId]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -91,20 +132,7 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
         }
 
         // Fetch batches associated with this template
-        try {
-          const batchRes = await fetch("/api/batches", { credentials: "include" });
-          if (batchRes.ok) {
-            const batchData = await batchRes.json();
-            const list = Array.isArray(batchData?.batches) ? batchData.batches : [];
-            const associated = list.filter((b: any) => {
-              const bTid = typeof b.templateId === "object" ? b.templateId?._id : b.templateId;
-              return bTid === templateId;
-            });
-            setBatches(associated);
-          }
-        } catch {
-          // Non-blocking batch retrieval
-        }
+        await fetchBatches();
       } catch (err: unknown) {
         const message =
           err instanceof Error
@@ -117,7 +145,7 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
     };
 
     fetchData();
-  }, [templateId]);
+  }, [templateId, fetchBatches]);
 
   const currentVer =
     template &&
@@ -329,7 +357,7 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
                   <h3 className="text-sm font-bold text-slate-900">
                     Batches Using This Template
                   </h3>
-                  {batches.length > 0 && (
+                  {!batchesError && batches.length > 0 && (
                     <Badge variant="neutral" size="sm" shape="pill">
                       {batches.length}
                     </Badge>
@@ -348,7 +376,19 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
               </div>
 
               <div className="space-y-2">
-                {batches.length === 0 ? (
+                {batchesError ? (
+                  <Alert
+                    variant="error"
+                    title="Failed to load batches"
+                    onRetry={() => void fetchBatches()}
+                  >
+                    {batchesError}
+                  </Alert>
+                ) : loadingBatches ? (
+                  <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 text-center text-xs text-slate-500">
+                    Loading batches...
+                  </div>
+                ) : batches.length === 0 ? (
                   <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center space-y-1.5">
                     <p className="text-xs text-slate-500 font-medium">
                       No batches created for this template yet.

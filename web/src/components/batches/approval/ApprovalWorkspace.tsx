@@ -245,7 +245,7 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
               <button
                 type="button"
                 onClick={() => navigate({ to: `/app/batches/${batchId}/results` })}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-slate-950 dark:bg-slate-100 text-white dark:text-slate-950 hover:bg-slate-900 text-xs font-bold transition-all shadow-sm cursor-pointer"
+                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold transition-all shadow-xs shadow-blue-500/20 cursor-pointer"
               >
                 Proceed to Results & Generation
                 <ArrowRight className="w-4 h-4" />

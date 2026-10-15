@@ -64,7 +64,7 @@ export function ImportValidationSummary({
           <button
             type="button"
             onClick={onProceed}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-950 hover:bg-slate-900 active:scale-[0.98] text-xs font-semibold text-white shadow-sm transition-all cursor-pointer select-none"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 active:scale-[0.98] text-xs font-semibold text-white shadow-sm shadow-blue-500/20 transition-all cursor-pointer select-none"
           >
             Proceed to Review
             <ArrowRight className="w-4 h-4" />

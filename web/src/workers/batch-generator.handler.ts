@@ -134,6 +134,9 @@ export class BatchGeneratorHandler {
   private currentIndex = 0;
   private startTime = 0;
   private totalWarnings = 0;
+  private pauseStartTime = 0;
+  private totalPausedDurationMs = 0;
+  private failedCount = 0;
 
   public onmessage: ((msg: WorkerOutboundMessage) => void) | null = null;
 
@@ -259,6 +262,9 @@ export class BatchGeneratorHandler {
         this.isPaused = false;
         this.isCancelled = false;
         this.totalWarnings = 0;
+        this.pauseStartTime = 0;
+        this.totalPausedDurationMs = 0;
+        this.failedCount = 0;
         this.startTime = performance.now();
 
         void this.runBatchLoop();
@@ -274,6 +280,10 @@ export class BatchGeneratorHandler {
 
       case "RESUME": {
         if (this.isPaused) {
+          if (this.pauseStartTime > 0) {
+            this.totalPausedDurationMs += performance.now() - this.pauseStartTime;
+            this.pauseStartTime = 0;
+          }
           this.isPaused = false;
           this.isGenerating = true;
           this.emit({
@@ -287,6 +297,7 @@ export class BatchGeneratorHandler {
 
       case "CANCEL": {
         this.isCancelled = true;
+        this.pauseStartTime = 0;
         if (!this.isGenerating) {
           this.currentRecipients = [];
           this.emit({ type: "CANCELLED" });
@@ -307,6 +318,7 @@ export class BatchGeneratorHandler {
 
       if (this.isPaused) {
         this.isGenerating = false;
+        this.pauseStartTime = performance.now();
         this.emit({
           type: "PAUSED",
           payload: {
@@ -346,7 +358,10 @@ export class BatchGeneratorHandler {
         const current = this.currentIndex + 1;
         const total = this.currentRecipients.length;
         const percent = total > 0 ? Math.round((current / total) * 100) : 0;
-        const elapsedMs = Math.max(1, performance.now() - this.startTime);
+        const elapsedMs = Math.max(
+          1,
+          performance.now() - this.startTime - this.totalPausedDurationMs
+        );
         const itemsPerSec = current / (elapsedMs / 1000);
         const remainingItems = total - current;
         const etaSeconds =
@@ -371,6 +386,7 @@ export class BatchGeneratorHandler {
         await new Promise((r) => setTimeout(r, 0));
       } catch (err: any) {
         // Fault isolation (AC7): row failure does not halt whole batch
+        this.failedCount++;
         this.emit({
           type: "ERROR",
           payload: {
@@ -379,6 +395,33 @@ export class BatchGeneratorHandler {
             recipientKey: item.recipientKey,
           },
         });
+
+        const current = this.currentIndex + 1;
+        const total = this.currentRecipients.length;
+        const percent = total > 0 ? Math.round((current / total) * 100) : 0;
+        const elapsedMs = Math.max(
+          1,
+          performance.now() - this.startTime - this.totalPausedDurationMs
+        );
+        const itemsPerSec = current / (elapsedMs / 1000);
+        const remainingItems = total - current;
+        const etaSeconds =
+          itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
+
+        this.emit({
+          type: "PROGRESS",
+          payload: {
+            current,
+            total,
+            percent,
+            itemsPerSec: Number(itemsPerSec.toFixed(2)),
+            activeRecipientKey: item.recipientKey,
+            warningsCount: this.totalWarnings,
+            elapsedMs: Math.round(elapsedMs),
+            etaSeconds,
+          },
+        });
+
         this.currentIndex++;
         await new Promise((r) => setTimeout(r, 0));
       }
@@ -396,11 +439,16 @@ export class BatchGeneratorHandler {
       this.isPaused = false;
     }
 
-    const durationMs = Math.round(performance.now() - this.startTime);
+    const durationMs = Math.round(
+      performance.now() - this.startTime - this.totalPausedDurationMs
+    );
     this.emit({
       type: "BATCH_COMPLETE",
       payload: {
-        totalGenerated: this.currentRecipients.length,
+        totalGenerated: Math.max(
+          0,
+          this.currentRecipients.length - this.failedCount
+        ),
         totalWarnings: this.totalWarnings,
         durationMs,
       },
