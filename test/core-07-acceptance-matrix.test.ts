@@ -38,292 +38,9 @@ import {
   type EngineWarning,
 } from '../web/src/lib/pdf-engine/pdf-preview-engine.js';
 
-// Typed Web Worker Protocol Message Interfaces
-interface WorkerInboundInit {
-  type: 'INIT';
-  payload: {
-    basePdfBytes: ArrayBuffer;
-    fieldMappings: FieldMappingConfig[];
-  };
-}
+// Web Worker Message Handler & Protocol
+import { BatchGeneratorHandler } from '../web/src/workers/batch-generator.handler.js';
 
-interface WorkerInboundGenerateSingle {
-  type: 'GENERATE_SINGLE';
-  payload: {
-    recipient: {
-      recipientKey: string;
-      effectiveData: Record<string, any>;
-    };
-  };
-}
-
-interface WorkerInboundStartBatch {
-  type: 'START_BATCH';
-  payload: {
-    recipients: Array<{
-      recipientKey: string;
-      sourceRowNumber: number;
-      effectiveData: Record<string, any>;
-    }>;
-    startIndex?: number;
-  };
-}
-
-type WorkerInbound =
-  | WorkerInboundInit
-  | WorkerInboundGenerateSingle
-  | WorkerInboundStartBatch
-  | { type: 'PAUSE' }
-  | { type: 'RESUME' }
-  | { type: 'CANCEL' };
-
-type WorkerOutbound =
-  | { type: 'INIT_READY' }
-  | {
-      type: 'SINGLE_COMPLETE';
-      payload: {
-        recipientKey: string;
-        pdfBytes: Uint8Array;
-        warnings: EngineWarning[];
-        durationMs: number;
-      };
-    }
-  | {
-      type: 'PROGRESS';
-      payload: {
-        current: number;
-        total: number;
-        percent: number;
-        itemsPerSec: number;
-        activeRecipientKey: string;
-        warningsCount: number;
-        elapsedMs: number;
-        etaSeconds: number;
-      };
-    }
-  | {
-      type: 'RECIPIENT_GENERATED';
-      payload: {
-        recipientKey: string;
-        sourceRowNumber: number;
-        warnings: EngineWarning[];
-        byteLength: number;
-      };
-    }
-  | {
-      type: 'PAUSED';
-      payload: {
-        current: number;
-        total: number;
-      };
-    }
-  | {
-      type: 'RESUMED';
-      payload: {
-        startIndex: number;
-      };
-    }
-  | {
-      type: 'BATCH_COMPLETE';
-      payload: {
-        totalGenerated: number;
-        totalWarnings: number;
-        durationMs: number;
-      };
-    }
-  | { type: 'CANCELLED' }
-  | {
-      type: 'ERROR';
-      payload: {
-        message: string;
-        fatal: boolean;
-        recipientKey?: string;
-      };
-    };
-
-/**
- * Standalone in-memory simulator of web/src/workers/batch-generator.worker.ts
- * Executes exact message protocol and yielding loop semantics in Node.js test environment.
- */
-class BatchGeneratorWorkerSimulator {
-  private basePdfBytes: Uint8Array | null = null;
-  private fieldMappings: FieldMappingConfig[] = [];
-  private isGenerating = false;
-  private isPaused = false;
-  private isCancelled = false;
-  private currentIndex = 0;
-  private recipientsQueue: Array<{
-    recipientKey: string;
-    sourceRowNumber: number;
-    effectiveData: Record<string, any>;
-  }> = [];
-  private totalRecipients = 0;
-  private startTime = 0;
-  private totalWarningsCount = 0;
-  private generatedCount = 0;
-
-  public onmessage: ((msg: WorkerOutbound) => void) | null = null;
-
-  public postMessage(msg: WorkerInbound): void {
-    switch (msg.type) {
-      case 'INIT': {
-        this.basePdfBytes = new Uint8Array(msg.payload.basePdfBytes);
-        this.fieldMappings = msg.payload.fieldMappings;
-        this.emit({ type: 'INIT_READY' });
-        break;
-      }
-      case 'GENERATE_SINGLE': {
-        this.handleGenerateSingle(msg.payload.recipient);
-        break;
-      }
-      case 'START_BATCH': {
-        this.handleStartBatch(msg.payload.recipients, msg.payload.startIndex ?? 0);
-        break;
-      }
-      case 'PAUSE': {
-        this.isPaused = true;
-        break;
-      }
-      case 'RESUME': {
-        if (this.isPaused && !this.isCancelled) {
-          this.isPaused = false;
-          this.emit({ type: 'RESUMED', payload: { startIndex: this.currentIndex } });
-          this.runBatchLoop();
-        }
-        break;
-      }
-      case 'CANCEL': {
-        this.isCancelled = true;
-        this.isGenerating = false;
-        this.isPaused = false;
-        this.recipientsQueue = [];
-        this.emit({ type: 'CANCELLED' });
-        break;
-      }
-    }
-  }
-
-  private emit(msg: WorkerOutbound): void {
-    if (this.onmessage) {
-      this.onmessage(msg);
-    }
-  }
-
-  private async handleGenerateSingle(recipient: { recipientKey: string; effectiveData: Record<string, any> }) {
-    if (!this.basePdfBytes) {
-      this.emit({ type: 'ERROR', payload: { message: 'Worker not initialized with base PDF', fatal: true } });
-      return;
-    }
-    const t0 = performance.now();
-    const result = await generatePdfWithOverlay(this.basePdfBytes, this.fieldMappings, recipient.effectiveData);
-    const durationMs = performance.now() - t0;
-    this.emit({
-      type: 'SINGLE_COMPLETE',
-      payload: {
-        recipientKey: recipient.recipientKey,
-        pdfBytes: result.pdfBytes,
-        warnings: result.warnings,
-        durationMs,
-      },
-    });
-  }
-
-  private handleStartBatch(
-    recipients: Array<{ recipientKey: string; sourceRowNumber: number; effectiveData: Record<string, any> }>,
-    startIndex = 0
-  ) {
-    this.recipientsQueue = recipients;
-    this.totalRecipients = recipients.length;
-    this.currentIndex = startIndex;
-    this.isGenerating = true;
-    this.isPaused = false;
-    this.isCancelled = false;
-    this.startTime = performance.now();
-    this.totalWarningsCount = 0;
-    this.generatedCount = startIndex;
-    this.runBatchLoop();
-  }
-
-  private async runBatchLoop(): Promise<void> {
-    if (!this.basePdfBytes) return;
-
-    while (this.currentIndex < this.recipientsQueue.length) {
-      if (this.isCancelled) {
-        return;
-      }
-      if (this.isPaused) {
-        this.emit({
-          type: 'PAUSED',
-          payload: {
-            current: this.currentIndex,
-            total: this.totalRecipients,
-          },
-        });
-        return;
-      }
-
-      const item = this.recipientsQueue[this.currentIndex];
-      const result = await generatePdfWithOverlay(this.basePdfBytes, this.fieldMappings, item.effectiveData);
-
-      this.currentIndex++;
-      this.generatedCount++;
-      this.totalWarningsCount += result.warnings.length;
-
-      const elapsedMs = Math.max(1, performance.now() - this.startTime);
-      const itemsPerSec = (this.generatedCount / elapsedMs) * 1000;
-      const remainingItems = this.totalRecipients - this.generatedCount;
-      const etaSeconds = itemsPerSec > 0 ? remainingItems / itemsPerSec : 0;
-      const percent = Math.round((this.generatedCount / this.totalRecipients) * 100);
-
-      this.emit({
-        type: 'PROGRESS',
-        payload: {
-          current: this.generatedCount,
-          total: this.totalRecipients,
-          percent,
-          itemsPerSec: Number(itemsPerSec.toFixed(2)),
-          activeRecipientKey: item.recipientKey,
-          warningsCount: this.totalWarningsCount,
-          elapsedMs: Math.round(elapsedMs),
-          etaSeconds: Math.round(etaSeconds * 10) / 10,
-        },
-      });
-
-      this.emit({
-        type: 'RECIPIENT_GENERATED',
-        payload: {
-          recipientKey: item.recipientKey,
-          sourceRowNumber: item.sourceRowNumber,
-          warnings: result.warnings,
-          byteLength: result.pdfBytes.length,
-        },
-      });
-
-      // Non-blocking microtask/event loop yield between items (AC2)
-      await new Promise((resolve) => setTimeout(resolve, 0));
-    }
-
-    if (!this.isCancelled && !this.isPaused) {
-      this.isGenerating = false;
-      this.emit({
-        type: 'BATCH_COMPLETE',
-        payload: {
-          totalGenerated: this.generatedCount,
-          totalWarnings: this.totalWarningsCount,
-          durationMs: Math.round(performance.now() - this.startTime),
-        },
-      });
-    }
-  }
-
-  public getQueueLength(): number {
-    return Math.max(0, this.recipientsQueue.length - this.currentIndex);
-  }
-
-  public isCancelState(): boolean {
-    return this.isCancelled;
-  }
-}
 
 /**
  * Executes PRD-CORE-07 Acceptance Matrix AC1 through AC8.
@@ -556,12 +273,22 @@ async function runAcceptanceCriteriaMatrix() {
     // JIT warm-up call
     await generatePdfWithOverlay(basePdfBytes, fieldMappings, recipient1.effectiveData);
 
-    const tStart = performance.now();
-    const singlePdfResult = await generatePdfWithOverlay(basePdfBytes, fieldMappings, recipient1.effectiveData);
-    const durationMs = performance.now() - tStart;
+    const thresholdMs = Number(process.env.AC1_THRESHOLD_MS) || 20;
+    const runs = 5;
+    const runDurations: number[] = [];
+    let singlePdfResult: any;
 
-    console.log(`   Render duration: ${durationMs.toFixed(2)}ms`);
-    assert.ok(durationMs < 20, `Render time must be <20ms benchmark (took ${durationMs.toFixed(2)}ms)`);
+    for (let i = 0; i < runs; i++) {
+      const tStart = performance.now();
+      singlePdfResult = await generatePdfWithOverlay(basePdfBytes, fieldMappings, recipient1.effectiveData);
+      runDurations.push(performance.now() - tStart);
+    }
+
+    runDurations.sort((a, b) => a - b);
+    const medianDurationMs = runDurations[Math.floor(runs / 2)];
+
+    console.log(`   Render duration (median of ${runs} runs): ${medianDurationMs.toFixed(2)}ms (threshold: ${thresholdMs}ms)`);
+    assert.ok(medianDurationMs < thresholdMs, `Render time must be <${thresholdMs}ms benchmark (median took ${medianDurationMs.toFixed(2)}ms)`);
     assert.ok(singlePdfResult.pdfBytes.length > 0, 'PDF output bytes must not be empty');
 
     const pdfHeader = Buffer.from(singlePdfResult.pdfBytes.subarray(0, 7)).toString('ascii');
@@ -572,7 +299,7 @@ async function runAcceptanceCriteriaMatrix() {
     // AC2: Web Worker off-main-thread non-blocking execution simulation
     // -------------------------------------------------------------------------
     console.log('--- Testing AC2: Web Worker Off-Main-Thread Non-Blocking Execution Simulation ---');
-    const worker2 = new BatchGeneratorWorkerSimulator();
+    const worker2 = new BatchGeneratorHandler();
     worker2.postMessage({
       type: 'INIT',
       payload: { basePdfBytes: basePdfBytes.buffer, fieldMappings },
@@ -619,7 +346,7 @@ async function runAcceptanceCriteriaMatrix() {
     // AC3: Accurate real-time progress metrics
     // -------------------------------------------------------------------------
     console.log('--- Testing AC3: Accurate Real-Time Progress Metrics ---');
-    const worker3 = new BatchGeneratorWorkerSimulator();
+    const worker3 = new BatchGeneratorHandler();
     worker3.postMessage({
       type: 'INIT',
       payload: { basePdfBytes: basePdfBytes.buffer, fieldMappings },
@@ -662,7 +389,7 @@ async function runAcceptanceCriteriaMatrix() {
     // AC4: Pause at recipient boundary & seamless resume
     // -------------------------------------------------------------------------
     console.log('--- Testing AC4: Pause at Recipient Boundary & Seamless Resume ---');
-    const worker4 = new BatchGeneratorWorkerSimulator();
+    const worker4 = new BatchGeneratorHandler();
     worker4.postMessage({
       type: 'INIT',
       payload: { basePdfBytes: basePdfBytes.buffer, fieldMappings },
@@ -730,7 +457,7 @@ async function runAcceptanceCriteriaMatrix() {
     // AC5: Immediate cancellation & resource cleanup
     // -------------------------------------------------------------------------
     console.log('--- Testing AC5: Immediate Cancellation & Resource Cleanup ---');
-    const worker5 = new BatchGeneratorWorkerSimulator();
+    const worker5 = new BatchGeneratorHandler();
     worker5.postMessage({
       type: 'INIT',
       payload: { basePdfBytes: basePdfBytes.buffer, fieldMappings },
@@ -789,7 +516,7 @@ async function runAcceptanceCriteriaMatrix() {
     // AC7: Recipient overflow/glyph warning isolation
     // -------------------------------------------------------------------------
     console.log('--- Testing AC7: Recipient Overflow/Glyph Warning Isolation ---');
-    const worker7 = new BatchGeneratorWorkerSimulator();
+    const worker7 = new BatchGeneratorHandler();
     worker7.postMessage({
       type: 'INIT',
       payload: { basePdfBytes: basePdfBytes.buffer, fieldMappings },

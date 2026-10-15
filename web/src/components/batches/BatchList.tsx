@@ -30,6 +30,11 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toast";
 import { BatchListSkeleton } from "@/components/skeletons/BatchListSkeleton";
+import {
+  getBatchDestinationRoute,
+  getBatchActionLabel,
+  getBatchStatusBadge,
+} from "@/lib/batch-navigation";
 
 interface TemplateRef {
   _id?: string;
@@ -43,6 +48,7 @@ interface BatchItem {
   status: string;
   templateId?: string | TemplateRef;
   templateVersionId?: string;
+  approvedSnapshotId?: string | null;
   totalRows?: number;
   validRows?: number;
   invalidRows?: number;
@@ -61,28 +67,6 @@ function formatDate(isoString: string): string {
     });
   } catch {
     return isoString;
-  }
-}
-
-function getBatchStatusBadge(status: string) {
-  switch (status) {
-    case "ready_for_download":
-    case "approved":
-      return { label: "Ready", variant: "success" as const };
-    case "review":
-    case "awaiting_approval":
-      return { label: "In Review", variant: "primary" as const };
-    case "draft":
-      return { label: "Draft", variant: "neutral" as const };
-    case "importing":
-      return { label: "Importing", variant: "warning" as const };
-    case "generating":
-      return { label: "Generating", variant: "warning" as const };
-    case "failed":
-    case "cancelled":
-      return { label: "Failed", variant: "error" as const };
-    default:
-      return { label: status, variant: "neutral" as const };
   }
 }
 
@@ -377,8 +361,8 @@ export function BatchList() {
       {!loading && !error && filteredBatches.length > 0 && (
         <div className="space-y-3">
           {filteredBatches.map((batch) => {
-            const isImportStage =
-              batch.status === "draft" || batch.status === "importing";
+            const destination = getBatchDestinationRoute(batch);
+            const actionLabel = getBatchActionLabel(batch.status);
             const docsCount = batch.validRows || batch.totalRows || 0;
             const statusBadge = getBatchStatusBadge(batch.status);
             const templateName =
@@ -400,12 +384,7 @@ export function BatchList() {
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2.5">
                       <Link
-                        to={
-                          isImportStage
-                            ? "/app/batches/$batchId/import"
-                            : "/app/batches/$batchId/review"
-                        }
-                        params={{ batchId: batch._id }}
+                        to={destination.path as any}
                         className="text-base font-bold text-slate-900 hover:text-blue-600 transition-colors truncate max-w-md cursor-pointer"
                         title={batch.name}
                       >
@@ -460,17 +439,10 @@ export function BatchList() {
                 {/* Right section: Action Buttons + Popover Menu */}
                 <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
                   <Link
-                    to={
-                      isImportStage
-                        ? "/app/batches/$batchId/import"
-                        : "/app/batches/$batchId/review"
-                    }
-                    params={{ batchId: batch._id }}
+                    to={destination.path as any}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-600 border border-slate-200/80 transition-colors select-none cursor-pointer"
                   >
-                    <span>
-                      {isImportStage ? "Continue Import" : "View Documents"}
-                    </span>
+                    <span>{actionLabel}</span>
                     <ArrowRight size={13} weight="bold" />
                   </Link>
 
@@ -490,10 +462,7 @@ export function BatchList() {
                         type="button"
                         onClick={() => {
                           navigate({
-                            to: isImportStage
-                              ? "/app/batches/$batchId/import"
-                              : "/app/batches/$batchId/review",
-                            params: { batchId: batch._id },
+                            to: destination.path as any,
                           });
                         }}
                         className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer select-none"

@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/popover";
 import { toast } from "@/components/ui/toast";
 import { PwaInstallCard } from "@/components/pwa";
+import { getBatchDestinationRoute } from "@/lib/batch-navigation";
 
 export const Route = createFileRoute("/_protected/app/")({
   component: AppIndexRoute,
@@ -497,8 +498,7 @@ function AppIndexRoute() {
               <div className="space-y-2">
                 <div className="space-y-2.5">
                   {visibleBatches.map((batch) => {
-                    const isImportStage =
-                      batch.status === "draft" || batch.status === "importing";
+                    const destination = getBatchDestinationRoute(batch);
                     const docsCount = batch.validRows || batch.totalRows || 0;
 
                     return (
@@ -507,12 +507,7 @@ function AppIndexRoute() {
                         className="flex items-center justify-between p-3.5 rounded-2xl hover:bg-slate-50/80 transition-colors group"
                       >
                         <Link
-                          to={
-                            isImportStage
-                              ? "/app/batches/$batchId/import"
-                              : "/app/batches/$batchId/review"
-                          }
-                          params={{ batchId: batch._id }}
+                          to={destination.path as any}
                           className="flex items-center gap-3.5 min-w-0 flex-1 cursor-pointer pr-2"
                         >
                           <div className="w-10 h-10 rounded-full bg-blue-500 text-white flex items-center justify-center flex-none shadow-xs group-hover:bg-blue-600 transition-colors">
@@ -549,10 +544,7 @@ function AppIndexRoute() {
                                 type="button"
                                 onClick={() => {
                                   navigate({
-                                    to: isImportStage
-                                      ? "/app/batches/$batchId/import"
-                                      : "/app/batches/$batchId/review",
-                                    params: { batchId: batch._id },
+                                    to: destination.path as any,
                                   });
                                 }}
                                 className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-50 rounded-lg transition-colors cursor-pointer select-none"

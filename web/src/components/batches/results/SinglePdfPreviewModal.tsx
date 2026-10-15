@@ -165,6 +165,15 @@ export function SinglePdfPreviewModal({
         } catch {
           // Ignore
         }
+        renderTaskRef.current = null;
+      }
+      if (loadingTaskRef.current) {
+        try {
+          void loadingTaskRef.current.destroy()?.catch?.(() => {});
+        } catch {
+          // Ignore
+        }
+        loadingTaskRef.current = null;
       }
     };
   }, [isOpen, pdfBytes, scale]);

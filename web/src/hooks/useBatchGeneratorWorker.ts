@@ -107,6 +107,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
   const fallbackFieldMappings = useRef<FieldMappingConfig[]>([]);
   const fallbackIsPaused = useRef<boolean>(false);
   const fallbackIsCancelled = useRef<boolean>(false);
+  const fallbackStepRef = useRef<(() => void) | null>(null);
 
   // Initialize Web Worker instance
   useEffect(() => {
@@ -136,11 +137,12 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           }
 
           case "SINGLE_COMPLETE": {
-            const { recipientKey, pdfBytes, warnings, durationMs } = msg.payload;
-            const resolver = pendingSingleResolvers.current.get(recipientKey);
+            const { recipientKey, pdfBytes, warnings, durationMs, requestId } = msg.payload;
+            const resolverKey = requestId || recipientKey;
+            const resolver = pendingSingleResolvers.current.get(resolverKey);
             if (resolver) {
               clearTimeout(resolver.timerId);
-              pendingSingleResolvers.current.delete(recipientKey);
+              pendingSingleResolvers.current.delete(resolverKey);
               resolver.resolve({ pdfBytes, warnings, durationMs });
             }
             if (warnings && warnings.length > 0) {
@@ -200,12 +202,13 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           }
 
           case "ERROR": {
-            const { message, fatal, recipientKey } = msg.payload;
-            if (recipientKey) {
-              const resolver = pendingSingleResolvers.current.get(recipientKey);
+            const { message, fatal, recipientKey, requestId } = msg.payload;
+            const resolverKey = requestId || recipientKey;
+            if (resolverKey) {
+              const resolver = pendingSingleResolvers.current.get(resolverKey);
               if (resolver) {
                 clearTimeout(resolver.timerId);
-                pendingSingleResolvers.current.delete(recipientKey);
+                pendingSingleResolvers.current.delete(resolverKey);
                 resolver.reject(new Error(message));
               }
             }
@@ -224,8 +227,23 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
 
       worker.onerror = (err) => {
         console.error("Batch generator worker error:", err);
+        const errMsg = err.message || "Web Worker execution error";
         setStatus("error");
-        setError(err.message || "Web Worker execution error");
+        setError(errMsg);
+
+        if (pendingInitResolver.current) {
+          pendingInitResolver.current.reject(new Error(errMsg));
+          pendingInitResolver.current = null;
+        }
+
+        for (const [, resolver] of pendingSingleResolvers.current) {
+          clearTimeout(resolver.timerId);
+          resolver.reject(new Error(errMsg));
+        }
+        pendingSingleResolvers.current.clear();
+
+        worker.terminate();
+        workerRef.current = null;
       };
     } catch (err: any) {
       console.warn("Worker creation failed, fallback mode enabled:", err);
@@ -233,6 +251,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
 
     const resolvers = pendingSingleResolvers.current;
     return () => {
+      fallbackStepRef.current = null;
       workerRef.current?.terminate();
       workerRef.current = null;
       for (const [, resolver] of resolvers) {
@@ -309,9 +328,10 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
       }
 
       return new Promise((resolve, reject) => {
+        const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
         const timerId = setTimeout(() => {
-          if (pendingSingleResolvers.current.has(recipient.recipientKey)) {
-            pendingSingleResolvers.current.delete(recipient.recipientKey);
+          if (pendingSingleResolvers.current.has(requestId)) {
+            pendingSingleResolvers.current.delete(requestId);
             reject(
               new Error(
                 `Timeout generating single recipient: ${recipient.recipientKey}`,
@@ -320,7 +340,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           }
         }, 15000);
 
-        pendingSingleResolvers.current.set(recipient.recipientKey, {
+        pendingSingleResolvers.current.set(requestId, {
           resolve,
           reject,
           timerId,
@@ -328,7 +348,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
 
         workerRef.current?.postMessage({
           type: "GENERATE_SINGLE",
-          payload: { recipient },
+          payload: { recipient, requestId },
         });
       });
     },
@@ -349,6 +369,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
 
         const step = async () => {
           if (fallbackIsCancelled.current) {
+            fallbackStepRef.current = null;
             setStatus("cancelled");
             return;
           }
@@ -357,6 +378,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
             return;
           }
           if (idx >= total) {
+            fallbackStepRef.current = null;
             setStatus("completed");
             return;
           }
@@ -411,6 +433,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
           setTimeout(step, 0);
         };
 
+        fallbackStepRef.current = step;
         void step();
         return;
       }
@@ -454,6 +477,9 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
     } else {
       fallbackIsPaused.current = false;
       setStatus("generating");
+      if (fallbackStepRef.current) {
+        void fallbackStepRef.current();
+      }
     }
   }, []);
 
@@ -462,11 +488,13 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
       workerRef.current.postMessage({ type: "CANCEL" });
     } else {
       fallbackIsCancelled.current = true;
+      fallbackStepRef.current = null;
       setStatus("cancelled");
     }
   }, []);
 
   const reset = useCallback((): void => {
+    fallbackStepRef.current = null;
     setStatus("ready");
     setError(null);
     setProgress(initialProgress);

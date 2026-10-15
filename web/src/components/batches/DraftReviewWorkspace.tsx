@@ -12,6 +12,7 @@ import {
   PencilSimple,
   ArrowClockwise,
   Check,
+  ArrowRight,
 } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
@@ -206,31 +207,50 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
     </div>
   );
 
+  const isApproved =
+    batch?.status === "approved" ||
+    batch?.status === "ready_for_download" ||
+    batch?.status === "generating" ||
+    batch?.status === "paused";
+
   const actionsSlot = (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setIsReimportModalOpen(true)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors cursor-pointer select-none"
-      >
-        <ArrowClockwise className="w-3.5 h-3.5" />
-        Re-import Spreadsheet
-      </button>
+      {!isApproved && (
+        <button
+          type="button"
+          onClick={() => setIsReimportModalOpen(true)}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-xs transition-colors cursor-pointer select-none"
+        >
+          <ArrowClockwise className="w-3.5 h-3.5" />
+          Re-import Spreadsheet
+        </button>
+      )}
 
-      <button
-        type="button"
-        onClick={handleApproveBatch}
-        disabled={!batch || batch.validRows === 0}
-        className={cn(
-          "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all select-none",
-          batch && batch.validRows > 0
-            ? "bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 text-white dark:text-slate-950 cursor-pointer active:scale-[0.98]"
-            : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed",
-        )}
-      >
-        <Check className="w-4 h-4" />
-        Approve Batch
-      </button>
+      {isApproved ? (
+        <button
+          type="button"
+          onClick={() => navigate({ to: `/app/batches/${batchId}/results` })}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all select-none bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 text-white dark:text-slate-950 cursor-pointer active:scale-[0.98]"
+        >
+          <span>View Results & Generation</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleApproveBatch}
+          disabled={!batch || batch.validRows === 0}
+          className={cn(
+            "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all select-none",
+            batch && batch.validRows > 0
+              ? "bg-slate-950 dark:bg-slate-100 hover:bg-slate-900 text-white dark:text-slate-950 cursor-pointer active:scale-[0.98]"
+              : "bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed",
+          )}
+        >
+          <Check className="w-4 h-4" />
+          Approve Batch
+        </button>
+      )}
     </div>
   );
 
@@ -250,7 +270,32 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
           {error}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+        <>
+          {isApproved && (
+            <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/80 text-emerald-950 text-xs shadow-xs">
+              <div className="flex items-center gap-2.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+                <div>
+                  <p className="font-bold text-emerald-900">
+                    Batch Approved & Sealed into Immutable Snapshot
+                  </p>
+                  <p className="text-emerald-700 text-[11px] mt-0.5">
+                    This batch has been signed off. You can preview single recipients, run Web Worker generation, and download PDFs on the Results page.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => navigate({ to: `/app/batches/${batchId}/results` })}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-xs shrink-0 cursor-pointer select-none"
+              >
+                <span>Go to Results</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
           {/* Left Column: Draft Gallery (5 cols) */}
           <div className="lg:col-span-5 h-[calc(100vh-225px)] min-h-[500px]">
             <DraftGallery
@@ -343,7 +388,8 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
             </div>
           </div>
         </div>
-      )}
+      </>
+    )}
 
       {/* Re-import Modal */}
       {isReimportModalOpen && (

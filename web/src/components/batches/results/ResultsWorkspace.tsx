@@ -42,10 +42,13 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
 
   const [copiedDigest, setCopiedDigest] = useState(false);
 
+  const [isStarting, setIsStarting] = useState(false);
+
   // Worker hook
   const {
     status: workerStatus,
     progress,
+    error: workerError,
     warningsMap,
     generatedMap,
     initializeWorker,
@@ -81,6 +84,11 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       }
       const snapData = await snapRes.json();
       const activeSnapshot = snapData.snapshot;
+      if (!activeSnapshot || activeSnapshot.status !== "ready") {
+        throw new Error(
+          "No approved snapshot found. Batch must be approved before generating results."
+        );
+      }
       setSnapshot(activeSnapshot);
 
       // 3. Fetch template version mappings
@@ -145,12 +153,40 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   };
 
   // Trigger batch generation
-  const handleStartGeneration = () => {
-    if (recipients.length === 0) {
-      toast.warning("No Recipients", "No approved recipients found to generate.");
-      return;
+  const handleStartGeneration = async () => {
+    try {
+      setIsStarting(true);
+      let allRecipients: any[] = [];
+      let currentPage = 1;
+      let totalPages = 1;
+      const fetchLimit = 100;
+
+      do {
+        const res = await fetch(
+          `/api/batches/${batchId}/snapshot/recipients?page=${currentPage}&limit=${fetchLimit}`,
+          { credentials: "include" }
+        );
+        if (!res.ok) {
+          throw new Error("Failed to load approved recipients for generation");
+        }
+        const data = await res.json();
+        const pageRecipients = data.recipients || [];
+        allRecipients = allRecipients.concat(pageRecipients);
+        totalPages = typeof data.totalPages === "number" ? data.totalPages : 1;
+        currentPage++;
+      } while (currentPage <= totalPages);
+
+      if (allRecipients.length === 0) {
+        toast.warning("No Recipients", "No approved recipients found to generate.");
+        return;
+      }
+
+      startBatch(allRecipients);
+    } catch (err: any) {
+      toast.error("Generation Error", err.message || "Failed to load all recipients");
+    } finally {
+      setIsStarting(false);
     }
-    startBatch(recipients);
   };
 
   const handleCopyDigest = () => {
@@ -207,9 +243,10 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       isLoading={isLoading}
     >
       <div className="space-y-5 pb-12">
-        {error && (
+        {(error || workerError) && (
           <Alert variant="error" title="Results Stage Error">
-            {error}
+            {error && <p>{error}</p>}
+            {workerError && <p>{workerError}</p>}
           </Alert>
         )}
 
@@ -315,7 +352,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           onPause={pause}
           onResume={resume}
           onCancel={cancel}
-          disabled={isLoading || !basePdfBytes}
+          disabled={isLoading || isStarting || !basePdfBytes}
         />
 
         {/* Recipient Status Table */}

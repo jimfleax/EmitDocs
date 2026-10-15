@@ -12,11 +12,18 @@ import {
   Certificate,
   Calendar,
   PlusCircle,
+  Stack,
+  ArrowRight,
 } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
 import { Alert } from "@/components/ui/Alert";
 import { TemplateDetailsSkeleton } from "@/components/skeletons/TemplateDetailsSkeleton";
+import {
+  getBatchDestinationRoute,
+  getBatchActionLabel,
+  getBatchStatusBadge,
+} from "@/lib/batch-navigation";
 
 interface TemplateVersion {
   _id: string;
@@ -53,6 +60,7 @@ interface Template {
 export function TemplateDetails({ templateId }: { templateId: string }) {
   const [template, setTemplate] = useState<Template | null>(null);
   const [versions, setVersions] = useState<TemplateVersion[]>([]);
+  const [batches, setBatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [imageErrorUrl, setImageErrorUrl] = useState<string | null>(null);
@@ -80,6 +88,22 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
 
         if (tpl?.currentVersionId && typeof tpl.currentVersionId === "object") {
           setVersions([tpl.currentVersionId]);
+        }
+
+        // Fetch batches associated with this template
+        try {
+          const batchRes = await fetch("/api/batches", { credentials: "include" });
+          if (batchRes.ok) {
+            const batchData = await batchRes.json();
+            const list = Array.isArray(batchData?.batches) ? batchData.batches : [];
+            const associated = list.filter((b: any) => {
+              const bTid = typeof b.templateId === "object" ? b.templateId?._id : b.templateId;
+              return bTid === templateId;
+            });
+            setBatches(associated);
+          }
+        } catch {
+          // Non-blocking batch retrieval
         }
       } catch (err: unknown) {
         const message =
@@ -294,6 +318,108 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
                       </div>
                     </div>
                   ))
+                )}
+              </div>
+            </div>
+
+            {/* Batches Associated with this Template */}
+            <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900">
+                    Batches Using This Template
+                  </h3>
+                  {batches.length > 0 && (
+                    <Badge variant="neutral" size="sm" shape="pill">
+                      {batches.length}
+                    </Badge>
+                  )}
+                </div>
+                {isMapped && (
+                  <Link
+                    to="/app/batches/new"
+                    search={{ templateId: template._id }}
+                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 hover:underline cursor-pointer"
+                  >
+                    <PlusCircle size={13} weight="bold" />
+                    <span>New Batch</span>
+                  </Link>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                {batches.length === 0 ? (
+                  <div className="p-4 rounded-xl border border-dashed border-slate-200 bg-slate-50/50 text-center space-y-1.5">
+                    <p className="text-xs text-slate-500 font-medium">
+                      No batches created for this template yet.
+                    </p>
+                    {isMapped ? (
+                      <Link
+                        to="/app/batches/new"
+                        search={{ templateId: template._id }}
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700"
+                      >
+                        <PlusCircle size={13} weight="bold" />
+                        <span>Create first batch</span>
+                      </Link>
+                    ) : (
+                      <p className="text-[11px] text-slate-400">
+                        Map fields in version editor to start creating batches.
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  batches.map((b) => {
+                    const destination = getBatchDestinationRoute(b);
+                    const actionLabel = getBatchActionLabel(b.status);
+                    const statusBadge = getBatchStatusBadge(b.status);
+                    const docsCount = b.validRows || b.totalRows || 0;
+
+                    return (
+                      <div
+                        key={b._id}
+                        className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 bg-slate-50/60 hover:bg-slate-100/60 transition-colors text-xs group"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-3">
+                          <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold shrink-0">
+                            <Stack size={16} weight="bold" />
+                          </div>
+                          <div className="min-w-0">
+                            <Link
+                              to={destination.path as any}
+                              className="font-bold text-slate-800 hover:text-blue-600 transition-colors truncate block cursor-pointer"
+                              title={b.name}
+                            >
+                              {b.name}
+                            </Link>
+                            <p className="text-slate-400 text-[11px]">
+                              {new Date(b.createdAt).toLocaleDateString()} ·{" "}
+                              {docsCount.toLocaleString()} {docsCount === 1 ? "document" : "documents"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <Badge
+                            variant={statusBadge.variant}
+                            size="sm"
+                            shape="pill"
+                            dot
+                          >
+                            {statusBadge.label}
+                          </Badge>
+
+                          <Link
+                            to={destination.path as any}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-blue-50 hover:text-blue-600 text-slate-700 border border-slate-200/80 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
+                          >
+                            <span>{actionLabel}</span>
+                            <ArrowRight size={11} weight="bold" />
+                          </Link>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
