@@ -5,11 +5,20 @@
  * @agent_note Displays Balatro background shader animation on desktop and embeds GoogleSignInButton.
  */
 
+import { useEffect } from "react";
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
 import { Balatro } from "@/components/ui/Balatro";
+import { toast } from "@/components/ui/toast";
+
+interface SignInSearch {
+  error?: string;
+}
 
 export const Route = createFileRoute("/sign-in")({
+  validateSearch: (search: Record<string, unknown>): SignInSearch => ({
+    error: typeof search.error === "string" ? search.error : undefined,
+  }),
   beforeLoad: ({ context }) => {
     if (context.auth.session) {
       throw redirect({
@@ -28,6 +37,17 @@ const CURRENT_YEAR = new Date().getFullYear();
  * @returns {JSX.Element} Split-screen sign-in interface.
  */
 function SignIn() {
+  const { error } = Route.useSearch();
+
+  useEffect(() => {
+    if (error) {
+      const msg =
+        error === "state_mismatch"
+          ? "Your sign-in session expired or was interrupted. Please try again."
+          : `Sign-in could not be completed (${error}). Please try again.`;
+      toast.error("Authentication Error", msg);
+    }
+  }, [error]);
   return (
     <div className="min-h-screen w-full bg-white text-slate-900 flex flex-col lg:grid lg:grid-cols-2">
       {/* Left Section: Branding, Supporting Text & Login Form */}

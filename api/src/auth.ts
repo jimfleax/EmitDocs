@@ -34,6 +34,9 @@ export const auth = betterAuth({
   account: {
     skipStateCookieCheck: true,
   },
+  onAPIError: {
+    errorURL: isProduction ? 'https://emitdocs.jimfleax.in/sign-in' : 'http://localhost:5173/sign-in',
+  },
   database: mongodbAdapter(db),
   trustedOrigins: getAllowedOrigins(),
   socialProviders: {

@@ -32,14 +32,16 @@ export function GoogleSignInButton({
   const handleSignIn = async () => {
     try {
       setIsLoading(true);
+      const origin =
+        typeof window !== "undefined" ? window.location.origin : "";
       const targetCallbackURL =
-        callbackURL ||
-        (typeof window !== "undefined"
-          ? `${window.location.origin}/app`
-          : "/app");
+        callbackURL || (origin ? `${origin}/app` : "/app");
+      const targetErrorCallbackURL = origin ? `${origin}/sign-in?error=auth_failed` : undefined;
+
       await authClient.signIn.social({
         provider: "google",
         callbackURL: targetCallbackURL,
+        errorCallbackURL: targetErrorCallbackURL,
       });
     } catch (err) {
       console.error("Sign-in error:", err);
