@@ -189,5 +189,76 @@ describe("OAuth Redirect URI & Base URL Resolution", () => {
       assert.ok(cookieHeader, "Must set state cookie");
       assert.ok(cookieHeader.includes("SameSite=Lax"), "Must set SameSite=Lax in development");
     });
+
+    it("successfully validates state via database storage even when browser drops state cookie", async () => {
+      // In-memory verification storage
+      const storage = new Map<string, string>();
+      const memoryStorage = {
+        get: async (key: string) => storage.get(key) || null,
+        set: async (key: string, value: string) => {
+          storage.set(key, value);
+        },
+        delete: async (key: string) => {
+          storage.delete(key);
+        },
+      };
+
+      const statelessAuth = betterAuth({
+        baseURL: "https://emitdocs-api.vercel.app",
+        trustedOrigins: getAllowedOrigins(),
+        secondaryStorage: memoryStorage,
+        account: {
+          skipStateCookieCheck: true,
+        },
+        advanced: {
+          trustedProxyHeaders: true,
+          defaultCookieAttributes: {
+            sameSite: "none",
+            secure: true,
+          },
+        },
+        secret: "test-secret-at-least-32-characters-long",
+        socialProviders: {
+          google: { clientId: "test-id", clientSecret: "test-secret" },
+        },
+      });
+
+      // Initiate sign-in
+      const initRes = await statelessAuth.handler(
+        new Request("https://emitdocs-api.vercel.app/api/auth/sign-in/social", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            provider: "google",
+            callbackURL: "https://emitdocs.jimfleax.in/app",
+          }),
+        })
+      );
+
+      const initData = await initRes.json();
+      assert.ok(initData?.url, "Must generate authorization URL");
+      const state = new URL(initData.url).searchParams.get("state");
+      assert.ok(state, "State token must be generated");
+
+      // Verify that the state was stored in the verification storage
+      assert.ok(storage.size > 0, "Verification state must be stored in database/secondary storage");
+
+      // Simulate OAuth callback with NO cookie (cross-site cookie dropped by browser)
+      const callbackRes = await statelessAuth.handler(
+        new Request(
+          `https://emitdocs-api.vercel.app/api/auth/callback/google?state=${state}&code=test_code`,
+          {
+            method: "GET",
+          }
+        )
+      );
+
+      // The callback must NOT redirect with error=state_mismatch
+      const location = callbackRes.headers.get("location") || "";
+      assert.ok(
+        !location.includes("error=state_mismatch"),
+        `Callback must not produce state_mismatch when skipStateCookieCheck is true. Got location: ${location}`
+      );
+    });
   });
 });

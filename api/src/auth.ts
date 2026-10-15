@@ -31,6 +31,9 @@ export const auth = betterAuth({
       secure: isProduction,
     },
   },
+  account: {
+    skipStateCookieCheck: true,
+  },
   database: mongodbAdapter(db),
   trustedOrigins: getAllowedOrigins(),
   socialProviders: {
