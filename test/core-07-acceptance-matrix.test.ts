@@ -571,6 +571,8 @@ async function runAcceptanceCriteriaMatrix() {
     // -------------------------------------------------------------------------
     console.log('--- Testing AC8: Deterministic Byte Output Parity (SHA-256) ---');
     const run1 = await generatePdfWithOverlay(basePdfBytes, fieldMappings, recipient1.effectiveData);
+    // Separate runs by >1 second to ensure timestamp/date changes would affect hash if not deterministic
+    await new Promise((resolve) => setTimeout(resolve, 1100));
     const run2 = await generatePdfWithOverlay(basePdfBytes, fieldMappings, recipient1.effectiveData);
 
     const hash1 = crypto.createHash('sha256').update(run1.pdfBytes).digest('hex');
