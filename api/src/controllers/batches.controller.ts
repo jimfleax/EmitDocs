@@ -30,6 +30,7 @@ import {
   BatchApprovalValidationError,
   GenerationInProgressError,
 } from '../services/batch-approval.js';
+import { expireBatchIfDue } from '../services/retention-pruner.js';
 
 /**
  * @desc Creates a new bulk issuance batch attached to a template and verified mapped version.
@@ -993,6 +994,24 @@ export const getApprovedRecipients = async (c: Context) => {
   const limit = parseInt(c.req.query('limit') || '50', 10);
 
   try {
+    const batch = await Batch.findOne({ _id: batchId, ownerId: user.id });
+    if (!batch) return c.json({ error: 'Batch not found' }, 404);
+
+    // Check expiration
+    if (batch.status === 'expired' || (batch.expiresAt && new Date() >= new Date(batch.expiresAt))) {
+      if (batch.status !== 'expired') {
+        await expireBatchIfDue(batch._id, user.id);
+      }
+      return c.json(
+        {
+          error: 'Batch has expired and recipient PII has been pruned',
+          code: 'BATCH_EXPIRED',
+          expiresAt: batch.expiresAt,
+        },
+        410
+      );
+    }
+
     const result = await BatchApproval.getApprovedRecipients({
       batchId,
       ownerId: user.id,

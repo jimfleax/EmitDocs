@@ -6,7 +6,7 @@
 
 import React, { useState } from "react";
 import { useLocation, Link } from "@tanstack/react-router";
-import { SignOut, House, FileText, Stack } from "@phosphor-icons/react";
+import { SignOut, House, FileText, Stack, Gear } from "@phosphor-icons/react";
 import { authClient } from "../../lib/auth-client";
 import { OfflineIndicator } from "../pwa";
 
@@ -27,6 +27,7 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
   const isHomeActive = pathname === "/app" || pathname === "/app/";
   const isTemplatesActive = pathname.startsWith("/app/templates");
   const isBatchesActive = pathname.startsWith("/app/batches");
+  const isSettingsActive = pathname.startsWith("/app/settings");
   const isEditorRoute = pathname.includes("/versions/");
 
   const handleSignOut = async () => {
@@ -163,6 +164,22 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
             />
             <span className="translate-y-[1px]">Batches</span>
           </Link>
+
+          <Link
+            to="/app/settings/account"
+            className={`flex items-center gap-2 text-sm tracking-tight cursor-pointer select-none shrink-0 transition-colors ${
+              isSettingsActive
+                ? "font-black text-white"
+                : "font-bold text-white/55 hover:text-white"
+            }`}
+          >
+            <Gear
+              size={16}
+              weight="bold"
+              className={`shrink-0 ${isSettingsActive ? "text-white" : "text-white/55"}`}
+            />
+            <span className="translate-y-[1px]">Settings</span>
+          </Link>
         </div>
       </header>
 
@@ -268,6 +285,32 @@ export function AppShell({ children }: { children?: React.ReactNode }) {
                 }
               >
                 Batches
+              </span>
+            </Link>
+
+            <Link
+              to="/app/settings/account"
+              className={`flex items-center gap-3 w-full text-left tracking-tight cursor-pointer select-none transition-colors duration-200 group ${
+                isSettingsActive
+                  ? "text-xl font-black text-white"
+                  : "text-base font-bold text-white/50 hover:text-white"
+              }`}
+            >
+              <Gear
+                size={isSettingsActive ? 22 : 20}
+                weight="bold"
+                className={`shrink-0 ${
+                  isSettingsActive
+                    ? "text-white"
+                    : "text-white/50 group-hover:text-white transition-colors"
+                }`}
+              />
+              <span
+                className={
+                  isSettingsActive ? "translate-y-[2px]" : "translate-y-[1.5px]"
+                }
+              >
+                Settings
               </span>
             </Link>
           </nav>

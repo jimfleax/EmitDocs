@@ -21,6 +21,8 @@ import { Route as DebugErrorsRouteImport } from './routes/debug.errors'
 import { Route as ProtectedAppIndexRouteImport } from './routes/_protected/app/index'
 import { Route as ProtectedAppBatchesIndexRouteImport } from './routes/_protected/app/batches/index'
 import { Route as ProtectedAppBatchesNewRouteImport } from './routes/_protected/app/batches/new'
+import { Route as ProtectedAppSettingsAccountRouteImport } from './routes/_protected/app/settings/account'
+import { Route as ProtectedAppSettingsRetentionRouteImport } from './routes/_protected/app/settings/retention'
 import { Route as ProtectedAppTemplatesIndexRouteImport } from './routes/_protected/app/templates/index'
 import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from './routes/_protected/app/templates/$templateId'
 import { Route as ProtectedAppTemplatesNewRouteImport } from './routes/_protected/app/templates/new'
@@ -91,6 +93,18 @@ const ProtectedAppBatchesNewRoute = ProtectedAppBatchesNewRouteImport.update({
   path: '/batches/new',
   getParentRoute: () => ProtectedAppRoute,
 } as any)
+const ProtectedAppSettingsAccountRoute =
+  ProtectedAppSettingsAccountRouteImport.update({
+    id: '/settings/account',
+    path: '/settings/account',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
+const ProtectedAppSettingsRetentionRoute =
+  ProtectedAppSettingsRetentionRouteImport.update({
+    id: '/settings/retention',
+    path: '/settings/retention',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
 const ProtectedAppTemplatesIndexRoute =
   ProtectedAppTemplatesIndexRouteImport.update({
     id: '/templates/',
@@ -157,6 +171,8 @@ export interface FileRoutesByFullPath {
   '/debug/errors': typeof DebugErrorsRoute
   '/app/': typeof ProtectedAppIndexRoute
   '/app/batches/new': typeof ProtectedAppBatchesNewRoute
+  '/app/settings/account': typeof ProtectedAppSettingsAccountRoute
+  '/app/settings/retention': typeof ProtectedAppSettingsRetentionRoute
   '/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
   '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
   '/app/batches/': typeof ProtectedAppBatchesIndexRoute
@@ -178,6 +194,8 @@ export interface FileRoutesByTo {
   '/debug/errors': typeof DebugErrorsRoute
   '/app': typeof ProtectedAppIndexRoute
   '/app/batches/new': typeof ProtectedAppBatchesNewRoute
+  '/app/settings/account': typeof ProtectedAppSettingsAccountRoute
+  '/app/settings/retention': typeof ProtectedAppSettingsRetentionRoute
   '/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
   '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
   '/app/batches': typeof ProtectedAppBatchesIndexRoute
@@ -202,6 +220,8 @@ export interface FileRoutesById {
   '/debug/errors': typeof DebugErrorsRoute
   '/_protected/app/': typeof ProtectedAppIndexRoute
   '/_protected/app/batches/new': typeof ProtectedAppBatchesNewRoute
+  '/_protected/app/settings/account': typeof ProtectedAppSettingsAccountRoute
+  '/_protected/app/settings/retention': typeof ProtectedAppSettingsRetentionRoute
   '/_protected/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
   '/_protected/app/templates/new': typeof ProtectedAppTemplatesNewRoute
   '/_protected/app/batches/': typeof ProtectedAppBatchesIndexRoute
@@ -226,6 +246,8 @@ export interface FileRouteTypes {
     | '/debug/errors'
     | '/app/'
     | '/app/batches/new'
+    | '/app/settings/account'
+    | '/app/settings/retention'
     | '/app/templates/$templateId'
     | '/app/templates/new'
     | '/app/batches/'
@@ -247,6 +269,8 @@ export interface FileRouteTypes {
     | '/debug/errors'
     | '/app'
     | '/app/batches/new'
+    | '/app/settings/account'
+    | '/app/settings/retention'
     | '/app/templates/$templateId'
     | '/app/templates/new'
     | '/app/batches'
@@ -270,6 +294,8 @@ export interface FileRouteTypes {
     | '/debug/errors'
     | '/_protected/app/'
     | '/_protected/app/batches/new'
+    | '/_protected/app/settings/account'
+    | '/_protected/app/settings/retention'
     | '/_protected/app/templates/$templateId'
     | '/_protected/app/templates/new'
     | '/_protected/app/batches/'
@@ -379,6 +405,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppBatchesNewRouteImport
       parentRoute: typeof ProtectedAppRoute
     }
+    '/_protected/app/settings/account': {
+      id: '/_protected/app/settings/account'
+      path: '/settings/account'
+      fullPath: '/app/settings/account'
+      preLoaderRoute: typeof ProtectedAppSettingsAccountRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
+    '/_protected/app/settings/retention': {
+      id: '/_protected/app/settings/retention'
+      path: '/settings/retention'
+      fullPath: '/app/settings/retention'
+      preLoaderRoute: typeof ProtectedAppSettingsRetentionRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
     '/_protected/app/templates/': {
       id: '/_protected/app/templates/'
       path: '/templates'
@@ -448,6 +488,8 @@ declare module '@tanstack/react-router' {
 interface ProtectedAppRouteChildren {
   ProtectedAppIndexRoute: typeof ProtectedAppIndexRoute
   ProtectedAppBatchesNewRoute: typeof ProtectedAppBatchesNewRoute
+  ProtectedAppSettingsAccountRoute: typeof ProtectedAppSettingsAccountRoute
+  ProtectedAppSettingsRetentionRoute: typeof ProtectedAppSettingsRetentionRoute
   ProtectedAppTemplatesTemplateIdRoute: typeof ProtectedAppTemplatesTemplateIdRoute
   ProtectedAppTemplatesNewRoute: typeof ProtectedAppTemplatesNewRoute
   ProtectedAppBatchesIndexRoute: typeof ProtectedAppBatchesIndexRoute
@@ -463,6 +505,8 @@ interface ProtectedAppRouteChildren {
 const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
   ProtectedAppIndexRoute: ProtectedAppIndexRoute,
   ProtectedAppBatchesNewRoute: ProtectedAppBatchesNewRoute,
+  ProtectedAppSettingsAccountRoute: ProtectedAppSettingsAccountRoute,
+  ProtectedAppSettingsRetentionRoute: ProtectedAppSettingsRetentionRoute,
   ProtectedAppTemplatesTemplateIdRoute: ProtectedAppTemplatesTemplateIdRoute,
   ProtectedAppTemplatesNewRoute: ProtectedAppTemplatesNewRoute,
   ProtectedAppBatchesIndexRoute: ProtectedAppBatchesIndexRoute,

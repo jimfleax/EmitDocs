@@ -103,6 +103,13 @@ export function getBatchDestinationRoute(batch: NavigableBatch): BatchRouteTarge
         path: "/app/batches",
       };
 
+    case "expired":
+      return {
+        to: "/app/batches/$batchId/results",
+        params: { batchId },
+        path: `/app/batches/${batchId}/results`,
+      };
+
     default:
       return {
         to: "/app/batches/$batchId/review",
@@ -140,6 +147,8 @@ export function getBatchActionLabel(status: string): string {
       return "View Details";
     case "deleting":
       return "Deleting...";
+    case "expired":
+      return "View Expired";
     default:
       return "View Documents";
   }
@@ -173,6 +182,8 @@ export function getBatchStatusBadge(status: string): BatchBadgeConfig {
       return { label: "Cancelled", variant: "error" };
     case "deleting":
       return { label: "Deleting", variant: "neutral" };
+    case "expired":
+      return { label: "Expired", variant: "error" };
     default:
       return { label: status, variant: "neutral" };
   }

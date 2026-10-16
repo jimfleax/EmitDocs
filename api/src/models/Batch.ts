@@ -26,7 +26,8 @@ export type BatchStatus =
   | 'paused'
   | 'cancelled'
   | 'failed'
-  | 'deleting';
+  | 'deleting'
+  | 'expired';
 
 /**
  * @interface IBatch
@@ -86,6 +87,7 @@ const BatchSchema = new Schema<IBatch>(
         'cancelled',
         'failed',
         'deleting',
+        'expired',
       ],
       default: 'draft',
     },
@@ -104,6 +106,8 @@ const BatchSchema = new Schema<IBatch>(
 
 BatchSchema.index({ ownerId: 1, createdAt: -1 });
 BatchSchema.index({ templateId: 1, createdAt: -1 });
+BatchSchema.index({ expiresAt: 1 });
+BatchSchema.index({ ownerId: 1, status: 1 });
 
 /**
  * @module Batch

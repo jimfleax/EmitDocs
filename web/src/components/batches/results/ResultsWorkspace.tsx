@@ -27,6 +27,8 @@ import { StreamingProgressModal } from "./StreamingProgressModal";
 import type { BatchVolumeInfo } from "@/lib/pdf-engine/volume-partitioner";
 import { formatBytes } from "@/lib/pdf-engine/volume-partitioner";
 import { useBatchGeneratorWorker } from "@/hooks/useBatchGeneratorWorker";
+import { ExpiryCountdownBadge } from "./ExpiryCountdownBadge";
+import { ExpiredBatchNotice } from "./ExpiredBatchNotice";
 
 export interface ResultsWorkspaceProps {
   batchId: string;
@@ -53,6 +55,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
 
   const [isStarting, setIsStarting] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
 
   // Worker hook
   const {
@@ -72,7 +75,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     zipProgress,
     startZipExport,
     cancelZipExport,
-  } = useBatchGeneratorWorker();
+  } = useBatchGeneratorWorker({ isExpired });
 
   const [currentZippingVolume, setCurrentZippingVolume] = useState<number | undefined>(undefined);
   const [currentZippingFilename, setCurrentZippingFilename] = useState<string>("documents.zip");
@@ -177,6 +180,15 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       const batchData = await batchRes.json();
       setBatch(batchData.batch);
 
+      if (
+        batchData.batch.status === "expired" ||
+        (batchData.batch.expiresAt && new Date() >= new Date(batchData.batch.expiresAt))
+      ) {
+        setIsExpired(true);
+        setIsLoading(false);
+        return;
+      }
+
       // 2. Fetch approved snapshot
       const snapRes = await fetch(`/api/batches/${batchId}/snapshot`, {
         credentials: "include",
@@ -223,6 +235,11 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
         `/api/batches/${batchId}/snapshot/recipients?page=1&limit=${limit}`,
         { credentials: "include" }
       );
+      if (recRes.status === 410) {
+        setIsExpired(true);
+        toast.warning("Batch Expired", "This batch has passed its retention window. Recipient data has been pruned.");
+        return;
+      }
       if (recRes.ok) {
         const recData = await recRes.json();
         setRecipients(recData.recipients || []);
@@ -247,6 +264,11 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
         `/api/batches/${batchId}/snapshot/recipients?page=${newPage}&limit=${limit}`,
         { credentials: "include" }
       );
+      if (res.status === 410) {
+        setIsExpired(true);
+        toast.warning("Batch Expired", "This batch has passed its retention window.");
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setRecipients(data.recipients || []);
@@ -349,9 +371,16 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       <h1 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">
         {batch?.name || "Results & Delivery"}
       </h1>
-      <Badge variant="success" size="md" shape="pill" mono>
-        Approved Snapshot
-      </Badge>
+      {isExpired ? (
+        <Badge variant="error" size="md" shape="pill" mono>
+          Expired
+        </Badge>
+      ) : (
+        <Badge variant="success" size="md" shape="pill" mono>
+          Approved Snapshot
+        </Badge>
+      )}
+      <ExpiryCountdownBadge expiresAt={batch?.expiresAt || snapshot?.expiresAt} />
     </div>
   );
 
@@ -373,6 +402,13 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       isLoading={isLoading}
     >
       <div className="space-y-5 pb-12">
+        {isExpired && (
+          <ExpiredBatchNotice
+            expiresAt={batch?.expiresAt || snapshot?.expiresAt}
+            totalRecipients={totalRecipients || batch?.totalRows}
+          />
+        )}
+
         {(error || workerError) && (
           <Alert variant="error" title="Results Stage Error">
             {error && <p>{error}</p>}
@@ -525,7 +561,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
             currentZippingVolume={currentZippingVolume}
             currentZipPercent={zipProgress.percent}
             onDownloadVolume={handleDownloadVolume}
-            disabled={isLoading || isStarting || !basePdfBytes}
+            disabled={isExpired || isLoading || isStarting || !basePdfBytes}
           />
         )}
 
@@ -549,7 +585,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           onPause={pause}
           onResume={resume}
           onCancel={cancel}
-          disabled={isLoading || isStarting || !basePdfBytes}
+          disabled={isExpired || isLoading || isStarting || !basePdfBytes}
           totalRecipients={totalRecipients}
         />
 

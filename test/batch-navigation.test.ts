@@ -104,6 +104,13 @@ assert.deepStrictEqual(
   'deleting must route to batches catalog'
 );
 
+// expired -> results workspace
+assert.deepStrictEqual(
+  getBatchDestinationRoute({ _id: 'b14', status: 'expired' }),
+  { to: '/app/batches/$batchId/results', params: { batchId: 'b14' }, path: '/app/batches/b14/results' },
+  'expired must route to results workspace'
+);
+
 console.log('✓ All destination routes verified.');
 
 // 2. Test getBatchActionLabel
@@ -119,6 +126,7 @@ assert.strictEqual(getBatchActionLabel('paused'), 'Resume Generation');
 assert.strictEqual(getBatchActionLabel('cancelled'), 'View Batch');
 assert.strictEqual(getBatchActionLabel('failed'), 'View Details');
 assert.strictEqual(getBatchActionLabel('deleting'), 'Deleting...');
+assert.strictEqual(getBatchActionLabel('expired'), 'View Expired');
 console.log('✓ All action labels verified.');
 
 // 3. Test getBatchStatusBadge
@@ -134,6 +142,7 @@ assert.deepStrictEqual(getBatchStatusBadge('paused'), { label: 'Paused', variant
 assert.deepStrictEqual(getBatchStatusBadge('failed'), { label: 'Failed', variant: 'error' });
 assert.deepStrictEqual(getBatchStatusBadge('cancelled'), { label: 'Cancelled', variant: 'error' });
 assert.deepStrictEqual(getBatchStatusBadge('deleting'), { label: 'Deleting', variant: 'neutral' });
+assert.deepStrictEqual(getBatchStatusBadge('expired'), { label: 'Expired', variant: 'error' });
 console.log('✓ All status badges verified.');
 
 console.log('\n===========================================================');

@@ -30,6 +30,7 @@ export interface IApprovedRecipientDoc extends Document {
   outputKey: string | null;
   outputChecksum: string | null;
   outputBytes: number | null;
+  expiresAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,12 +57,14 @@ const ApprovedRecipientSchema = new Schema<IApprovedRecipientDoc>(
     outputKey: { type: String, default: null },
     outputChecksum: { type: String, default: null },
     outputBytes: { type: Number, default: null },
+    expiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
 
 ApprovedRecipientSchema.index({ snapshotId: 1, recipientKey: 1 }, { unique: true });
 ApprovedRecipientSchema.index({ batchId: 1, generationStatus: 1 });
+ApprovedRecipientSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /**
  * @module ApprovedRecipient

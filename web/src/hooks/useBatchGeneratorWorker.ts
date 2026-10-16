@@ -120,7 +120,14 @@ const initialProgress: GenerationProgress = {
   warningsCount: 0,
 };
 
-export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
+export interface UseBatchGeneratorWorkerOptions {
+  isExpired?: boolean;
+}
+
+export function useBatchGeneratorWorker(
+  options?: UseBatchGeneratorWorkerOptions
+): UseBatchGeneratorWorkerReturn {
+  const isExpired = options?.isExpired ?? false;
   const [status, setStatus] = useState<WorkerStatus>("idle");
   const [progress, setProgress] = useState<GenerationProgress>(initialProgress);
   const [error, setError] = useState<string | null>(null);
@@ -561,6 +568,9 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
 
   const startBatch = useCallback(
     (recipients: RecipientBatchItem[], startIndex = 0): void => {
+      if (isExpired) {
+        throw new Error("BATCH_EXPIRED: Cannot generate documents for an expired batch.");
+      }
       if (!workerRef.current) {
         // Fallback simulated execution for headless tests
         setStatus("generating");
@@ -667,7 +677,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
         },
       });
     },
-    [],
+    [isExpired],
   );
 
   const pause = useCallback((): void => {
@@ -721,6 +731,9 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
       zipFilename = "documents.zip",
       fileHandleOrWritable?: any
     ): Promise<ZipExportResult> => {
+      if (isExpired) {
+        return Promise.reject(new Error("BATCH_EXPIRED: Cannot generate documents for an expired batch."));
+      }
       isZippingRef.current = true;
       setIsZipping(true);
       setZipProgress({
@@ -875,7 +888,7 @@ export function useBatchGeneratorWorker(): UseBatchGeneratorWorkerReturn {
         });
       });
     },
-    [],
+    [isExpired],
   );
 
   const cancelZipExport = useCallback((): void => {

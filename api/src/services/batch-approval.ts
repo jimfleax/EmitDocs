@@ -24,6 +24,9 @@ import { BatchNotFoundError } from './batch-intake.js';
 
 export { BatchNotFoundError };
 
+export const ALLOWED_RETENTION_PRESETS = [24, 168, 720] as const;
+export const DEFAULT_RETENTION_HOURS = 168;
+
 /**
  * Thrown when an optimistic concurrency check fails on batch or template version during approval.
  */
@@ -236,6 +239,13 @@ export async function approveBatch(input: ApproveBatchInput): Promise<ApproveBat
     idempotencyKey,
   } = input;
 
+  if (!ALLOWED_RETENTION_PRESETS.includes(retentionHours as any)) {
+    throw new BatchApprovalValidationError(
+      `Invalid retention preset: ${retentionHours}h. Permitted presets are 24, 168, or 720 hours.`,
+      'INVALID_RETENTION_PRESET'
+    );
+  }
+
   if (!idempotencyKey || typeof idempotencyKey !== 'string') {
     throw new BatchApprovalValidationError('Valid idempotencyKey is required');
   }
@@ -334,6 +344,7 @@ export async function approveBatch(input: ApproveBatchInput): Promise<ApproveBat
                   status: 'valid',
                   generationStatus: 'pending',
                   generationAttempts: 0,
+                  expiresAt: existingSnapshot.expiresAt,
                 },
               },
               upsert: true,
@@ -429,6 +440,7 @@ export async function approveBatch(input: ApproveBatchInput): Promise<ApproveBat
               status: 'valid',
               generationStatus: 'pending',
               generationAttempts: 0,
+              expiresAt: snapshot.expiresAt,
             },
           },
           upsert: true,
