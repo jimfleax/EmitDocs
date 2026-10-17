@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  verify:
+    name: Lint, Typecheck, Contract & Test Matrix
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.9
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Secret Leak Scanner
+        run: |
+          ! grep -rE "(CLOUDINARY_API_SECRET|BETTER_AUTH_SECRET)\s*=\s*['\"][a-zA-Z0-9_-]{10,}['\"]" web/ src/ 2>/dev/null
+
+      - name: Lint (Oxlint)
+        run: pnpm run lint
+
+      - name: Contract Drift Check
+        run: pnpm run contract:check
+
+      - name: Typecheck Backend & Frontend
+        run: pnpm run build
+
+      - name: Execute Test Suite
+        run: pnpm run test

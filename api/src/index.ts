@@ -19,18 +19,39 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import mongoose from 'mongoose'
+import crypto from 'crypto'
 import 'dotenv/config'
 import { checkHealth } from './controllers/health.controller.js'
 import { auth } from './auth.js'
 import { resolveCorsOrigin } from './lib/origins.js'
+import { validateEnvironment } from './config/production-guard.js'
+import { requestIdMiddleware } from './middleware/request-id.middleware.js'
+import { safeLoggerMiddleware } from './middleware/safe-logger.middleware.js'
+
+// Validate environment on boot (fail-closed in production)
+if (process.env.NODE_ENV !== 'test') {
+  try {
+    validateEnvironment();
+  } catch (err) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[Production Guard] Environment validation failed:', err);
+      process.exit(1);
+    } else {
+      console.warn('[Environment Guard] Non-fatal dev warning:', err);
+    }
+  }
+}
 
 const app = new Hono().basePath('/api')
+
+app.use('*', requestIdMiddleware)
+app.use('*', safeLoggerMiddleware)
 
 app.use('*', cors({
   origin: (origin) => resolveCorsOrigin(origin),
   credentials: true,
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization', 'x-client-version', 'x-client-name', 'Accept', 'Cookie'],
+  allowHeaders: ['Content-Type', 'Authorization', 'x-client-version', 'x-client-name', 'Accept', 'Cookie', 'x-request-id', 'x-test-auth-user'],
 }))
 
 // Database connection
@@ -180,6 +201,8 @@ app.route('/account', accountApp);
 
 // Standardized Not Found Handler
 app.notFound((c) => {
+  const requestId = (c as any).get('requestId') || crypto.randomUUID()
+  c.header('x-request-id', requestId)
   return c.json(
     {
       success: false,
@@ -188,6 +211,7 @@ app.notFound((c) => {
         message: `API endpoint '${c.req.path}' not found`,
         path: c.req.path,
         timestamp: new Date().toISOString(),
+        requestId,
       },
     },
     404
@@ -197,6 +221,8 @@ app.notFound((c) => {
 // Standardized Global Error Handler
 app.onError((err, c) => {
   console.error(`[API Error] ${c.req.method} ${c.req.path}:`, err)
+  const requestId = (c as any).get('requestId') || crypto.randomUUID()
+  c.header('x-request-id', requestId)
   const isDev = process.env.NODE_ENV !== 'production'
   return c.json(
     {
@@ -207,6 +233,7 @@ app.onError((err, c) => {
         ...(isDev && err.stack ? { stack: err.stack } : {}),
         path: c.req.path,
         timestamp: new Date().toISOString(),
+        requestId,
       },
     },
     500

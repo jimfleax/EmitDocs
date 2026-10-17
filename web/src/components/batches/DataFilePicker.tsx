@@ -9,6 +9,7 @@ import React, { useState, useRef } from "react";
 import { UploadSimple, FileCsv, FileXls } from "@phosphor-icons/react";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
+import { toast } from "@/components/ui/toast";
 import {
   parseCsvString,
   parseXlsxBuffer,
@@ -68,12 +69,30 @@ export function DataFilePicker({
         if (result.rows.length === 0) {
           throw new Error("Spreadsheet has no data rows.");
         }
+        if (result.rows.length > 5000) {
+          toast.error(
+            "Row Limit Exceeded",
+            `Maximum supported rows per batch is 5,000 (${result.rows.length.toLocaleString()} rows detected).`,
+          );
+          throw new Error(
+            `Row limit exceeded. Maximum supported rows per batch is 5,000 (${result.rows.length.toLocaleString()} rows detected).`,
+          );
+        }
         onParsed(result, { name: file.name, size: file.size, type: "csv" });
       } else {
         const buffer = await file.arrayBuffer();
         const result = parseXlsxBuffer(buffer);
         if (result.rows.length === 0) {
           throw new Error("Spreadsheet has no data rows.");
+        }
+        if (result.rows.length > 5000) {
+          toast.error(
+            "Row Limit Exceeded",
+            `Maximum supported rows per batch is 5,000 (${result.rows.length.toLocaleString()} rows detected).`,
+          );
+          throw new Error(
+            `Row limit exceeded. Maximum supported rows per batch is 5,000 (${result.rows.length.toLocaleString()} rows detected).`,
+          );
         }
         onParsed(
           result,

@@ -21,6 +21,8 @@ import {
   cleanupUnreferencedCloudinaryAssets,
   type CloudinaryCleanupSummary,
 } from './cloudinary-cleanup.js';
+import { RESOURCE_LIMITS } from '../constants/limits.js';
+import { calculateUserStorage } from '../controllers/storage.controller.js';
 
 export type { CloudinaryCleanupSummary };
 
@@ -272,6 +274,16 @@ export async function publishVersion(input: PublishVersionInput): Promise<Publis
     );
   }
 
+  if (
+    (input as any).bytes > RESOURCE_LIMITS.MAX_TEMPLATE_FILE_SIZE_BYTES ||
+    latest.bytes > RESOURCE_LIMITS.MAX_TEMPLATE_FILE_SIZE_BYTES
+  ) {
+    throw new TemplateValidationError(
+      `Template PDF exceeds maximum 15MB size limit (${latest.bytes} bytes)`,
+      'TEMPLATE_SIZE_EXCEEDED'
+    );
+  }
+
   const mappingHash = computeMappingHash(fieldMappings);
 
   // Create and persist new version FIRST to ensure validation and uniqueness succeed
@@ -398,7 +410,7 @@ export async function getVersion(input: GetVersionInput): Promise<ITemplateVersi
  * @throws {TemplateValidationError} If ownerId is missing or empty.
  * @throws {StorageAssetError} If Cloudinary configuration is missing.
  */
-export function signUploadParams(input: string | SignUploadParamsInput): SignUploadParamsResult {
+export function signUploadParams(input: string | SignUploadParamsInput): Promise<SignUploadParamsResult> & SignUploadParamsResult {
   const ownerId = typeof input === 'string' ? input : input?.ownerId;
   if (!ownerId || typeof ownerId !== 'string' || ownerId.trim() === '') {
     throw new TemplateValidationError('Missing or invalid ownerId', 'INVALID_OWNER_ID');
@@ -421,13 +433,30 @@ export function signUploadParams(input: string | SignUploadParamsInput): SignUpl
     apiSecret
   );
 
-  return {
+  const syncResult: SignUploadParamsResult = {
     signature,
     timestamp,
     folder,
     cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
     apiKey: process.env.CLOUDINARY_API_KEY || '',
   };
+
+  const promise = (async () => {
+    if (mongoose.connection.readyState === 1) {
+      const storage = await calculateUserStorage(ownerId);
+      if (storage && storage.totalBytes >= RESOURCE_LIMITS.MAX_USER_STORAGE_QUOTA_BYTES) {
+        throw new StorageAssetError(
+          'User storage quota exceeded (500MB ceiling). Delete unused templates to proceed.',
+          'STORAGE_QUOTA_EXCEEDED'
+        );
+      }
+    }
+    return syncResult;
+  })();
+
+  promise.catch(() => {});
+
+  return Object.assign(promise, syncResult);
 }
 
 /**
@@ -610,6 +639,13 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
 
   const bytes = asset?.bytes || 0;
   const pageCount = asset?.pages || 1;
+
+  if (bytes > RESOURCE_LIMITS.MAX_TEMPLATE_FILE_SIZE_BYTES) {
+    throw new TemplateValidationError(
+      `Template PDF exceeds maximum 15MB size limit (${bytes} bytes)`,
+      'TEMPLATE_SIZE_EXCEEDED'
+    );
+  }
 
   let finalThumbnailUrl = thumbnailUrl || null;
   if (!finalThumbnailUrl && isImageResource) {

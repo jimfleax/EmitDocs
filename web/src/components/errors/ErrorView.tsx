@@ -31,6 +31,7 @@ export interface ErrorViewProps {
   message?: string;
   error?: unknown;
   reset?: () => void;
+  requestId?: string;
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -45,6 +46,7 @@ const CURRENT_YEAR = new Date().getFullYear();
  * @param {string} [props.message] - Custom error explanation.
  * @param {unknown} [props.error] - Underlying exception object or error string.
  * @param {() => void} [props.reset] - Retry handler callback to re-attempt execution.
+ * @param {string} [props.requestId] - Correlation request ID for diagnostics.
  * @state Manages clipboard copy feedback and window online/offline listeners.
  */
 export function ErrorView({
@@ -54,6 +56,7 @@ export function ErrorView({
   message,
   error,
   reset,
+  requestId,
 }: ErrorViewProps) {
   const router = useRouter();
   let locationPath = "";
@@ -71,9 +74,24 @@ export function ErrorView({
     variant || (locationPath.startsWith("/app") ? "embedded" : "standalone");
 
   const [copied, setCopied] = useState(false);
+  const [reqIdCopied, setReqIdCopied] = useState(false);
   const [, setIsOnline] = useState(
     typeof navigator !== "undefined" ? navigator.onLine : true,
   );
+
+  const effectiveRequestId =
+    requestId ||
+    (error as any)?.requestId ||
+    (error as any)?.error?.requestId ||
+    "";
+
+  const copyRequestId = () => {
+    if (!effectiveRequestId) return;
+    navigator.clipboard.writeText(effectiveRequestId).then(() => {
+      setReqIdCopied(true);
+      setTimeout(() => setReqIdCopied(false), 2000);
+    });
+  };
 
   // Listen to network changes when in offline state
   useEffect(() => {
@@ -102,6 +120,7 @@ export function ErrorView({
 
   const copyDiagnostics = () => {
     const textToCopy = [
+      effectiveRequestId ? `Request ID: ${effectiveRequestId}` : "",
       `Error Type: ${type}`,
       `URL: ${window.location.href}`,
       `Timestamp: ${new Date().toISOString()}`,
@@ -184,6 +203,25 @@ export function ErrorView({
         <p className="text-sm sm:text-base text-slate-600 max-w-md mt-2.5 leading-relaxed font-normal">
           {finalMessage}
         </p>
+
+        {effectiveRequestId && (
+          <div className="mt-3.5 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200/80 text-slate-700 text-xs font-mono">
+            <span className="font-semibold text-slate-500">Request ID:</span>
+            <span>{effectiveRequestId}</span>
+            <button
+              type="button"
+              onClick={copyRequestId}
+              title="Copy Request ID"
+              className="ml-1 p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+            >
+              {reqIdCopied ? (
+                <Check size={14} weight="bold" className="text-emerald-600" />
+              ) : (
+                <Copy size={14} weight="bold" />
+              )}
+            </button>
+          </div>
+        )}
 
         {/* Only Back and Dashboard buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3.5 mt-8">
@@ -327,6 +365,25 @@ export function ErrorView({
           <p className="text-sm sm:text-base text-slate-600 max-w-md mt-2.5 leading-relaxed font-normal">
             {finalMessage}
           </p>
+
+          {effectiveRequestId && (
+            <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-slate-200/80 text-slate-700 text-xs font-mono">
+              <span className="font-semibold text-slate-500">Request ID:</span>
+              <span>{effectiveRequestId}</span>
+              <button
+                type="button"
+                onClick={copyRequestId}
+                title="Copy Request ID"
+                className="ml-1 p-0.5 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              >
+                {reqIdCopied ? (
+                  <Check size={14} weight="bold" className="text-emerald-600" />
+                ) : (
+                  <Copy size={14} weight="bold" />
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Action Buttons: Only Dashboard and Back */}
           <div className="flex flex-wrap items-center justify-center gap-3.5 mt-8 w-full max-w-sm">

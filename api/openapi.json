@@ -1,0 +1,2469 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "EmitDocs API",
+    "version": "1.0.0",
+    "description": "Canonical OpenAPI 3.1 specification for EmitDocs API - Document Automation & Bulk Issuance",
+    "contact": {
+      "name": "EmitDocs Core Team"
+    }
+  },
+  "servers": [
+    {
+      "url": "/api",
+      "description": "EmitDocs API base path"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Health",
+      "description": "System health diagnostics"
+    },
+    {
+      "name": "Templates",
+      "description": "Template management, upload signatures, and versioning"
+    },
+    {
+      "name": "Batches",
+      "description": "Batch lifecycle, spreadsheet intake, and generation snapshots"
+    },
+    {
+      "name": "Storage",
+      "description": "Storage quota and tenant usage metrics"
+    },
+    {
+      "name": "Account",
+      "description": "User account lifecycle and cascading deletion"
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health and database connectivity check",
+        "description": "Returns API operational health, UTC timestamp, and Mongoose connection state.",
+        "operationId": "checkHealth",
+        "responses": {
+          "200": {
+            "description": "System health status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/templates/sign-upload": {
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Generate Cloudinary signed upload credentials",
+        "description": "Issues signed parameters allowing frontend direct upload to Cloudinary under tenant folder.",
+        "operationId": "signUpload",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Signed upload parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignUploadResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardError"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Storage quota exceeded (500MB free-tier ceiling)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StandardError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/templates": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List templates owned by user",
+        "operationId": "getTemplates",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "mappedOnly",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Filter templates having at least one mapped field"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of templates",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "templates": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Template"
+                      }
+                    }
+                  },
+                  "required": [
+                    "templates"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Create and register template record",
+        "operationId": "createTemplate",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "cloudinaryPublicId": {
+                    "type": "string"
+                  },
+                  "thumbnailUrl": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "cloudinaryPublicId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Template successfully created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+                      "$ref": "#/components/schemas/Template"
+                    },
+                    "version": {
+                      "$ref": "#/components/schemas/TemplateVersion"
+                    }
+                  },
+                  "required": [
+                    "template",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/templates/{id}": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Get template by ID",
+        "operationId": "getTemplateById",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Template identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template record with latest version details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "template": {
+                      "$ref": "#/components/schemas/Template"
+                    },
+                    "version": {
+                      "$ref": "#/components/schemas/TemplateVersion"
+                    }
+                  },
+                  "required": [
+                    "template",
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Delete template and associated assets",
+        "operationId": "deleteTemplate",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "confirmCascade",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Confirm cascade deletion of dependent batches"
+          },
+          {
+            "name": "force",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Force delete bypass"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Template successfully deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "deletedTemplateId": {
+                      "type": "string"
+                    },
+                    "deletedVersionsCount": {
+                      "type": "integer"
+                    },
+                    "deletedBatchesCount": {
+                      "type": "integer"
+                    },
+                    "purgedCloudinaryAssets": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "deletedTemplateId"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/templates/{id}/versions": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "List all versions for a template",
+        "operationId": "getTemplateVersions",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of template versions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "versions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/TemplateVersion"
+                      }
+                    }
+                  },
+                  "required": [
+                    "versions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Create new version snapshot for template",
+        "operationId": "createTemplateVersion",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "cloudinaryPublicId": {
+                    "type": "string"
+                  },
+                  "pageCount": {
+                    "type": "integer"
+                  },
+                  "width": {
+                    "type": "number"
+                  },
+                  "height": {
+                    "type": "number"
+                  },
+                  "bytes": {
+                    "type": "integer"
+                  },
+                  "fields": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                },
+                "required": [
+                  "cloudinaryPublicId",
+                  "pageCount",
+                  "width",
+                  "height"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Version created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "$ref": "#/components/schemas/TemplateVersion"
+                    }
+                  },
+                  "required": [
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "409": {
+            "description": "Version conflict"
+          }
+        }
+      }
+    },
+    "/templates/{id}/versions/{versionId}": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Get template version by ID",
+        "operationId": "getTemplateVersionById",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Version details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "version": {
+                      "$ref": "#/components/schemas/TemplateVersion"
+                    }
+                  },
+                  "required": [
+                    "version"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/templates/{id}/versions/{versionId}/file": {
+      "get": {
+        "tags": [
+          "Templates"
+        ],
+        "summary": "Stream template version PDF binary",
+        "operationId": "streamTemplateVersionPdf",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "PDF binary stream",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/batches": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "List batches owned by user",
+        "operationId": "getBatches",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of batches",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "batches": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Batch"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "batches",
+                    "total"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Create a new batch",
+        "operationId": "createBatch",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "templateId": {
+                    "type": "string"
+                  },
+                  "templateVersionId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "templateId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Batch created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "batch": {
+                      "$ref": "#/components/schemas/Batch"
+                    }
+                  },
+                  "required": [
+                    "batch"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/activity": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Get recent batch activities across tenant",
+        "operationId": "getBatchActivity",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent activity feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "activities": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "activities"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Get batch details by ID",
+        "operationId": "getBatchById",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch details with associated template and stats",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "batch": {
+                      "$ref": "#/components/schemas/Batch"
+                    },
+                    "template": {
+                      "$ref": "#/components/schemas/Template"
+                    },
+                    "templateVersion": {
+                      "$ref": "#/components/schemas/TemplateVersion"
+                    }
+                  },
+                  "required": [
+                    "batch"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Delete batch and purge staging data",
+        "operationId": "deleteBatch",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Batch deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "success"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/approval-preflight": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Preflight check before approving a batch",
+        "operationId": "getApprovalPreflight",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Approval readiness report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "canApprove": {
+                      "type": "boolean"
+                    },
+                    "totalRows": {
+                      "type": "integer"
+                    },
+                    "validRows": {
+                      "type": "integer"
+                    },
+                    "invalidRows": {
+                      "type": "integer"
+                    },
+                    "errors": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  },
+                  "required": [
+                    "canApprove",
+                    "totalRows",
+                    "validRows",
+                    "invalidRows"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/approve": {
+      "post": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Approve batch and seal immutable generation snapshot",
+        "operationId": "approveBatch",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "retentionPreset": {
+                    "type": "string",
+                    "enum": [
+                      "24h",
+                      "7d",
+                      "30d"
+                    ],
+                    "default": "7d"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch approved with sealed snapshot",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "batchId": {
+                      "type": "string"
+                    },
+                    "snapshotId": {
+                      "type": "string"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "approvedCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "batchId",
+                    "snapshotId",
+                    "expiresAt",
+                    "approvedCount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/snapshot": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Get approved batch snapshot",
+        "operationId": "getApprovedSnapshot",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapshot details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "snapshot": {
+                      "$ref": "#/components/schemas/ApprovedSnapshot"
+                    }
+                  },
+                  "required": [
+                    "snapshot"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "410": {
+            "description": "Batch retention expired and PII pruned"
+          }
+        }
+      }
+    },
+    "/batches/{id}/snapshot/recipients": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Get paginated list of approved recipients",
+        "operationId": "getApprovedRecipients",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated approved recipients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "recipients": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ApprovedRecipient"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "recipients",
+                    "total",
+                    "page",
+                    "totalPages"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFoundError"
+          },
+          "410": {
+            "description": "Batch retention expired"
+          }
+        }
+      }
+    },
+    "/batches/{id}/imports": {
+      "post": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Initialize spreadsheet import session",
+        "operationId": "createImport",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "filename": {
+                    "type": "string"
+                  },
+                  "totalRows": {
+                    "type": "integer"
+                  },
+                  "columns": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "required": [
+                  "filename"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Import session initialized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "importId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "importId",
+                    "status"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/imports/{importId}/mapping": {
+      "put": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Update spreadsheet column to template field mapping",
+        "operationId": "updateImportMapping",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mapping": {
+                    "type": "object"
+                  },
+                  "reconciliationKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "mapping"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mapping saved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "mapping": {
+                      "type": "object"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "mapping"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/imports/{importId}/rows": {
+      "post": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Ingest chunk of rows for import session",
+        "operationId": "submitRowsChunk",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "chunkIndex": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "rows"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chunk ingested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ingestedCount": {
+                      "type": "integer"
+                    },
+                    "chunkIndex": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "ingestedCount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request / ROW_LIMIT_EXCEEDED (5000 row ceiling)"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/imports/{importId}/finalize": {
+      "post": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Finalize spreadsheet import session",
+        "operationId": "finalizeImport",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Import finalized and draft rows generated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "totalImported": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "totalImported"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/rows": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Get draft rows for batch review",
+        "operationId": "getDraftRows",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50
+            }
+          },
+          {
+            "name": "filterByIssue",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated draft rows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/DraftRow"
+                      }
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "page": {
+                      "type": "integer"
+                    },
+                    "totalPages": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "rows",
+                    "total",
+                    "page",
+                    "totalPages"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/rows/{rowId}": {
+      "patch": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Update single draft row cell values (optimistic CAS)",
+        "operationId": "patchDraftRow",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rowId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "values": {
+                    "type": "object"
+                  },
+                  "version": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "values"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft row updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "row": {
+                      "$ref": "#/components/schemas/DraftRow"
+                    }
+                  },
+                  "required": [
+                    "row"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          },
+          "409": {
+            "description": "Optimistic concurrency conflict"
+          }
+        }
+      }
+    },
+    "/batches/{id}/reimports/{importId}/diff": {
+      "get": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Compute re-import diff against existing draft rows",
+        "operationId": "getReimportDiff",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "reconciliationKey",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Re-import comparison diff report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "diff": {
+                      "type": "object"
+                    },
+                    "added": {
+                      "type": "integer"
+                    },
+                    "modified": {
+                      "type": "integer"
+                    },
+                    "unchanged": {
+                      "type": "integer"
+                    },
+                    "removed": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "added",
+                    "modified",
+                    "unchanged",
+                    "removed"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/batches/{id}/reimports/{importId}/reconcile": {
+      "post": {
+        "tags": [
+          "Batches"
+        ],
+        "summary": "Apply reconciliation changes to batch draft rows",
+        "operationId": "reconcileReimport",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "importId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "strategy": {
+                    "type": "string",
+                    "enum": [
+                      "merge",
+                      "replace"
+                    ]
+                  },
+                  "reconciliationKey": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "strategy",
+                  "reconciliationKey"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reconciliation completed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "reconciledCount": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "reconciledCount"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequestError"
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/storage": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Retrieve user storage analytics, quota, and asset metrics",
+        "operationId": "getUserStorage",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User storage usage metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/storage/summary": {
+      "get": {
+        "tags": [
+          "Storage"
+        ],
+        "summary": "Alias for user storage usage summary",
+        "operationId": "getUserStorageSummary",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "User storage usage metrics",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StorageSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    },
+    "/account": {
+      "delete": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Cascading deletion of authenticated user account, batches, templates, and cloud assets",
+        "operationId": "deleteAccount",
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "testAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Account successfully purged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "deletedAt": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  },
+                  "required": [
+                    "success",
+                    "message",
+                    "deletedAt"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/UnauthorizedError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sessionCookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "better-auth.session_token",
+        "description": "Standard HttpOnly session cookie managed by Better-Auth"
+      },
+      "testAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-test-auth-user",
+        "description": "Quarantined test-auth header (strictly disallowed in production)"
+      }
+    },
+    "responses": {
+      "UnauthorizedError": {
+        "description": "Authentication required or invalid session",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StandardError"
+            }
+          }
+        }
+      },
+      "BadRequestError": {
+        "description": "Invalid input parameters or domain constraint violation",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StandardError"
+            }
+          }
+        }
+      },
+      "NotFoundError": {
+        "description": "Requested resource not found or not accessible by tenant",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/StandardError"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "StandardError": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "default": false
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "path": {
+                "type": "string"
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              },
+              "requestId": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message",
+              "timestamp",
+              "requestId"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "error"
+        ]
+      },
+      "HealthResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "example": "ok"
+          },
+          "success": {
+            "type": "boolean",
+            "example": true
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "connected",
+              "disconnected"
+            ],
+            "example": "connected"
+          }
+        },
+        "required": [
+          "status",
+          "success",
+          "timestamp",
+          "database"
+        ]
+      },
+      "SignUploadResponse": {
+        "type": "object",
+        "properties": {
+          "signature": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "integer"
+          },
+          "cloud_name": {
+            "type": "string"
+          },
+          "api_key": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "signature",
+          "timestamp",
+          "cloud_name",
+          "api_key",
+          "folder"
+        ]
+      },
+      "Template": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "thumbnailUrl": {
+            "type": "string"
+          },
+          "latestVersionId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "ownerId",
+          "name"
+        ]
+      },
+      "TemplateVersion": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "cloudinaryPublicId": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": "integer"
+          },
+          "width": {
+            "type": "number"
+          },
+          "height": {
+            "type": "number"
+          },
+          "bytes": {
+            "type": "integer"
+          },
+          "mappingHash": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "templateId",
+          "version",
+          "cloudinaryPublicId",
+          "pageCount",
+          "width",
+          "height"
+        ]
+      },
+      "Batch": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "templateVersionId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "importing",
+              "review",
+              "awaiting_approval",
+              "approved",
+              "generating",
+              "ready_for_download",
+              "deleting"
+            ]
+          },
+          "retentionPreset": {
+            "type": "string",
+            "enum": [
+              "24h",
+              "7d",
+              "30d"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "ownerId",
+          "templateId",
+          "status"
+        ]
+      },
+      "ApprovedSnapshot": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "templateId": {
+            "type": "string"
+          },
+          "templateVersionId": {
+            "type": "string"
+          },
+          "totalRecipients": {
+            "type": "integer"
+          },
+          "digest": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "batchId",
+          "ownerId",
+          "templateId",
+          "templateVersionId",
+          "totalRecipients",
+          "digest",
+          "expiresAt"
+        ]
+      },
+      "ApprovedRecipient": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "snapshotId": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "recipientIndex": {
+            "type": "integer"
+          },
+          "data": {
+            "type": "object"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "_id",
+          "batchId",
+          "snapshotId",
+          "ownerId",
+          "recipientIndex",
+          "data",
+          "expiresAt"
+        ]
+      },
+      "DraftRow": {
+        "type": "object",
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "batchId": {
+            "type": "string"
+          },
+          "ownerId": {
+            "type": "string"
+          },
+          "sourceRowNumber": {
+            "type": "integer"
+          },
+          "values": {
+            "type": "object"
+          },
+          "hasIssue": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "_id",
+          "batchId",
+          "ownerId",
+          "sourceRowNumber",
+          "values",
+          "version"
+        ]
+      },
+      "StorageSummary": {
+        "type": "object",
+        "properties": {
+          "totalBytes": {
+            "type": "integer"
+          },
+          "quotaBytes": {
+            "type": "integer"
+          },
+          "usagePercent": {
+            "type": "number"
+          },
+          "templateCount": {
+            "type": "integer"
+          },
+          "assetCount": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "totalBytes",
+          "quotaBytes",
+          "usagePercent",
+          "templateCount",
+          "assetCount"
+        ]
+      }
+    }
+  }
+}

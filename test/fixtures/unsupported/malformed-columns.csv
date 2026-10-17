@@ -1,0 +1,6 @@
+name,email,role
+"Alice",alice@example.com,Admin
+"Bob",bob@example.com
+"Charlie,"charlie@example.com",Engineer,ExtraColumn1,ExtraColumn2
+"David,david@example.com,IncompleteQuote
+Eve,eve@example.com,User,"ragged

@@ -19,6 +19,7 @@ import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
 import { validateDraftRow, FieldMappingItem } from './spreadsheet/row-validator.js';
 import { detectDuplicatesAcrossRows } from './spreadsheet/duplicate-detector.js';
 import { calculateReimportDiff } from './spreadsheet/diff-calculator.js';
+import { RESOURCE_LIMITS } from '../constants/limits.js';
 
 /* -------------------------------------------------------------------------- */
 /*                               Typed Domain Errors                          */
@@ -157,6 +158,12 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
   if (!Array.isArray(rows)) {
     throw new BatchIntakeValidationError('rows array is required', 'INVALID_ROWS');
   }
+  if (rows.length > RESOURCE_LIMITS.MAX_BATCH_ROWS) {
+    throw new BatchIntakeValidationError(
+      `Row limit exceeded. Maximum supported rows per batch is ${RESOURCE_LIMITS.MAX_BATCH_ROWS}.`,
+      'ROW_LIMIT_EXCEEDED'
+    );
+  }
 
   const [batchImport, batch] = await Promise.all([
     BatchImport.findOne({
@@ -193,6 +200,12 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
   const bulkOps = [];
   for (const row of rows) {
     const sourceRowNumber = row.sourceRowNumber;
+    if (sourceRowNumber > RESOURCE_LIMITS.MAX_BATCH_ROWS) {
+      throw new BatchIntakeValidationError(
+        `Row limit exceeded. Maximum supported rows per batch is ${RESOURCE_LIMITS.MAX_BATCH_ROWS}.`,
+        'ROW_LIMIT_EXCEEDED'
+      );
+    }
     const rowKey = row.rowKey || `row_${sourceRowNumber}`;
     const importedData = row.importedData || {};
 
@@ -309,6 +322,14 @@ export async function finalizeImport(input: FinalizeImportInput): Promise<Finali
         'IMPORT_CHUNK_MISMATCH'
       );
     }
+  }
+
+  // Enforce MAX_BATCH_ROWS ceiling on total validated rows
+  if (actualRowCount > RESOURCE_LIMITS.MAX_BATCH_ROWS) {
+    throw new BatchIntakeValidationError(
+      `Row limit exceeded. Maximum supported rows per batch is ${RESOURCE_LIMITS.MAX_BATCH_ROWS}.`,
+      'ROW_LIMIT_EXCEEDED'
+    );
   }
 
   // Fetch template and revalidate all rows against current columnMap & dateFormatHints

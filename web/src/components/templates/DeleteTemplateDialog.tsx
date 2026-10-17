@@ -36,9 +36,24 @@ export function DeleteTemplateDialog({
 }: DeleteTemplateDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [cascadeWarning, setCascadeWarning] = useState<{
+    templateId: string;
     count: number;
     batches: Array<{ _id: string; name: string }>;
   } | null>(null);
+
+  const currentTemplateId = template?._id ?? null;
+  const [prevTemplateId, setPrevTemplateId] = useState<string | null>(currentTemplateId);
+
+  if (currentTemplateId !== prevTemplateId) {
+    setPrevTemplateId(currentTemplateId);
+    if (cascadeWarning) {
+      setCascadeWarning(null);
+    }
+  }
+
+  const hasCascadeWarning = Boolean(
+    cascadeWarning && template && cascadeWarning.templateId === template._id
+  );
 
   const handleClose = () => {
     if (isDeleting) return;
@@ -51,7 +66,8 @@ export function DeleteTemplateDialog({
 
     try {
       setIsDeleting(true);
-      const url = forceCascade
+      const shouldForce = forceCascade && cascadeWarning?.templateId === template._id;
+      const url = shouldForce
         ? `/api/templates/${template._id}?force=true`
         : `/api/templates/${template._id}`;
 
@@ -64,6 +80,7 @@ export function DeleteTemplateDialog({
         const errData = await res.json().catch(() => ({}));
         if (errData.error === "CASCADE_CONFIRMATION_REQUIRED") {
           setCascadeWarning({
+            templateId: template._id,
             count: errData.dependentBatchesCount || 0,
             batches: errData.dependentBatches || [],
           });
@@ -118,7 +135,7 @@ export function DeleteTemplateDialog({
             ? This template and its associated versions will be permanently removed.
           </p>
 
-          {cascadeWarning && (
+          {hasCascadeWarning && cascadeWarning && (
             <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
                 <Warning size={16} weight="bold" className="text-amber-600 shrink-0" />
@@ -152,7 +169,7 @@ export function DeleteTemplateDialog({
           <Button
             type="button"
             variant="destructive"
-            onClick={() => confirmDelete(Boolean(cascadeWarning))}
+            onClick={() => confirmDelete(hasCascadeWarning)}
             disabled={isDeleting}
             className="cursor-pointer gap-2"
           >
@@ -161,7 +178,7 @@ export function DeleteTemplateDialog({
                 <CircleNotch size={14} weight="bold" className="animate-spin" />
                 <span>Deleting...</span>
               </>
-            ) : cascadeWarning ? (
+            ) : hasCascadeWarning ? (
               "Yes, Delete Template & Batches"
             ) : (
               "Delete Template"

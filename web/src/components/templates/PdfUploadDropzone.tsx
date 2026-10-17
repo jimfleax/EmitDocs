@@ -73,9 +73,9 @@ export function PdfUploadDropzone() {
       return;
     }
 
-    const maxBytes = 25 * 1024 * 1024;
+    const maxBytes = 15 * 1024 * 1024;
     if (selectedFile.size > maxBytes) {
-      setError("File size exceeds the 25MB limit.");
+      setError("File size exceeds maximum 15MB limit.");
       return;
     }
 
@@ -362,7 +362,7 @@ export function PdfUploadDropzone() {
               </span>
             </p>
             <p className="text-xs text-slate-400 font-medium">
-              Max file size: 25MB · Format: .pdf
+              Max file size: 15MB · Format: .pdf
             </p>
           </div>
         </div>

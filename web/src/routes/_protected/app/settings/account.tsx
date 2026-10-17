@@ -4,8 +4,8 @@
  */
 
 import { useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { ShieldWarning, Trash } from "@phosphor-icons/react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ShieldWarning, Trash, Database, ArrowRight } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { DeleteAccountDialog } from "@/components/settings/DeleteAccountDialog";
@@ -50,6 +50,32 @@ function AccountSettingsPage() {
               <h2 className="text-lg font-bold text-slate-900">{userName}</h2>
               <p className="text-xs text-slate-500 font-mono mt-0.5">{userEmail}</p>
             </div>
+          </div>
+        </div>
+
+        {/* Data Retention & Lifecycle Card */}
+        <div className="p-6 rounded-2xl bg-white border border-slate-200/90 shadow-2xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-blue-600 font-bold text-sm">
+                <Database size={18} weight="bold" />
+                <span>Data Retention</span>
+              </div>
+              <h3 className="text-base font-bold text-slate-900">
+                Retention & Data Lifecycle Preferences
+              </h3>
+              <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
+                Configure default batch expiration windows, automated recipient PII pruning schedules, and zero-storage guarantees.
+              </p>
+            </div>
+
+            <Link
+              to="/app/settings/retention"
+              className="inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs transition-colors shrink-0 cursor-pointer shadow-xs"
+            >
+              <span>Manage Retention</span>
+              <ArrowRight size={14} weight="bold" />
+            </Link>
           </div>
         </div>
 

@@ -37,7 +37,7 @@ export const signUpload = async (c: Context) => {
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
 
   try {
-    const params = TemplateLifecycle.signUploadParams(user.id);
+    const params = await TemplateLifecycle.signUploadParams(user.id);
     return c.json({
       signature: params.signature,
       timestamp: params.timestamp,
@@ -47,7 +47,8 @@ export const signUpload = async (c: Context) => {
     });
   } catch (err: any) {
     if (err instanceof StorageAssetError) {
-      return c.json({ error: err.message }, 500);
+      const status = err.code === 'STORAGE_QUOTA_EXCEEDED' ? 403 : 500;
+      return c.json({ error: err.message, code: err.code }, status);
     }
     return c.json({ error: err.message || 'Failed to sign upload' }, 500);
   }

@@ -336,7 +336,7 @@ export const submitRowsChunk = async (c: Context) => {
       return c.json({ error: err.message }, 404);
     }
     if (err instanceof BatchIntakeValidationError) {
-      return c.json({ error: err.message }, 400);
+      return c.json({ error: err.message, code: err.code }, 400);
     }
     return c.json({ error: err.message || 'Failed to submit chunk' }, 500);
   }
@@ -379,6 +379,19 @@ export const finalizeImport = async (c: Context) => {
   } catch (err: any) {
     if (err instanceof BatchNotFoundError) {
       return c.json({ error: err.message }, 404);
+    }
+    if (err instanceof BatchIntakeValidationError) {
+      return c.json(
+        {
+          error: {
+            code: err.code,
+            message: err.message,
+          },
+          message: err.message,
+          code: err.code,
+        },
+        400
+      );
     }
     if (err instanceof ChunkMismatchError) {
       return c.json(

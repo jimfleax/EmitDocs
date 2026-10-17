@@ -12,6 +12,17 @@ export const deleteAccount = async (c: Context) => {
 
   try {
     const result = await deleteUserAccount(user.id);
+    if (!result.success) {
+      return c.json(
+        {
+          success: false,
+          error: 'Failed to delete account',
+          message: 'Failed to delete account',
+          result,
+        },
+        500
+      );
+    }
     return c.json(
       {
         success: true,

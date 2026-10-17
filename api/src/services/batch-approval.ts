@@ -368,6 +368,8 @@ export async function approveBatch(input: ApproveBatchInput): Promise<ApproveBat
 
       batch.status = 'approved';
       batch.approvedSnapshotId = existingSnapshot._id;
+      batch.retentionHours = existingSnapshot.retentionHours;
+      batch.expiresAt = existingSnapshot.expiresAt;
       batch.version = batch.version + 1;
       await batch.save();
 
