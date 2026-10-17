@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildOpenApiSpec } from './generate-openapi.js';
+import { honoApp } from '../index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +55,37 @@ export function checkContractDrift(specPath?: string): DriftCheckResult {
   const committedFormatted = JSON.stringify(committedSpec, null, 2) + '\n';
 
   const diffSummary: string[] = [];
+
+  // Compare registered Hono routes against generated OpenAPI spec path-and-method pairs
+  const specRoutes = new Set<string>();
+  for (const [p, ops] of Object.entries(inMemorySpec.paths || {})) {
+    for (const m of Object.keys(ops as object)) {
+      specRoutes.add(`${m.toUpperCase()} ${p}`);
+    }
+  }
+
+  const honoRoutes = new Set<string>();
+  for (const route of honoApp.routes) {
+    // Ignore middleware and catch-all / wildcard routes
+    if (route.method === 'ALL' || route.path.endsWith('*')) continue;
+    // Ignore root welcome endpoint at base path
+    if (route.path === '/api' || route.path === '/api/') continue;
+
+    const normPath = route.path.replace(/^\/api/, '').replace(/:([a-zA-Z0-9_]+)/g, '{$1}');
+    honoRoutes.add(`${route.method.toUpperCase()} ${normPath}`);
+  }
+
+  for (const route of honoRoutes) {
+    if (!specRoutes.has(route)) {
+      diffSummary.push(`Missing route in OpenAPI spec (registered in Hono router): ${route}`);
+    }
+  }
+
+  for (const route of specRoutes) {
+    if (!honoRoutes.has(route)) {
+      diffSummary.push(`Unexpected route in OpenAPI spec (not registered in Hono router): ${route}`);
+    }
+  }
 
   // Check critical path coverage
   const expectedPaths = Object.keys(inMemorySpec.paths);

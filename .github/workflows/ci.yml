@@ -14,23 +14,34 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9.15.9
+
       - name: Setup Node.js LTS
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'pnpm'
 
-      - name: Install pnpm
-        uses: pnpm/action-setup@v3
-        with:
-          version: 9.15.9
-
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Secret Leak Scanner
         run: |
-          ! grep -rE "(CLOUDINARY_API_SECRET|BETTER_AUTH_SECRET)\s*=\s*['\"][a-zA-Z0-9_-]{10,}['\"]" web/ src/ 2>/dev/null
+          status=0
+          grep -rE "(CLOUDINARY_API_SECRET|BETTER_AUTH_SECRET)\s*=\s*['\"][a-zA-Z0-9_-]{10,}['\"]" api/src web/src || status=$?
+          if [ "$status" -eq 1 ]; then
+            echo "Secret scan passed: No leaks detected."
+            exit 0
+          elif [ "$status" -eq 0 ]; then
+            echo "Secret scan failed: Leaked secrets detected!" >&2
+            exit 1
+          else
+            echo "Secret scanner encountered an error (exit code: $status)" >&2
+            exit "$status"
+          fi
 
       - name: Lint (Oxlint)
         run: pnpm run lint

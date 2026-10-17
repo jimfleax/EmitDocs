@@ -139,6 +139,24 @@ export interface FinalizeImportResult {
 /*                           BatchIntake Implementation                       */
 /* -------------------------------------------------------------------------- */
 
+const importIngestLocks = new Map<string, Promise<void>>();
+
+async function acquireImportLock(importId: string): Promise<() => void> {
+  const previous = importIngestLocks.get(importId) || Promise.resolve();
+  let release: () => void = () => {};
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  importIngestLocks.set(importId, current);
+  await previous;
+  return () => {
+    release();
+    if (importIngestLocks.get(importId) === current) {
+      importIngestLocks.delete(importId);
+    }
+  };
+}
+
 /**
  * Ingests a single chunk of spreadsheet rows with authoritative validation and DraftRow upsert.
  * Performs idempotent deduplication if chunkId was already recorded.
@@ -165,103 +183,125 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
     );
   }
 
-  const [batchImport, batch] = await Promise.all([
-    BatchImport.findOne({
-      _id: importId,
-      batchId,
-      ownerId,
-    }),
-    Batch.findOne({
-      _id: batchId,
-      ownerId,
-    }),
-  ]);
+  const releaseLock = await acquireImportLock(String(importId));
+  try {
+    const [batchImport, batch] = await Promise.all([
+      BatchImport.findOne({
+        _id: importId,
+        batchId,
+        ownerId,
+      }),
+      Batch.findOne({
+        _id: batchId,
+        ownerId,
+      }),
+    ]);
 
-  if (!batchImport) {
-    throw new BatchNotFoundError('Import not found or access denied');
-  }
-  if (!batch) {
-    throw new BatchNotFoundError('Batch not found or access denied');
-  }
+    if (!batchImport) {
+      throw new BatchNotFoundError('Import not found or access denied');
+    }
+    if (!batch) {
+      throw new BatchNotFoundError('Batch not found or access denied');
+    }
 
-  // Idempotency check: If chunkId already received, return success immediately
-  if (batchImport.receivedChunkIds.includes(chunkId)) {
+    // Idempotency check: If chunkId already received, return success immediately
+    if (batchImport.receivedChunkIds.includes(chunkId)) {
+      return {
+        chunkId,
+        processed: rows.length,
+        idempotent: true,
+        message: 'Chunk already processed',
+      };
+    }
+
+    const templateVersion = (await TemplateVersion.findById(batch.templateVersionId).lean()) as any;
+    const fieldMappings: FieldMappingItem[] = templateVersion?.fieldMappings || [];
+
+    const chunkRowKeys = rows.map((r, idx) => r.rowKey || `row_${r.sourceRowNumber ?? idx + 1}`);
+    const existingDraftRows = await DraftRow.find(
+      { importId: batchImport._id, rowKey: { $in: chunkRowKeys } },
+      { rowKey: 1 }
+    ).lean();
+    const existingRowKeySet = new Set(existingDraftRows.map((d: any) => d.rowKey));
+    let currentTotalRows = await DraftRow.countDocuments({ importId: batchImport._id });
+
+    const bulkOps = [];
+    for (const row of rows) {
+      const sourceRowNumber = row.sourceRowNumber;
+      const rowKey = row.rowKey || `row_${sourceRowNumber}`;
+
+      // Enforce MAX_BATCH_ROWS cap against the import's resulting total before each upsert
+      const isNewRow = !existingRowKeySet.has(rowKey);
+      const resultingTotal = isNewRow ? currentTotalRows + 1 : currentTotalRows;
+      if (resultingTotal > RESOURCE_LIMITS.MAX_BATCH_ROWS) {
+        throw new BatchIntakeValidationError(
+          `Row limit exceeded. Maximum supported rows per batch is ${RESOURCE_LIMITS.MAX_BATCH_ROWS}.`,
+          'ROW_LIMIT_EXCEEDED'
+        );
+      }
+      if (isNewRow) {
+        currentTotalRows++;
+        existingRowKeySet.add(rowKey);
+      }
+
+      const importedData = row.importedData || {};
+
+      // Authoritative server-side validation against template fieldMappings and dateFormatHints
+      const validation = validateDraftRow({
+        rowData: importedData,
+        sourceRowNumber,
+        fieldMappings,
+        columnMap: batchImport.columnMap || {},
+        dateFormatHints: (batchImport as any).dateFormatHints || {},
+      });
+
+      bulkOps.push({
+        updateOne: {
+          filter: { importId: batchImport._id, rowKey },
+          update: {
+            $set: {
+              batchId: batch._id,
+              importId: batchImport._id,
+              ownerId,
+              revision: batchImport.revision,
+              rowKey,
+              sourceRowNumber,
+              importedData,
+              effectiveData: validation.effectiveData,
+              status: validation.status,
+              errors: validation.errors,
+              warnings: [],
+              isDuplicate: false,
+              duplicateReferences: [],
+              version: 1,
+            },
+          },
+          upsert: true,
+        },
+      });
+    }
+
+    if (bulkOps.length > 0) {
+      await DraftRow.bulkWrite(bulkOps, { ordered: false });
+    }
+
+    // Atomically record chunkId via $addToSet and update totalExpectedChunks under $set if provided
+    const updateDoc: any = {
+      $addToSet: { receivedChunkIds: chunkId },
+    };
+    if (totalChunks !== undefined) {
+      updateDoc.$set = { totalExpectedChunks: totalChunks };
+    }
+    await BatchImport.updateOne({ _id: batchImport._id }, updateDoc);
+
     return {
       chunkId,
       processed: rows.length,
-      idempotent: true,
-      message: 'Chunk already processed',
+      idempotent: false,
     };
+  } finally {
+    releaseLock();
   }
-
-  const templateVersion = (await TemplateVersion.findById(batch.templateVersionId).lean()) as any;
-  const fieldMappings: FieldMappingItem[] = templateVersion?.fieldMappings || [];
-
-  const bulkOps = [];
-  for (const row of rows) {
-    const sourceRowNumber = row.sourceRowNumber;
-    if (sourceRowNumber > RESOURCE_LIMITS.MAX_BATCH_ROWS) {
-      throw new BatchIntakeValidationError(
-        `Row limit exceeded. Maximum supported rows per batch is ${RESOURCE_LIMITS.MAX_BATCH_ROWS}.`,
-        'ROW_LIMIT_EXCEEDED'
-      );
-    }
-    const rowKey = row.rowKey || `row_${sourceRowNumber}`;
-    const importedData = row.importedData || {};
-
-    // Authoritative server-side validation against template fieldMappings and dateFormatHints
-    const validation = validateDraftRow({
-      rowData: importedData,
-      sourceRowNumber,
-      fieldMappings,
-      columnMap: batchImport.columnMap || {},
-      dateFormatHints: (batchImport as any).dateFormatHints || {},
-    });
-
-    bulkOps.push({
-      updateOne: {
-        filter: { importId: batchImport._id, rowKey },
-        update: {
-          $set: {
-            batchId: batch._id,
-            importId: batchImport._id,
-            ownerId,
-            revision: batchImport.revision,
-            rowKey,
-            sourceRowNumber,
-            importedData,
-            effectiveData: validation.effectiveData,
-            status: validation.status,
-            errors: validation.errors,
-            warnings: [],
-            isDuplicate: false,
-            duplicateReferences: [],
-            version: 1,
-          },
-        },
-        upsert: true,
-      },
-    });
-  }
-
-  if (bulkOps.length > 0) {
-    await DraftRow.bulkWrite(bulkOps, { ordered: false });
-  }
-
-  // Atomically record chunkId via $addToSet and update totalExpectedChunks under $set if provided
-  const updateDoc: any = {
-    $addToSet: { receivedChunkIds: chunkId },
-  };
-  if (totalChunks !== undefined) {
-    updateDoc.$set = { totalExpectedChunks: totalChunks };
-  }
-  await BatchImport.updateOne({ _id: batchImport._id }, updateDoc);
-
-  return {
-    chunkId,
-    processed: rows.length,
-    idempotent: false,
-  };
 }
 
 /**

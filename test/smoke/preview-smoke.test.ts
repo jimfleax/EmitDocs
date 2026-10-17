@@ -27,16 +27,14 @@ process.env.BETTER_AUTH_URL = process.env.BETTER_AUTH_URL || 'http://localhost:3
 process.env.CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || 'smoke_test_api_secret_1234567890';
 process.env.CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || 'smoke_key';
 process.env.CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'smoke_cloud';
-
-import { honoApp } from '../../api/src/index.js';
-import { resolveCorsOrigin } from '../../api/src/lib/origins.js';
-
 export async function runPreviewSmokeTests() {
   console.log('===========================================================');
   console.log('  RUNNING PREVIEW SMOKE TEST SUITE                         ');
   console.log('===========================================================\n');
 
   try {
+    const { honoApp } = await import('../../api/src/index.js');
+    const { resolveCorsOrigin } = await import('../../api/src/lib/origins.js');
     // --- 1. Health & Database Connectivity Check ---
     console.log('--- 1. Testing GET /api/health ---');
     const healthRes = await honoApp.request('/api/health');

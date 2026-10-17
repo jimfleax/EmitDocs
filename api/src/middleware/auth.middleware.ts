@@ -30,18 +30,31 @@ export const requireAuth = async (c: Context, next: Next) => {
       return c.json({ error: 'Unauthorized: test auth is disabled in this environment' }, 401);
     }
 
+    const fallbackMockUser = {
+      id: testAuthUser,
+      name: 'Test User',
+      email: `${testAuthUser}@example.com`,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
     let mockUser: any;
     try {
-      mockUser = JSON.parse(testAuthUser);
+      const parsed = JSON.parse(testAuthUser);
+      if (
+        parsed &&
+        typeof parsed === 'object' &&
+        !Array.isArray(parsed) &&
+        typeof parsed.id === 'string' &&
+        parsed.id.trim() !== ''
+      ) {
+        mockUser = parsed;
+      } else {
+        mockUser = fallbackMockUser;
+      }
     } catch {
-      mockUser = {
-        id: testAuthUser,
-        name: 'Test User',
-        email: `${testAuthUser}@example.com`,
-        emailVerified: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
+      mockUser = fallbackMockUser;
     }
 
     c.set('user', mockUser);

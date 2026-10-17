@@ -1115,7 +1115,16 @@ export function buildOpenApiSpec() {
           description: 'Authentication required or invalid session',
           content: {
             'application/json': {
-              schema: { $ref: '#/components/schemas/StandardError' },
+              schema: {
+                type: 'object',
+                properties: {
+                  error: {
+                    type: 'string',
+                    example: 'Unauthorized',
+                  },
+                },
+                required: ['error'],
+              },
             },
           },
         },

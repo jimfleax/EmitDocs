@@ -28,8 +28,7 @@ function isNotFoundOrEmptyFolderError(err: any): boolean {
     msg.includes("can't find") ||
     msg.includes("cant find") ||
     msg.includes('cannot find') ||
-    msg.includes('does not exist') ||
-    msg.includes('empty')
+    msg.includes('does not exist')
   );
 }
 

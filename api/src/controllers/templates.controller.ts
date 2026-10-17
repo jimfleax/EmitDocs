@@ -93,6 +93,9 @@ export const createTemplate = async (c: Context) => {
     if (error instanceof StorageAssetError && error.code === 'STORAGE_ASSET_NOT_FOUND') {
       return c.json({ error: 'Template asset not found in storage' }, 404);
     }
+    if (error instanceof StorageAssetError && error.code === 'STORAGE_QUOTA_EXCEEDED') {
+      return c.json({ error: error.message, code: error.code }, 403);
+    }
     console.error('Error creating template:', error);
     return c.json({ error: 'Failed to create template', details: error.message }, 500);
   }

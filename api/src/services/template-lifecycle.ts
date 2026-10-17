@@ -442,14 +442,18 @@ export function signUploadParams(input: string | SignUploadParamsInput): Promise
   };
 
   const promise = (async () => {
-    if (mongoose.connection.readyState === 1) {
-      const storage = await calculateUserStorage(ownerId);
-      if (storage && storage.totalBytes >= RESOURCE_LIMITS.MAX_USER_STORAGE_QUOTA_BYTES) {
-        throw new StorageAssetError(
-          'User storage quota exceeded (500MB ceiling). Delete unused templates to proceed.',
-          'STORAGE_QUOTA_EXCEEDED'
-        );
-      }
+    if (mongoose.connection.readyState !== 1) {
+      throw new StorageAssetError(
+        'Database connection is not ready to verify storage quota',
+        'DATABASE_UNAVAILABLE'
+      );
+    }
+    const storage = await calculateUserStorage(ownerId);
+    if (storage && storage.totalBytes >= RESOURCE_LIMITS.MAX_USER_STORAGE_QUOTA_BYTES) {
+      throw new StorageAssetError(
+        'User storage quota exceeded (500MB ceiling). Delete unused templates to proceed.',
+        'STORAGE_QUOTA_EXCEEDED'
+      );
     }
     return syncResult;
   })();
@@ -457,6 +461,58 @@ export function signUploadParams(input: string | SignUploadParamsInput): Promise
   promise.catch(() => {});
 
   return Object.assign(promise, syncResult);
+}
+
+/**
+ * Concurrency guard tracking per-owner execution locks to prevent racing storage registrations.
+ */
+const ownerRegistrationLocks = new Map<string, Promise<void>>();
+
+async function acquireOwnerLock(ownerId: string): Promise<() => void> {
+  while (ownerRegistrationLocks.has(ownerId)) {
+    try {
+      await ownerRegistrationLocks.get(ownerId);
+    } catch {
+      // Ignore errors from preceding registrations
+    }
+  }
+  let release!: () => void;
+  const lock = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  ownerRegistrationLocks.set(ownerId, lock);
+  return () => {
+    if (ownerRegistrationLocks.get(ownerId) === lock) {
+      ownerRegistrationLocks.delete(ownerId);
+    }
+    release();
+  };
+}
+
+/**
+ * Best-effort helper to purge rejected uploaded assets from Cloudinary.
+ */
+async function removeCloudinaryAsset(publicId: string, preferredType: 'image' | 'raw'): Promise<void> {
+  try {
+    if (cloudinary?.api?.delete_resources) {
+      await cloudinary.api.delete_resources([publicId], {
+        type: 'authenticated',
+        resource_type: preferredType,
+      });
+    }
+  } catch {
+    try {
+      if (cloudinary?.api?.delete_resources) {
+        const fallbackType = preferredType === 'image' ? 'raw' : 'image';
+        await cloudinary.api.delete_resources([publicId], {
+          type: 'authenticated',
+          resource_type: fallbackType,
+        });
+      }
+    } catch {
+      // Best-effort cleanup
+    }
+  }
 }
 
 /**
@@ -577,7 +633,7 @@ export function ensureThumbnailHealth(
  * @param {CreateTemplateInput} input - Parameters containing ownerId, name, and cloudinaryPublicId.
  * @returns {Promise<CreateTemplateResult>} Newly created Template and initial active TemplateVersion v1.
  * @throws {TemplateValidationError} If ownerId, name, or public ID validation fails.
- * @throws {StorageAssetError} If probe of Cloudinary asset metadata fails.
+ * @throws {StorageAssetError} If probe of Cloudinary asset metadata fails or storage quota is exceeded.
  */
 export async function createTemplate(input: CreateTemplateInput): Promise<CreateTemplateResult> {
   const { ownerId, name, cloudinaryPublicId, thumbnailUrl } = input || {};
@@ -615,73 +671,97 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
     }
   }
 
-  let asset: any;
-  let isImageResource = true;
+  // Concurrency-safe lock per owner ensuring atomic quota checks and version reservations
+  const releaseLock = await acquireOwnerLock(ownerId);
+
   try {
-    asset = await cloudinary.api.resource(cloudinaryPublicId, {
-      type: 'authenticated',
-      resource_type: 'image',
-    });
-  } catch (imgErr: any) {
+    let asset: any;
+    let isImageResource = true;
     try {
-      isImageResource = false;
       asset = await cloudinary.api.resource(cloudinaryPublicId, {
         type: 'authenticated',
-        resource_type: 'raw',
+        resource_type: 'image',
       });
-    } catch (rawErr: any) {
-      throw new StorageAssetError(
-        `Failed to probe Cloudinary asset '${cloudinaryPublicId}': ${rawErr?.message || imgErr?.message || 'Resource not found'}`,
-        'STORAGE_ASSET_NOT_FOUND'
+    } catch (imgErr: any) {
+      try {
+        isImageResource = false;
+        asset = await cloudinary.api.resource(cloudinaryPublicId, {
+          type: 'authenticated',
+          resource_type: 'raw',
+        });
+      } catch (rawErr: any) {
+        throw new StorageAssetError(
+          `Failed to probe Cloudinary asset '${cloudinaryPublicId}': ${rawErr?.message || imgErr?.message || 'Resource not found'}`,
+          'STORAGE_ASSET_NOT_FOUND'
+        );
+      }
+    }
+
+    const bytes = asset?.bytes || 0;
+    const pageCount = asset?.pages || 1;
+
+    if (bytes > RESOURCE_LIMITS.MAX_TEMPLATE_FILE_SIZE_BYTES) {
+      await removeCloudinaryAsset(cloudinaryPublicId, isImageResource ? 'image' : 'raw');
+      throw new TemplateValidationError(
+        `Template PDF exceeds maximum 15MB size limit (${bytes} bytes)`,
+        'TEMPLATE_SIZE_EXCEEDED'
       );
     }
+
+    // Enforce owner's quota against existing storage plus new asset size
+    const storage = await calculateUserStorage(ownerId);
+    const existingBytes = storage?.documents
+      ? storage.documents
+          .filter((d: any) => d.id !== cloudinaryPublicId)
+          .reduce((sum: number, d: any) => sum + (d.bytes || 0), 0)
+      : (storage?.totalBytes || 0);
+
+    if (existingBytes + bytes > RESOURCE_LIMITS.MAX_USER_STORAGE_QUOTA_BYTES) {
+      await removeCloudinaryAsset(cloudinaryPublicId, isImageResource ? 'image' : 'raw');
+      throw new StorageAssetError(
+        `User storage quota exceeded (500MB ceiling). Existing: ${existingBytes} bytes, New asset: ${bytes} bytes. Delete unused templates to proceed.`,
+        'STORAGE_QUOTA_EXCEEDED'
+      );
+    }
+
+    let finalThumbnailUrl = thumbnailUrl || null;
+    if (!finalThumbnailUrl && isImageResource) {
+      finalThumbnailUrl = generateThumbnailUrl(cloudinaryPublicId);
+    }
+
+    const template = new Template({
+      ownerId,
+      name: name.trim(),
+      thumbnailUrl: finalThumbnailUrl,
+    });
+    await template.save();
+
+    const detectedResourceType = asset?.resource_type || (isImageResource ? 'image' : 'raw');
+
+    const version = new TemplateVersion({
+      templateId: template._id,
+      ownerId,
+      version: 1,
+      sourceObjectKey: cloudinaryPublicId,
+      resourceType: detectedResourceType,
+      bytes,
+      pageCount,
+      status: 'active',
+      fieldMappings: [],
+      mappingHash: computeMappingHash([]),
+    });
+    await version.save();
+
+    template.currentVersionId = version._id as any;
+    await template.save();
+
+    return {
+      template,
+      version,
+    };
+  } finally {
+    releaseLock();
   }
-
-  const bytes = asset?.bytes || 0;
-  const pageCount = asset?.pages || 1;
-
-  if (bytes > RESOURCE_LIMITS.MAX_TEMPLATE_FILE_SIZE_BYTES) {
-    throw new TemplateValidationError(
-      `Template PDF exceeds maximum 15MB size limit (${bytes} bytes)`,
-      'TEMPLATE_SIZE_EXCEEDED'
-    );
-  }
-
-  let finalThumbnailUrl = thumbnailUrl || null;
-  if (!finalThumbnailUrl && isImageResource) {
-    finalThumbnailUrl = generateThumbnailUrl(cloudinaryPublicId);
-  }
-
-  const template = new Template({
-    ownerId,
-    name: name.trim(),
-    thumbnailUrl: finalThumbnailUrl,
-  });
-  await template.save();
-
-  const detectedResourceType = asset?.resource_type || (isImageResource ? 'image' : 'raw');
-
-  const version = new TemplateVersion({
-    templateId: template._id,
-    ownerId,
-    version: 1,
-    sourceObjectKey: cloudinaryPublicId,
-    resourceType: detectedResourceType,
-    bytes,
-    pageCount,
-    status: 'active',
-    fieldMappings: [],
-    mappingHash: computeMappingHash([]),
-  });
-  await version.save();
-
-  template.currentVersionId = version._id as any;
-  await template.save();
-
-  return {
-    template,
-    version,
-  };
 }
 
 /* -------------------------------------------------------------------------- */

@@ -3,7 +3,9 @@
  * @description Unit and integration tests verifying PRD-CORE-10 Wave 2 (Slice 2 & Slice 3).
  */
 
+import 'dotenv/config';
 import assert from 'node:assert';
+import mongoose from 'mongoose';
 import { Hono } from 'hono';
 import {
   validateEnvironment,
@@ -23,7 +25,6 @@ import {
   EmailDispatchDisabledError,
 } from '../src/services/email-dispatch.js';
 import { signUploadParams } from '../src/services/template-lifecycle.js';
-import { BatchIntakeValidationError } from '../src/services/batch-intake.js';
 
 async function runTests() {
   console.log('===========================================================');
@@ -78,6 +79,7 @@ async function runTests() {
     ENABLE_TEST_AUTH: 'false',
     MONGODB_URI: 'mongodb://localhost:27017',
     BETTER_AUTH_SECRET: 'secret-123456789012345678901234567890',
+    BETTER_AUTH_URL: 'https://emitdocs.com',
     GOOGLE_CLIENT_ID: 'google-id',
     GOOGLE_CLIENT_SECRET: 'google-secret',
     CLOUDINARY_CLOUD_NAME: 'cloud',
@@ -216,6 +218,10 @@ async function runTests() {
 
   // --- 6. Template signUploadParams signature & sync/async compatibility ---
   console.log('--- 6. Testing signUploadParams API ---');
+  if (process.env.MONGODB_URI && mongoose.connection.readyState === 0) {
+    await mongoose.connect(process.env.MONGODB_URI, { dbName: 'emitdocs_test' });
+  }
+
   const signed = signUploadParams({ ownerId: 'user_test_limits' });
   assert.strictEqual(signed.folder, 'templates/user_test_limits');
   assert.ok(typeof signed.signature === 'string' && signed.signature.length > 0);
@@ -226,12 +232,19 @@ async function runTests() {
   assert.strictEqual(awaitedSigned.folder, 'templates/user_test_limits');
   console.log('   ✓ signUploadParams provides synchronous & async dual interface\n');
 
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
+
   console.log('===========================================================');
   console.log('🎉 ALL PRD-CORE-10 WAVE 2 ACCEPTANCE CRITERIA VERIFIED!     ');
   console.log('===========================================================');
 }
 
-runTests().catch((err) => {
+runTests().catch(async (err) => {
+  if (mongoose.connection.readyState !== 0) {
+    await mongoose.disconnect();
+  }
   console.error('Wave 2 Verification Failed:', err);
   process.exit(1);
 });

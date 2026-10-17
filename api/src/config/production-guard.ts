@@ -41,6 +41,7 @@ export function validateEnvironment(env: Record<string, string | undefined> = pr
   const requiredInProd = [
     'MONGODB_URI',
     'BETTER_AUTH_SECRET',
+    'BETTER_AUTH_URL',
     'GOOGLE_CLIENT_ID',
     'GOOGLE_CLIENT_SECRET',
     'CLOUDINARY_CLOUD_NAME',

@@ -431,7 +431,36 @@ async function runTests() {
     assert.ok(typeof signed.signature === 'string' && signed.signature.length > 0);
     assert.ok(typeof signed.timestamp === 'number');
     assert.ok(signed.timestamp > 0);
-    console.log('   ✓ signUploadParams validation, folder isolation, and signature verified\n');
+
+    // 12b. signUploadParams fails closed when database connection is not ready
+    try {
+      Object.defineProperty(mongoose.connection, 'readyState', { get: () => 0, configurable: true });
+      await assert.rejects(
+        async () => await signUploadParams({ ownerId: testOwner }),
+        (err: any) => err instanceof StorageAssetError && err.code === 'DATABASE_UNAVAILABLE'
+      );
+    } finally {
+      delete (mongoose.connection as any).readyState;
+    }
+
+    // 12c. signUploadParams rejects when owner storage quota is exceeded
+    const quotaOwner = `quota_exceeded_owner_${Date.now()}`;
+    await TemplateVersion.create({
+      templateId: new mongoose.Types.ObjectId(),
+      ownerId: quotaOwner,
+      version: 1,
+      sourceObjectKey: `templates/${quotaOwner}/giant.pdf`,
+      bytes: 501 * 1024 * 1024,
+      pageCount: 1,
+      status: 'active',
+      fieldMappings: [],
+      mappingHash: 'quota_hash',
+    });
+    await assert.rejects(
+      async () => await signUploadParams({ ownerId: quotaOwner }),
+      (err: any) => err instanceof StorageAssetError && err.code === 'STORAGE_QUOTA_EXCEEDED'
+    );
+    console.log('   ✓ signUploadParams validation, fail-closed readyState, quota enforcement, and signature verified\n');
 
     // Test 13: createTemplate
     console.log('13. Testing createTemplate (validation, dual-resource probing, entity creation)...');
@@ -542,10 +571,102 @@ async function runTests() {
         },
         (err: any) => err instanceof StorageAssetError && err.code === 'STORAGE_ASSET_NOT_FOUND'
       );
+      // 13d. Size limit exceeded -> purges Cloudinary asset and throws TemplateValidationError
+      let deletedAssets: string[] = [];
+      const origDeleteResources = cloudinary.api.delete_resources;
+      cloudinary.api.delete_resources = (async (publicIds: string[], _opts: any) => {
+        deletedAssets.push(...publicIds);
+        return { deleted: { [publicIds[0]]: 'deleted' } };
+      }) as any;
+
+      cloudinary.api.resource = (async () => ({
+        bytes: 16 * 1024 * 1024,
+        pages: 1,
+        resource_type: 'image',
+      })) as any;
+
+      await assert.rejects(
+        async () => {
+          await createTemplate({
+            ownerId: testOwner,
+            name: 'Oversized PDF',
+            cloudinaryPublicId: `templates/${testOwner}/oversized_pdf`,
+          });
+        },
+        (err: any) => err instanceof TemplateValidationError && err.code === 'TEMPLATE_SIZE_EXCEEDED'
+      );
+      assert.ok(
+        deletedAssets.includes(`templates/${testOwner}/oversized_pdf`),
+        'Must purge Cloudinary asset when rejected due to exceeding 15MB limit'
+      );
+
+      // 13e. Storage quota exceeded -> purges Cloudinary asset and throws StorageAssetError
+      deletedAssets = [];
+      cloudinary.api.resource = (async () => ({
+        bytes: 10 * 1024 * 1024,
+        pages: 1,
+        resource_type: 'image',
+      })) as any;
+
+      await assert.rejects(
+        async () => {
+          await createTemplate({
+            ownerId: quotaOwner,
+            name: 'Quota Exceeded PDF',
+            cloudinaryPublicId: `templates/${quotaOwner}/quota_pdf`,
+          });
+        },
+        (err: any) => err instanceof StorageAssetError && err.code === 'STORAGE_QUOTA_EXCEEDED'
+      );
+      assert.ok(
+        deletedAssets.includes(`templates/${quotaOwner}/quota_pdf`),
+        'Must purge Cloudinary asset when rejected due to user storage quota exceeded'
+      );
+      cloudinary.api.delete_resources = origDeleteResources;
+
+      // 13f. Concurrency safety: concurrent registrations for same owner are serialized and cannot exceed quota
+      const concurrentOwner = `concurrent_owner_${Date.now()}`;
+      await TemplateVersion.create({
+        templateId: new mongoose.Types.ObjectId(),
+        ownerId: concurrentOwner,
+        version: 1,
+        sourceObjectKey: `templates/${concurrentOwner}/base.pdf`,
+        bytes: 490 * 1024 * 1024,
+        pageCount: 1,
+        status: 'active',
+        fieldMappings: [],
+        mappingHash: 'concurrent_base_hash',
+      });
+
+      cloudinary.api.resource = (async (publicId: string) => ({
+        bytes: 8 * 1024 * 1024,
+        pages: 1,
+        resource_type: 'image',
+        public_id: publicId,
+      })) as any;
+
+      const concurrentResults = await Promise.allSettled([
+        createTemplate({
+          ownerId: concurrentOwner,
+          name: 'Concurrent Template 1',
+          cloudinaryPublicId: `templates/${concurrentOwner}/c1`,
+        }),
+        createTemplate({
+          ownerId: concurrentOwner,
+          name: 'Concurrent Template 2',
+          cloudinaryPublicId: `templates/${concurrentOwner}/c2`,
+        }),
+      ]);
+
+      const fulfilled = concurrentResults.filter((r) => r.status === 'fulfilled');
+      const rejected = concurrentResults.filter((r) => r.status === 'rejected');
+      assert.strictEqual(fulfilled.length, 1, 'Exactly one concurrent template registration should succeed under tight quota');
+      assert.strictEqual(rejected.length, 1, 'The other concurrent template registration must be rejected with quota exceeded');
+      assert.strictEqual((rejected[0] as PromiseRejectedResult).reason?.code, 'STORAGE_QUOTA_EXCEEDED');
     } finally {
       cloudinary.api.resource = originalResource;
     }
-    console.log('   ✓ createTemplate validation, dual-resource probing, and entity linkage verified\n');
+    console.log('   ✓ createTemplate validation, dual-resource probing, asset purge on rejection, quota enforcement, and concurrency safety verified\n');
 
     // Test 14: listTemplates
     console.log('14. Testing listTemplates (population, auto-healing, mappedOnly filter, owner isolation)...');

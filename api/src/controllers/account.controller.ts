@@ -13,6 +13,21 @@ export const deleteAccount = async (c: Context) => {
   try {
     const result = await deleteUserAccount(user.id);
     if (!result.success) {
+      const isMongoFailed = result.errors?.some((e: string) =>
+        e.includes('MongoDB cascade deletion error')
+      );
+      if (!isMongoFailed && !result.cloudinaryPurged) {
+        return c.json(
+          {
+            success: false,
+            error: 'Account was removed but cleanup is incomplete',
+            message: 'Account was removed but cleanup is incomplete',
+            result,
+          },
+          207
+        );
+      }
+
       return c.json(
         {
           success: false,

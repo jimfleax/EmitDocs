@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import { deleteAccount } from '../src/controllers/account.controller.js';
 import { deleteUserAccount } from '../src/services/account-deletion.js';
 import { approveBatch } from '../src/services/batch-approval.js';
+import { ingestChunk, BatchIntakeValidationError } from '../src/services/batch-intake.js';
 import { Batch } from '../src/models/Batch.js';
 import { BatchImport } from '../src/models/BatchImport.js';
 import { DraftRow } from '../src/models/DraftRow.js';
@@ -11,6 +12,10 @@ import { Template } from '../src/models/Template.js';
 import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import { ApprovedSnapshot } from '../src/models/ApprovedSnapshot.js';
 import cloudinary from '../src/lib/cloudinary.js';
+import { validateEnvironment, ConfigurationError } from '../src/config/production-guard.js';
+import { requireAuth } from '../src/middleware/auth.middleware.js';
+import { buildOpenApiSpec } from '../src/scripts/generate-openapi.js';
+import { checkContractDrift } from '../src/scripts/check-contract-drift.js';
 
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
@@ -43,6 +48,17 @@ async function runReviewFixesTests() {
   await mongoose.connect(MONGODB_URI, { dbName: 'emitdocs_review_fixes_test' });
   console.log('   ✓ Connected to test database\n');
 
+  const originalDeletePrefix = cloudinary.api.delete_resources_by_prefix;
+  const originalDeleteFolder = cloudinary.api.delete_folder;
+
+  // Install Cloudinary stubs before first test that calls deleteAccount
+  (cloudinary.api as any).delete_resources_by_prefix = async (_prefix: string, _options?: any) => {
+    return { deleted: {}, partial: false };
+  };
+  (cloudinary.api as any).delete_folder = async (_folder: string) => {
+    return { deleted: [] };
+  };
+
   try {
     // -------------------------------------------------------------------------
     // Test 1: account.controller.ts check result.success
@@ -65,8 +81,31 @@ async function runReviewFixesTests() {
     );
     console.log('   ✓ Failure response returned non-200 status and included result');
 
-    // Restore DraftRow.deleteMany for success response test
+    // Restore DraftRow.deleteMany for success and partial response tests
     DraftRow.deleteMany = origDraftRowDelete;
+
+    // Test 1b: When MongoDB deletion succeeded but Cloudinary purge failed, return 207 Multi-Status
+    (cloudinary.api as any).delete_folder = async () => {
+      const clError: any = new Error('Simulated Cloudinary purge 500 failure');
+      clError.http_code = 500;
+      throw clError;
+    };
+    const mockCtxPartial = createMockContext({ user: { id: `u_ctrl_part_${Date.now()}` } });
+    await deleteAccount(mockCtxPartial as any);
+    const partialResp = mockCtxPartial._getResponse();
+    assert.strictEqual(partialResp.status, 207, 'Must return status 207 on partial deletion');
+    assert.strictEqual(partialResp.data.success, false);
+    assert.strictEqual(partialResp.data.result.cloudinaryPurged, false);
+    assert(
+      partialResp.data.message.includes('Account was removed but cleanup is incomplete'),
+      'Message must indicate account was removed but cleanup is incomplete'
+    );
+    console.log('   ✓ Partial deletion response returned status 207 with accurate incomplete cleanup message');
+
+    // Restore Cloudinary stubs
+    (cloudinary.api as any).delete_folder = async (_folder: string) => {
+      return { deleted: [] };
+    };
 
     const mockCtxSuccess = createMockContext({ user: { id: `u_ctrl_succ_${Date.now()}` } });
     await deleteAccount(mockCtxSuccess as any);
@@ -81,114 +120,143 @@ async function runReviewFixesTests() {
     // -------------------------------------------------------------------------
     console.log('\n2. Testing batch-approval.ts resumed-snapshot recovery branch...');
     const testOwner = `resumed_test_${Date.now()}`;
-    const tpl = await Template.create({
-      ownerId: testOwner,
-      name: 'Resumed Test Template',
-      cloudinaryPublicId: 'templates/resumed/pdf',
-      sourceUrl: 'https://example.com/test.pdf',
-      status: 'active',
-    });
-    const tplVersion = await TemplateVersion.create({
-      templateId: tpl._id,
-      ownerId: testOwner,
-      version: 1,
-      bytes: 2048,
-      pageCount: 1,
-      fieldMappings: [
-        {
-          id: 'f1',
-          key: 'fullName',
-          label: 'Full Name',
-          type: 'text',
-          pageIndex: 0,
-          rect: { x: 10, y: 10, width: 200, height: 30 },
-          alignment: 'left',
-        },
-      ],
-      mappingHash: 'test_hash_1',
-      sourceObjectKey: 'templates/resumed/pdf',
-    });
+    const idempotencyKey = `test_idempotency_resumed_${Date.now()}`;
+    let tpl: any;
+    let tplVersion: any;
+    let batch: any;
+    let batchImport: any;
+    let draftRow: any;
+    let existingSnapshot: any;
 
-    const batch = await Batch.create({
-      ownerId: testOwner,
-      templateId: tpl._id,
-      templateVersionId: tplVersion._id,
-      name: 'Resumed Snapshot Test Batch',
-      status: 'draft',
-      retentionHours: 24, // Initial
-      expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
-      currentImportRevision: 1,
-    });
+    try {
+      tpl = await Template.create({
+        ownerId: testOwner,
+        name: 'Resumed Test Template',
+        cloudinaryPublicId: 'templates/resumed/pdf',
+        sourceUrl: 'https://example.com/test.pdf',
+        status: 'active',
+      });
+      tplVersion = await TemplateVersion.create({
+        templateId: tpl._id,
+        ownerId: testOwner,
+        version: 1,
+        bytes: 2048,
+        pageCount: 1,
+        fieldMappings: [
+          {
+            id: 'f1',
+            key: 'fullName',
+            label: 'Full Name',
+            type: 'text',
+            pageIndex: 0,
+            rect: { x: 10, y: 10, width: 200, height: 30 },
+            alignment: 'left',
+          },
+        ],
+        mappingHash: 'test_hash_1',
+        sourceObjectKey: 'templates/resumed/pdf',
+      });
 
-    const batchImport = await BatchImport.create({
-      batchId: batch._id,
-      ownerId: testOwner,
-      revision: 1,
-      sourceFileName: 'test.csv',
-      sourceFileSize: 100,
-      columnMap: { fullName: 'fullName' },
-      rowCount: 1,
-    });
+      batch = await Batch.create({
+        ownerId: testOwner,
+        templateId: tpl._id,
+        templateVersionId: tplVersion._id,
+        name: 'Resumed Snapshot Test Batch',
+        status: 'draft',
+        retentionHours: 24, // Initial
+        expiresAt: new Date(Date.now() + 24 * 3600 * 1000),
+        currentImportRevision: 1,
+      });
 
-    // Create a draft row
-    await DraftRow.create({
-      batchId: batch._id,
-      importId: batchImport._id,
-      ownerId: testOwner,
-      revision: 1,
-      sourceRowNumber: 1,
-      rowKey: 'row_1',
-      rawData: { fullName: 'Alice' },
-      effectiveData: { fullName: 'Alice' },
-      status: 'valid',
-    });
+      batchImport = await BatchImport.create({
+        batchId: batch._id,
+        ownerId: testOwner,
+        revision: 1,
+        sourceFileName: 'test.csv',
+        sourceFileSize: 100,
+        columnMap: { fullName: 'fullName' },
+        rowCount: 1,
+      });
 
-    // Pre-create existing snapshot in 'building' status with retention 168 hours (7 days)
-    const expectedRetentionHours = 168;
-    const expectedExpiresAt = new Date(Date.now() + 168 * 3600 * 1000);
-    const existingSnapshot = await ApprovedSnapshot.create({
-      batchId: batch._id,
-      ownerId: testOwner,
-      templateId: tpl._id,
-      templateVersionId: tplVersion._id,
-      templateVersion: 1,
-      mappingHash: 'test_hash_1',
-      importRevision: 1,
-      retentionHours: expectedRetentionHours,
-      expiresAt: expectedExpiresAt,
-      idempotencyKey: 'test_idempotency_resumed',
-      status: 'building',
-      totalRecipients: 1,
-      canonicalDigest: 'in_progress',
-    });
+      // Create a draft row
+      draftRow = await DraftRow.create({
+        batchId: batch._id,
+        importId: batchImport._id,
+        ownerId: testOwner,
+        revision: 1,
+        sourceRowNumber: 1,
+        rowKey: 'row_1',
+        rawData: { fullName: 'Alice' },
+        effectiveData: { fullName: 'Alice' },
+        status: 'valid',
+      });
 
-    // Point batch to existingSnapshot while still in draft to trigger resumed-snapshot flow
-    batch.approvedSnapshotId = existingSnapshot._id;
-    await batch.save();
+      // Pre-create existing snapshot in 'building' status with retention 168 hours (7 days)
+      const expectedRetentionHours = 168;
+      const expectedExpiresAt = new Date(Date.now() + 168 * 3600 * 1000);
+      existingSnapshot = await ApprovedSnapshot.create({
+        batchId: batch._id,
+        ownerId: testOwner,
+        templateId: tpl._id,
+        templateVersionId: tplVersion._id,
+        templateVersion: 1,
+        mappingHash: 'test_hash_1',
+        importRevision: 1,
+        retentionHours: expectedRetentionHours,
+        expiresAt: expectedExpiresAt,
+        idempotencyKey,
+        status: 'building',
+        totalRecipients: 1,
+        canonicalDigest: 'in_progress',
+      });
 
-    // Call approveBatch with idempotencyKey
-    const approvalResult = await approveBatch({
-      batchId: batch._id.toString(),
-      ownerId: testOwner,
-      idempotencyKey: 'test_idempotency_resumed',
-      retentionHours: 24, // Request 24, but resumed snapshot should preserve its 168 hours!
-    });
+      // Point batch to existingSnapshot while still in draft to trigger resumed-snapshot flow
+      batch.approvedSnapshotId = existingSnapshot._id;
+      await batch.save();
 
-    assert.strictEqual(approvalResult.snapshot.status, 'ready');
-    const updatedBatch = await Batch.findById(batch._id);
-    assert(updatedBatch, 'Updated batch must exist');
-    assert.strictEqual(updatedBatch.status, 'approved', 'Batch status must be approved');
-    assert.strictEqual(
-      updatedBatch.retentionHours,
-      expectedRetentionHours,
-      'Batch retentionHours must be copied from existingSnapshot'
-    );
-    assert.strictEqual(
-      updatedBatch.expiresAt?.getTime(),
-      expectedExpiresAt.getTime(),
-      'Batch expiresAt must be copied from existingSnapshot'
-    );
-    console.log('   ✓ Resumed-snapshot recovery branch copied retentionHours and expiresAt onto batch');
+      // Call approveBatch with idempotencyKey
+      const approvalResult = await approveBatch({
+        batchId: batch._id.toString(),
+        ownerId: testOwner,
+        idempotencyKey,
+        retentionHours: 24, // Request 24, but resumed snapshot should preserve its 168 hours!
+      });
+
+      assert.strictEqual(approvalResult.snapshot.status, 'ready');
+      const updatedBatch = await Batch.findById(batch._id);
+      assert(updatedBatch, 'Updated batch must exist');
+      assert.strictEqual(updatedBatch.status, 'approved', 'Batch status must be approved');
+      assert.strictEqual(
+        updatedBatch.retentionHours,
+        expectedRetentionHours,
+        'Batch retentionHours must be copied from existingSnapshot'
+      );
+      assert.strictEqual(
+        updatedBatch.expiresAt?.getTime(),
+        expectedExpiresAt.getTime(),
+        'Batch expiresAt must be copied from existingSnapshot'
+      );
+      console.log('   ✓ Resumed-snapshot recovery branch copied retentionHours and expiresAt onto batch');
+    } finally {
+      if (existingSnapshot?._id) {
+        await ApprovedSnapshot.deleteOne({ _id: existingSnapshot._id });
+      }
+      if (draftRow?._id) {
+        await DraftRow.deleteOne({ _id: draftRow._id });
+      }
+      if (batchImport?._id) {
+        await BatchImport.deleteOne({ _id: batchImport._id });
+      }
+      if (batch?._id) {
+        await Batch.deleteOne({ _id: batch._id });
+      }
+      if (tplVersion?._id) {
+        await TemplateVersion.deleteOne({ _id: tplVersion._id });
+      }
+      if (tpl?._id) {
+        await Template.deleteOne({ _id: tpl._id });
+      }
+    }
 
     // -------------------------------------------------------------------------
     // Test 3: account-deletion.ts session and account deletion with string and ObjectId
@@ -292,8 +360,6 @@ async function runReviewFixesTests() {
     // Test 5: Cloudinary purge pagination & error filtering
     // -------------------------------------------------------------------------
     console.log('\n5. Testing Cloudinary purge pagination and error filtering...');
-    const originalDeletePrefix = cloudinary.api.delete_resources_by_prefix;
-    const originalDeleteFolder = cloudinary.api.delete_folder;
 
     let prefixCalls = 0;
     (cloudinary.api as any).delete_resources_by_prefix = async (_prefix: string, _options: any) => {
@@ -337,13 +403,294 @@ async function runReviewFixesTests() {
     assert(fatalResult.errors?.some((e) => e.includes('500')), 'Errors must contain 500 error');
     console.log('   ✓ Cloudinary unexpected error recorded in errors and marked cloudinaryPurged as false');
 
-    (cloudinary.api as any).delete_resources_by_prefix = originalDeletePrefix;
-    (cloudinary.api as any).delete_folder = originalDeleteFolder;
+    // Test "Folder is not empty" error is NOT treated as an ignorable error
+    (cloudinary.api as any).delete_folder = async () => {
+      const notEmptyErr: any = new Error('Folder is not empty');
+      notEmptyErr.http_code = 400;
+      throw notEmptyErr;
+    };
+
+    const notEmptyOwner = `cl_not_empty_${Date.now()}`;
+    const notEmptyResult = await deleteUserAccount(notEmptyOwner);
+    assert.strictEqual(notEmptyResult.success, false, 'Must fail when Folder is not empty');
+    assert.strictEqual(notEmptyResult.cloudinaryPurged, false, 'cloudinaryPurged must be false when Folder is not empty');
+    assert(notEmptyResult.errors?.some((e) => e.includes('Folder is not empty')), 'Errors must contain Folder is not empty');
+    console.log('   ✓ "Folder is not empty" is correctly treated as non-ignorable failure');
+
+    // -------------------------------------------------------------------------
+    // Test 6: batch-intake.ts 5,000-row cap on resulting total & concurrent safety
+    // -------------------------------------------------------------------------
+    console.log('\n6. Testing batch-intake.ts 5,000-row cap and concurrent submissions...');
+    const intakeOwner = `intake_test_${Date.now()}`;
+    const intakeTpl = await Template.create({
+      ownerId: intakeOwner,
+      name: 'Intake Cap Test Template',
+      cloudinaryPublicId: 'templates/intake/pdf',
+      sourceUrl: 'https://example.com/test.pdf',
+      status: 'active',
+    });
+    const intakeTplVersion = await TemplateVersion.create({
+      templateId: intakeTpl._id,
+      ownerId: intakeOwner,
+      version: 1,
+      bytes: 1024,
+      pageCount: 1,
+      fieldMappings: [
+        {
+          id: 'f1',
+          key: 'fullName',
+          label: 'Full Name',
+          type: 'text',
+          pageIndex: 0,
+          rect: { x: 0, y: 0, width: 10, height: 10 },
+          alignment: 'left',
+        },
+      ],
+      mappingHash: 'hash_intake',
+      sourceObjectKey: 'templates/intake/pdf',
+    });
+    const intakeBatch = await Batch.create({
+      ownerId: intakeOwner,
+      templateId: intakeTpl._id,
+      templateVersionId: intakeTplVersion._id,
+      name: 'Intake Cap Batch',
+      status: 'draft',
+    });
+    const intakeImport = await BatchImport.create({
+      batchId: intakeBatch._id,
+      ownerId: intakeOwner,
+      revision: 1,
+      sourceFileName: 'intake.csv',
+      sourceFileSize: 100,
+      columnMap: { fullName: 'fullName' },
+      rowCount: 0,
+    });
+
+    try {
+      // 1. High sourceRowNumber should pass if resulting total <= 5000
+      const highRes = await ingestChunk({
+        batchId: intakeBatch._id,
+        importId: intakeImport._id,
+        ownerId: intakeOwner,
+        chunkId: 'chunk_high_num',
+        rows: [
+          {
+            sourceRowNumber: 9999,
+            rowKey: 'row_9999',
+            importedData: { fullName: 'High Row' },
+          },
+        ],
+      });
+      assert.strictEqual(highRes.processed, 1);
+      console.log('   ✓ Row with sourceRowNumber > 5000 accepted when resulting total <= 5000');
+
+      // 2. Pre-seed rows up to 4,998
+      const seedOps = [];
+      for (let i = 1; i <= 4997; i++) {
+        seedOps.push({
+          batchId: intakeBatch._id,
+          importId: intakeImport._id,
+          ownerId: intakeOwner,
+          revision: 1,
+          sourceRowNumber: i,
+          rowKey: `seed_r_${i}`,
+          importedData: { fullName: `Student ${i}` },
+          effectiveData: { fullName: `Student ${i}` },
+          status: 'valid',
+          version: 1,
+        });
+      }
+      await DraftRow.insertMany(seedOps);
+
+      // Current total: 1 (from highRes) + 4997 = 4998 rows. Room for 2 more rows!
+      // Ingest 2 rows -> should succeed (total reaches 5,000)
+      const fillRes = await ingestChunk({
+        batchId: intakeBatch._id,
+        importId: intakeImport._id,
+        ownerId: intakeOwner,
+        chunkId: 'chunk_fill',
+        rows: [
+          { sourceRowNumber: 4999, rowKey: 'row_4999', importedData: { fullName: 'Row 4999' } },
+          { sourceRowNumber: 5000, rowKey: 'row_5000', importedData: { fullName: 'Row 5000' } },
+        ],
+      });
+      assert.strictEqual(fillRes.processed, 2);
+      const totalReached = await DraftRow.countDocuments({ importId: intakeImport._id });
+      assert.strictEqual(totalReached, 5000, 'Total rows should now be exactly 5,000');
+      console.log('   ✓ Ingestion allowed up to exact 5,000 row ceiling');
+
+      // Update existing row (same rowKey) -> should succeed because resulting total remains 5,000
+      const updateRes = await ingestChunk({
+        batchId: intakeBatch._id,
+        importId: intakeImport._id,
+        ownerId: intakeOwner,
+        chunkId: 'chunk_update_existing',
+        rows: [
+          { sourceRowNumber: 5000, rowKey: 'row_5000', importedData: { fullName: 'Updated Row 5000' } },
+        ],
+      });
+      assert.strictEqual(updateRes.processed, 1);
+      const totalAfterUpdate = await DraftRow.countDocuments({ importId: intakeImport._id });
+      assert.strictEqual(totalAfterUpdate, 5000, 'Updating existing rowKey must not increase total count');
+      console.log('   ✓ Upserting existing rowKey allowed at 5,000 row ceiling');
+
+      // 3. New row when at 5,000 ceiling -> must throw ROW_LIMIT_EXCEEDED
+      await assert.rejects(
+        async () => {
+          await ingestChunk({
+            batchId: intakeBatch._id,
+            importId: intakeImport._id,
+            ownerId: intakeOwner,
+            chunkId: 'chunk_overflow',
+            rows: [
+              { sourceRowNumber: 5001, rowKey: 'row_5001', importedData: { fullName: 'Overflow' } },
+            ],
+          });
+        },
+        (err: any) => err instanceof BatchIntakeValidationError && err.code === 'ROW_LIMIT_EXCEEDED'
+      );
+      console.log('   ✓ New row exceeding 5,000 ceiling rejected with ROW_LIMIT_EXCEEDED');
+
+      // 4. Concurrent chunk submissions safety
+      // Reset by deleting 5 rows so total is 4,995 (room for 5 rows)
+      await DraftRow.deleteMany({ importId: intakeImport._id, rowKey: { $in: ['row_4999', 'row_5000', 'seed_r_1', 'seed_r_2', 'seed_r_3'] } });
+      const currentCount = await DraftRow.countDocuments({ importId: intakeImport._id });
+      assert.strictEqual(currentCount, 4995);
+
+      // Submit 2 concurrent chunks of 4 new rows each (total 8 rows, would result in 5,003 > 5,000)
+      const concA = [{ sourceRowNumber: 6001, rowKey: 'conc_a_1', importedData: { fullName: 'A1' } }, { sourceRowNumber: 6002, rowKey: 'conc_a_2', importedData: { fullName: 'A2' } }, { sourceRowNumber: 6003, rowKey: 'conc_a_3', importedData: { fullName: 'A3' } }, { sourceRowNumber: 6004, rowKey: 'conc_a_4', importedData: { fullName: 'A4' } }];
+      const concB = [{ sourceRowNumber: 7001, rowKey: 'conc_b_1', importedData: { fullName: 'B1' } }, { sourceRowNumber: 7002, rowKey: 'conc_b_2', importedData: { fullName: 'B2' } }, { sourceRowNumber: 7003, rowKey: 'conc_b_3', importedData: { fullName: 'B3' } }, { sourceRowNumber: 7004, rowKey: 'conc_b_4', importedData: { fullName: 'B4' } }];
+
+      const concResults = await Promise.allSettled([
+        ingestChunk({ batchId: intakeBatch._id, importId: intakeImport._id, ownerId: intakeOwner, chunkId: 'conc_chunk_a', rows: concA }),
+        ingestChunk({ batchId: intakeBatch._id, importId: intakeImport._id, ownerId: intakeOwner, chunkId: 'conc_chunk_b', rows: concB }),
+      ]);
+
+      const concRejections = concResults.filter((r) => r.status === 'rejected');
+      assert.strictEqual(concRejections.length, 1, 'Exactly one concurrent chunk must be rejected');
+      const postConcCount = await DraftRow.countDocuments({ importId: intakeImport._id });
+      assert.strictEqual(postConcCount, 4999, 'Resulting count must be 4999 (4995 + 4)');
+      console.log('   ✓ Concurrent chunk submissions safely serialized; resulting total never exceeded 5,000');
+    } finally {
+      await DraftRow.deleteMany({ importId: intakeImport._id });
+      await BatchImport.deleteOne({ _id: intakeImport._id });
+      await Batch.deleteOne({ _id: intakeBatch._id });
+      await TemplateVersion.deleteOne({ _id: intakeTplVersion._id });
+      await Template.deleteOne({ _id: intakeTpl._id });
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 7: Production guard requiredInProd includes BETTER_AUTH_URL
+    // -------------------------------------------------------------------------
+    console.log('\n7. Testing production-guard.ts requires BETTER_AUTH_URL in production...');
+    assert.throws(
+      () => {
+        validateEnvironment({
+          NODE_ENV: 'production',
+          ENABLE_TEST_AUTH: 'false',
+          MONGODB_URI: 'mongodb://localhost:27017',
+          BETTER_AUTH_SECRET: 'secret-123456789012345678901234567890',
+          // BETTER_AUTH_URL intentionally omitted
+          GOOGLE_CLIENT_ID: 'google-id',
+          GOOGLE_CLIENT_SECRET: 'google-secret',
+          CLOUDINARY_CLOUD_NAME: 'cloud',
+          CLOUDINARY_API_KEY: 'key',
+          CLOUDINARY_API_SECRET: 'secret',
+          ALLOWED_ORIGINS: 'https://emitdocs.com',
+        });
+      },
+      (err: any) =>
+        err instanceof ConfigurationError &&
+        err.message.includes('BETTER_AUTH_URL')
+    );
+    console.log('   ✓ Production guard rejects startup when BETTER_AUTH_URL is missing in production');
+
+    // -------------------------------------------------------------------------
+    // Test 8: Auth middleware test-auth user validation
+    // -------------------------------------------------------------------------
+    console.log('\n8. Testing auth.middleware.ts test-auth JSON.parse validation...');
+    const originalEnv = process.env.ENABLE_TEST_AUTH;
+    const originalNodeEnv = process.env.NODE_ENV;
+    process.env.ENABLE_TEST_AUTH = 'true';
+    process.env.NODE_ENV = 'development';
+
+    try {
+      // 8.1 Primitive number input: '123'
+      let userReceived: any = null;
+      const ctxNumber = {
+        req: { header: (name: string) => (name === 'x-test-auth-user' ? '123' : undefined) },
+        set: (k: string, v: any) => { if (k === 'user') userReceived = v; },
+        json: () => {},
+      };
+      await requireAuth(ctxNumber as any, async () => {});
+      assert.strictEqual(typeof userReceived.id, 'string', 'mockUser.id must be a string');
+      assert.strictEqual(userReceived.id, '123');
+
+      // 8.2 Object without id: '{"name":"Tester"}'
+      userReceived = null;
+      const ctxNoId = {
+        req: { header: (name: string) => (name === 'x-test-auth-user' ? '{"name":"Tester"}' : undefined) },
+        set: (k: string, v: any) => { if (k === 'user') userReceived = v; },
+        json: () => {},
+      };
+      await requireAuth(ctxNoId as any, async () => {});
+      assert.strictEqual(typeof userReceived.id, 'string');
+      assert.strictEqual(userReceived.id, '{"name":"Tester"}');
+
+      // 8.3 Object with empty string id: '{"id":""}'
+      userReceived = null;
+      const ctxEmptyId = {
+        req: { header: (name: string) => (name === 'x-test-auth-user' ? '{"id":""}' : undefined) },
+        set: (k: string, v: any) => { if (k === 'user') userReceived = v; },
+        json: () => {},
+      };
+      await requireAuth(ctxEmptyId as any, async () => {});
+      assert.strictEqual(typeof userReceived.id, 'string');
+      assert.strictEqual(userReceived.id, '{"id":""}');
+
+      // 8.4 Valid object with non-empty string id: '{"id":"custom_user_456","role":"admin"}'
+      userReceived = null;
+      const ctxValid = {
+        req: { header: (name: string) => (name === 'x-test-auth-user' ? '{"id":"custom_user_456","role":"admin"}' : undefined) },
+        set: (k: string, v: any) => { if (k === 'user') userReceived = v; },
+        json: () => {},
+      };
+      await requireAuth(ctxValid as any, async () => {});
+      assert.strictEqual(userReceived.id, 'custom_user_456');
+      assert.strictEqual(userReceived.role, 'admin');
+      console.log('   ✓ Auth middleware safely handles primitives, invalid objects, and valid custom users');
+    } finally {
+      process.env.ENABLE_TEST_AUTH = originalEnv;
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+
+    // -------------------------------------------------------------------------
+    // Test 9: OpenAPI UnauthorizedError schema matches actual 401 body
+    // -------------------------------------------------------------------------
+    console.log('\n9. Testing OpenAPI UnauthorizedError schema...');
+    const spec = buildOpenApiSpec();
+    const unauthResponse = (spec.components.responses as any).UnauthorizedError;
+    const unauthSchema = unauthResponse.content['application/json'].schema;
+    assert.strictEqual(unauthSchema.type, 'object', 'Schema must be object');
+    assert.strictEqual(unauthSchema.properties.error.type, 'string', 'Error property must be string');
+    assert.deepStrictEqual(unauthSchema.required, ['error'], 'Error property must be required');
+    assert.strictEqual(unauthSchema.$ref, undefined, 'Must not reference StandardError');
+    console.log('   ✓ OpenAPI UnauthorizedError schema directly matches 401 response body { error: string }');
+
+    // -------------------------------------------------------------------------
+    // Test 10: Contract drift check compares Hono routes against OpenAPI spec
+    // -------------------------------------------------------------------------
+    console.log('\n10. Testing check-contract-drift route comparison...');
+    const driftResult = checkContractDrift();
+    assert.strictEqual(driftResult.hasDrift, false, 'No drift should be detected in clean codebase');
+    console.log('   ✓ Contract drift check verified with Hono router alignment');
 
     console.log('\n===========================================================');
     console.log('🎉 ALL REVIEW FIXES VERIFICATION TESTS PASSED SUCCESSFULLY!');
     console.log('===========================================================');
   } finally {
+    (cloudinary.api as any).delete_resources_by_prefix = originalDeletePrefix;
+    (cloudinary.api as any).delete_folder = originalDeleteFolder;
     await mongoose.disconnect();
   }
 }
