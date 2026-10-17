@@ -41,6 +41,8 @@ export function buildOpenApiSpec() {
       { name: 'Batches', description: 'Batch lifecycle, spreadsheet intake, and generation snapshots' },
       { name: 'Storage', description: 'Storage quota and tenant usage metrics' },
       { name: 'Account', description: 'User account lifecycle and cascading deletion' },
+      { name: 'ClaimPortals', description: 'Organizer claim portal configuration and credential lifecycle' },
+      { name: 'PublicClaim', description: 'Participant credential submission, Turnstile validation, and certificate delivery' },
     ],
     paths: {
       '/health': {
@@ -1091,6 +1093,317 @@ export function buildOpenApiSpec() {
               },
             },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/batches/{id}/claim-portal': {
+        get: {
+          tags: ['ClaimPortals'],
+          summary: 'Get or initialize claim portal for batch',
+          description: 'Retrieves existing claim portal associated with the approved batch, or indicates if one has not been initialized.',
+          operationId: 'getBatchClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Claim portal details' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '404': { $ref: '#/components/responses/NotFoundError' },
+          },
+        },
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Create claim portal draft for approved batch',
+          description: 'Creates a draft claim portal for an approved batch with snapshot.',
+          operationId: 'createBatchClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '201': { description: 'Created claim portal' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}': {
+        patch: {
+          tags: ['ClaimPortals'],
+          summary: 'Update portal configuration',
+          description: 'Updates portal label, instructions, and configuration with CAS optimistic locking.',
+          operationId: 'updateClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Updated claim portal' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '404': { $ref: '#/components/responses/NotFoundError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/credentials/generate': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Generate CSPRNG tokens and verifiers',
+          description: 'Generates secure claim tokens and HMAC verifiers for all eligible snapshot recipients, returning export CSV data.',
+          operationId: 'generateClaimTokens',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Generated token export data' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/credentials/export-ack': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Acknowledge generated token export',
+          description: 'Confirms that organizer has safely downloaded and backed up the generated tokens CSV.',
+          operationId: 'acknowledgeTokenExport',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Export acknowledged' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/credentials/import-config': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Configure imported credentials',
+          description: 'Configures imported primary and secondary credential fields and validates uniqueness.',
+          operationId: 'configureImportedCredentials',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Imported credentials configured' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/credentials/rotate': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Rotate credentials',
+          description: 'Invalidates existing credentials, pauses portal, and prepares a new credential revision.',
+          operationId: 'rotateClaimCredentials',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Credentials rotated' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/preflight': {
+        get: {
+          tags: ['ClaimPortals'],
+          summary: 'Get preflight readiness report',
+          description: 'Returns eligibility, blocker counts, duplicate checks, and missing output warnings.',
+          operationId: 'getClaimPortalPreflight',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Preflight readiness report' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '404': { $ref: '#/components/responses/NotFoundError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/activate': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Activate claim portal',
+          description: 'Transitions portal to active status if preflight checks pass.',
+          operationId: 'activateClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Portal activated' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/pause': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Pause active portal',
+          description: 'Pauses active portal, temporarily rejecting participant claims.',
+          operationId: 'pauseClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Portal paused' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/resume': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Resume paused portal',
+          description: 'Resumes a paused portal to active status.',
+          operationId: 'resumeClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Portal resumed' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/disable': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Disable portal',
+          description: 'Disables claim portal for safety or policy reasons.',
+          operationId: 'disableClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Portal disabled' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/close': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Permanently close portal',
+          description: 'Irreversibly closes portal and revokes all active claim sessions.',
+          operationId: 'closeClaimPortal',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Portal closed' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/recipients': {
+        get: {
+          tags: ['ClaimPortals'],
+          summary: 'List recipient claim statuses',
+          description: 'Returns paginated and searchable list of recipient claim states.',
+          operationId: 'getClaimPortalRecipients',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [
+            { name: 'portalId', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
+            { name: 'search', in: 'query', schema: { type: 'string' } },
+            { name: 'status', in: 'query', schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': { description: 'Paginated recipient states' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/recipients/{recipientId}/revoke': {
+        post: {
+          tags: ['ClaimPortals'],
+          summary: 'Revoke individual recipient claim',
+          description: 'Revokes claim access and invalidates active session for a specific recipient.',
+          operationId: 'revokeRecipientClaim',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [
+            { name: 'portalId', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'recipientId', in: 'path', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': { description: 'Recipient claim revoked' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/claim-portals/{portalId}/analytics': {
+        get: {
+          tags: ['ClaimPortals'],
+          summary: 'Get portal analytics and metrics',
+          description: 'Returns aggregate claim counts, claim rate percentage, and timeline data.',
+          operationId: 'getClaimPortalAnalytics',
+          security: [{ sessionCookie: [] }, { testAuth: [] }],
+          parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Portal analytics' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}': {
+        get: {
+          tags: ['PublicClaim'],
+          summary: 'Get public portal metadata',
+          description: 'Returns safe, public-facing portal metadata without leaking recipient counts or tenant IDs.',
+          operationId: 'getPublicPortalMetadata',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Safe portal public metadata' },
+            '404': { $ref: '#/components/responses/NotFoundError' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}/claim': {
+        post: {
+          tags: ['PublicClaim'],
+          summary: 'Submit claim credential',
+          description: 'Authenticates participant credential with constant-time HMAC comparison and Turnstile validation.',
+          operationId: 'submitPublicClaim',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Claim successful and session cookie set' },
+            '400': { $ref: '#/components/responses/BadRequestError' },
+            '429': { description: 'Rate limit exceeded' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}/session': {
+        get: {
+          tags: ['PublicClaim'],
+          summary: 'Verify active participant session',
+          description: 'Verifies the claim session cookie and returns recipient display details.',
+          operationId: 'getPublicClaimSession',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Active session details' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}/download-url': {
+        post: {
+          tags: ['PublicClaim'],
+          summary: 'Get authorized certificate download payload',
+          description: 'Generates authorized document download URL or content for the authenticated participant.',
+          operationId: 'getPublicClaimDownloadUrl',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Authorized download payload' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}/logout': {
+        post: {
+          tags: ['PublicClaim'],
+          summary: 'Participant logout',
+          description: 'Revokes participant claim session and clears session cookie.',
+          operationId: 'logoutPublicClaimSession',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Session terminated' },
           },
         },
       },

@@ -15,6 +15,11 @@ import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
 import { ApprovedRecipient } from '../models/ApprovedRecipient.js';
 import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
+import { ClaimPortal } from '../models/ClaimPortal.js';
+import { ClaimCredentialSet } from '../models/ClaimCredentialSet.js';
+import { ClaimCredential } from '../models/ClaimCredential.js';
+import { ClaimSession } from '../models/ClaimSession.js';
+import { ClaimRecipientState } from '../models/ClaimRecipientState.js';
 import { isTransactionUnsupportedError } from '../lib/transactions.js';
 
 function isNotFoundOrEmptyFolderError(err: any): boolean {
@@ -57,6 +62,15 @@ export async function deleteUserAccount(userId: string): Promise<DeleteAccountRe
   try {
     session = await mongoose.startSession();
     session.startTransaction();
+
+    const userPortals = await ClaimPortal.find({ ownerId: userId }).session(session).select('_id');
+    const portalIds = userPortals.map((p) => p._id);
+
+    await ClaimCredential.deleteMany({ portalId: { $in: portalIds } }, { session });
+    await ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }, { session });
+    await ClaimSession.deleteMany({ portalId: { $in: portalIds } }, { session });
+    await ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }, { session });
+    await ClaimPortal.deleteMany({ ownerId: userId }, { session });
 
     await BatchImport.deleteMany({ ownerId: userId }, { session });
     await DraftRow.deleteMany({ ownerId: userId }, { session });
@@ -105,7 +119,15 @@ export async function deleteUserAccount(userId: string): Promise<DeleteAccountRe
     }
 
     try {
+      const userPortals = await ClaimPortal.find({ ownerId: userId }).select('_id');
+      const portalIds = userPortals.map((p) => p._id);
+
       await Promise.all([
+        ClaimCredential.deleteMany({ portalId: { $in: portalIds } }),
+        ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }),
+        ClaimSession.deleteMany({ portalId: { $in: portalIds } }),
+        ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }),
+        ClaimPortal.deleteMany({ ownerId: userId }),
         BatchImport.deleteMany({ ownerId: userId }),
         DraftRow.deleteMany({ ownerId: userId }),
         ApprovedSnapshot.deleteMany({ ownerId: userId }),

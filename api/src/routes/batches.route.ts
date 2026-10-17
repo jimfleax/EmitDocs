@@ -32,6 +32,10 @@ import {
   getApprovedSnapshot,
   getApprovedRecipients,
 } from '../controllers/batches.controller.js';
+import {
+  getPortalByBatch,
+  createPortal,
+} from '../controllers/claim-portals.controller.js';
 
 /**
  * Sub-router mounting all batch intake, spreadsheet staging, and draft row manipulation endpoints.
@@ -51,6 +55,10 @@ batchesApp.get('/:id/approval-preflight', getApprovalPreflight);
 batchesApp.post('/:id/approve', approveBatch);
 batchesApp.get('/:id/snapshot', getApprovedSnapshot);
 batchesApp.get('/:id/snapshot/recipients', getApprovedRecipients);
+
+// Claim Portal workflows (PRD-CORE-11)
+batchesApp.get('/:id/claim-portal', getPortalByBatch);
+batchesApp.post('/:id/claim-portal', createPortal);
 
 // Import workflows
 batchesApp.post('/:id/imports', createImport);

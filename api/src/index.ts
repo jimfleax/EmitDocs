@@ -193,11 +193,15 @@ import templatesApp from './routes/templates.route.js';
 import batchesApp from './routes/batches.route.js';
 import storageApp from './routes/storage.route.js';
 import accountApp from './routes/account.route.js';
+import claimPortalsApp from './routes/claim-portals.route.js';
+import publicClaimApp from './routes/public-claim.route.js';
 
 app.route('/templates', templatesApp);
 app.route('/batches', batchesApp);
 app.route('/storage', storageApp);
 app.route('/account', accountApp);
+app.route('/claim-portals', claimPortalsApp);
+app.route('/public/claim-portals', publicClaimApp);
 
 // Standardized Not Found Handler
 app.notFound((c) => {

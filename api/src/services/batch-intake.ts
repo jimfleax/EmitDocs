@@ -139,22 +139,68 @@ export interface FinalizeImportResult {
 /*                           BatchIntake Implementation                       */
 /* -------------------------------------------------------------------------- */
 
-const importIngestLocks = new Map<string, Promise<void>>();
+/**
+ * Acquires a distributed lock on the BatchImport document in MongoDB to coordinate
+ * concurrent row-limit validation and chunk ingestion across distributed API processes.
+ */
+async function acquireMongoImportLock(
+  importId: string | mongoose.Types.ObjectId,
+  batchId: string | mongoose.Types.ObjectId,
+  ownerId: string
+): Promise<{ batchImport: IBatchImport; releaseLock: () => Promise<void> }> {
+  const lockToken = new mongoose.Types.ObjectId().toHexString();
+  const maxWaitMs = 15000;
+  const pollIntervalMs = 25;
+  const startTime = Date.now();
 
-async function acquireImportLock(importId: string): Promise<() => void> {
-  const previous = importIngestLocks.get(importId) || Promise.resolve();
-  let release: () => void = () => {};
-  const current = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-  importIngestLocks.set(importId, current);
-  await previous;
-  return () => {
-    release();
-    if (importIngestLocks.get(importId) === current) {
-      importIngestLocks.delete(importId);
+  while (Date.now() - startTime < maxWaitMs) {
+    const now = new Date();
+    const batchImport = await BatchImport.findOneAndUpdate(
+      {
+        _id: importId,
+        batchId,
+        ownerId,
+        $or: [
+          { ingestLockToken: { $exists: false } },
+          { ingestLockToken: null },
+          { ingestLockExpiresAt: { $lt: now } },
+        ],
+      },
+      {
+        $set: {
+          ingestLockToken: lockToken,
+          ingestLockExpiresAt: new Date(now.getTime() + 10000),
+        },
+      },
+      { new: true }
+    );
+
+    if (batchImport) {
+      const releaseLock = async () => {
+        try {
+          await BatchImport.updateOne(
+            { _id: importId, ingestLockToken: lockToken },
+            { $set: { ingestLockToken: null, ingestLockExpiresAt: null } }
+          );
+        } catch {
+          // Best-effort release
+        }
+      };
+      return { batchImport, releaseLock };
     }
-  };
+
+    const exists = await BatchImport.exists({ _id: importId, batchId, ownerId });
+    if (!exists) {
+      throw new BatchNotFoundError('Import not found or access denied');
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new BatchIntakeValidationError(
+    'Unable to acquire import intake lock. Server is busy processing another chunk.',
+    'IMPORT_LOCK_TIMEOUT'
+  );
 }
 
 /**
@@ -183,23 +229,13 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
     );
   }
 
-  const releaseLock = await acquireImportLock(String(importId));
+  const { batchImport, releaseLock } = await acquireMongoImportLock(importId, batchId, ownerId);
   try {
-    const [batchImport, batch] = await Promise.all([
-      BatchImport.findOne({
-        _id: importId,
-        batchId,
-        ownerId,
-      }),
-      Batch.findOne({
-        _id: batchId,
-        ownerId,
-      }),
-    ]);
+    const batch = await Batch.findOne({
+      _id: batchId,
+      ownerId,
+    });
 
-    if (!batchImport) {
-      throw new BatchNotFoundError('Import not found or access denied');
-    }
     if (!batch) {
       throw new BatchNotFoundError('Batch not found or access denied');
     }
@@ -300,7 +336,7 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
       idempotent: false,
     };
   } finally {
-    releaseLock();
+    await releaseLock();
   }
 }
 

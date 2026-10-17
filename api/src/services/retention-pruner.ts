@@ -10,6 +10,10 @@ import mongoose from 'mongoose';
 import { Batch, IBatch } from '../models/Batch.js';
 import { DraftRow } from '../models/DraftRow.js';
 import { ApprovedRecipient } from '../models/ApprovedRecipient.js';
+import { ClaimPortal } from '../models/ClaimPortal.js';
+import { ClaimCredential } from '../models/ClaimCredential.js';
+import { ClaimSession } from '../models/ClaimSession.js';
+import { ClaimRecipientState } from '../models/ClaimRecipientState.js';
 
 export interface PruneAllResult {
   checkedCount: number;
@@ -45,6 +49,19 @@ export async function expireBatchIfDue(
       await batch.save();
     }
 
+    const portal = await ClaimPortal.findOne({ batchId: batch._id });
+    if (portal) {
+      if (portal.status !== 'expired') {
+        portal.status = 'expired';
+        await portal.save();
+      }
+      await Promise.all([
+        ClaimCredential.deleteMany({ portalId: portal._id }),
+        ClaimSession.deleteMany({ portalId: portal._id }),
+        ClaimRecipientState.deleteMany({ portalId: portal._id }),
+      ]);
+    }
+
     await Promise.all([
       ApprovedRecipient.deleteMany({ batchId: batch._id }),
       DraftRow.deleteMany({ batchId: batch._id }),
@@ -73,6 +90,19 @@ export async function pruneAllExpiredBatches(): Promise<PruneAllResult> {
   for (const batch of expiredBatches) {
     batch.status = 'expired';
     await batch.save();
+
+    const portal = await ClaimPortal.findOne({ batchId: batch._id });
+    if (portal) {
+      if (portal.status !== 'expired') {
+        portal.status = 'expired';
+        await portal.save();
+      }
+      await Promise.all([
+        ClaimCredential.deleteMany({ portalId: portal._id }),
+        ClaimSession.deleteMany({ portalId: portal._id }),
+        ClaimRecipientState.deleteMany({ portalId: portal._id }),
+      ]);
+    }
 
     const [recRes, draftRes] = await Promise.all([
       ApprovedRecipient.deleteMany({ batchId: batch._id }),

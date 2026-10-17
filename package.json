@@ -22,6 +22,7 @@
     "test:tooltip": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/tooltip-positioning.test.ts",
     "test:smoke": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/smoke/preview-smoke.test.ts",
     "test:core10": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/core-10-acceptance-matrix.test.ts",
+    "test:core11": "cd web && NODE_PATH=./node_modules:../api/node_modules npx tsx ../test/core-11-acceptance-matrix.test.ts",
     "contract:generate": "npx tsx api/src/scripts/generate-openapi.ts",
     "contract:check": "npx tsx api/src/scripts/check-contract-drift.ts",
     "test": "pnpm run test:backend && pnpm run test:auth && pnpm run test:storage && pnpm run test:engine && pnpm run test:ac && pnpm run test:core04 && pnpm run test:core05 && pnpm run test:core06 && pnpm run test:core07 && pnpm run test:core08 && pnpm run test:core09 && pnpm run test:core10 && pnpm run test:nav && pnpm run test:ui && pnpm run test:skeleton && pnpm run test:pwa && pnpm run test:toast && pnpm run test:tooltip",

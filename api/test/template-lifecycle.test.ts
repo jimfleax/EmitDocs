@@ -126,6 +126,8 @@ async function runTests() {
 
   const testOwner = `test_owner_${Date.now()}`;
   const otherOwner = `other_owner_${Date.now()}`;
+  let quotaOwner: string | undefined;
+  let concurrentOwner: string | undefined;
 
   try {
     // Test 3: Input validation guardrails for publishVersion
@@ -444,7 +446,7 @@ async function runTests() {
     }
 
     // 12c. signUploadParams rejects when owner storage quota is exceeded
-    const quotaOwner = `quota_exceeded_owner_${Date.now()}`;
+    quotaOwner = `quota_exceeded_owner_${Date.now()}`;
     await TemplateVersion.create({
       templateId: new mongoose.Types.ObjectId(),
       ownerId: quotaOwner,
@@ -509,6 +511,7 @@ async function runTests() {
     );
 
     const originalResource = cloudinary.api.resource;
+    const origDeleteResources = cloudinary.api.delete_resources;
     try {
       // 13a. Probes 'image' resource first
       let probeLog: string[] = [];
@@ -573,7 +576,6 @@ async function runTests() {
       );
       // 13d. Size limit exceeded -> purges Cloudinary asset and throws TemplateValidationError
       let deletedAssets: string[] = [];
-      const origDeleteResources = cloudinary.api.delete_resources;
       cloudinary.api.delete_resources = (async (publicIds: string[], _opts: any) => {
         deletedAssets.push(...publicIds);
         return { deleted: { [publicIds[0]]: 'deleted' } };
@@ -622,10 +624,9 @@ async function runTests() {
         deletedAssets.includes(`templates/${quotaOwner}/quota_pdf`),
         'Must purge Cloudinary asset when rejected due to user storage quota exceeded'
       );
-      cloudinary.api.delete_resources = origDeleteResources;
 
       // 13f. Concurrency safety: concurrent registrations for same owner are serialized and cannot exceed quota
-      const concurrentOwner = `concurrent_owner_${Date.now()}`;
+      concurrentOwner = `concurrent_owner_${Date.now()}`;
       await TemplateVersion.create({
         templateId: new mongoose.Types.ObjectId(),
         ownerId: concurrentOwner,
@@ -665,6 +666,7 @@ async function runTests() {
       assert.strictEqual((rejected[0] as PromiseRejectedResult).reason?.code, 'STORAGE_QUOTA_EXCEEDED');
     } finally {
       cloudinary.api.resource = originalResource;
+      cloudinary.api.delete_resources = origDeleteResources;
     }
     console.log('   ✓ createTemplate validation, dual-resource probing, asset purge on rejection, quota enforcement, and concurrency safety verified\n');
 
@@ -1052,8 +1054,11 @@ async function runTests() {
   } finally {
     // Teardown
     console.log('\n🧹 Cleaning up test fixtures...');
-    await Template.deleteMany({ ownerId: { $in: [testOwner, otherOwner] } });
-    await TemplateVersion.deleteMany({ ownerId: { $in: [testOwner, otherOwner] } });
+    const ownersToClean = [testOwner, otherOwner, quotaOwner, concurrentOwner].filter(
+      (o): o is string => Boolean(o)
+    );
+    await Template.deleteMany({ ownerId: { $in: ownersToClean } });
+    await TemplateVersion.deleteMany({ ownerId: { $in: ownersToClean } });
     await mongoose.disconnect();
     console.log('   ✓ Cleaned up test data and disconnected from database');
   }

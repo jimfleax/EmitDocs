@@ -63,6 +63,8 @@ export interface IBatchImport extends Document {
   validCount: number;
   invalidCount: number;
   duplicateCount: number;
+  ingestLockToken?: string | null;
+  ingestLockExpiresAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -93,6 +95,8 @@ const BatchImportSchema = new Schema<IBatchImport>(
     validCount: { type: Number, default: 0 },
     invalidCount: { type: Number, default: 0 },
     duplicateCount: { type: Number, default: 0 },
+    ingestLockToken: { type: String, default: null },
+    ingestLockExpiresAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

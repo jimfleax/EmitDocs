@@ -701,7 +701,10 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
     const pageCount = asset?.pages || 1;
 
     if (bytes > RESOURCE_LIMITS.MAX_TEMPLATE_FILE_SIZE_BYTES) {
-      await removeCloudinaryAsset(cloudinaryPublicId, isImageResource ? 'image' : 'raw');
+      const isReferenced = await TemplateVersion.exists({ sourceObjectKey: cloudinaryPublicId });
+      if (!isReferenced) {
+        await removeCloudinaryAsset(cloudinaryPublicId, isImageResource ? 'image' : 'raw');
+      }
       throw new TemplateValidationError(
         `Template PDF exceeds maximum 15MB size limit (${bytes} bytes)`,
         'TEMPLATE_SIZE_EXCEEDED'
@@ -717,7 +720,10 @@ export async function createTemplate(input: CreateTemplateInput): Promise<Create
       : (storage?.totalBytes || 0);
 
     if (existingBytes + bytes > RESOURCE_LIMITS.MAX_USER_STORAGE_QUOTA_BYTES) {
-      await removeCloudinaryAsset(cloudinaryPublicId, isImageResource ? 'image' : 'raw');
+      const isReferenced = await TemplateVersion.exists({ sourceObjectKey: cloudinaryPublicId });
+      if (!isReferenced) {
+        await removeCloudinaryAsset(cloudinaryPublicId, isImageResource ? 'image' : 'raw');
+      }
       throw new StorageAssetError(
         `User storage quota exceeded (500MB ceiling). Existing: ${existingBytes} bytes, New asset: ${bytes} bytes. Delete unused templates to proceed.`,
         'STORAGE_QUOTA_EXCEEDED'

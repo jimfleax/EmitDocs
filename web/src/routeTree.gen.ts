@@ -17,6 +17,7 @@ import { Route as SignInRouteImport } from './routes/sign-in'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
 import { Route as ProtectedAppRouteImport } from './routes/_protected/app'
+import { Route as ClaimPublicSlugRouteImport } from './routes/claim/$publicSlug'
 import { Route as DebugErrorsRouteImport } from './routes/debug.errors'
 import { Route as ProtectedAppIndexRouteImport } from './routes/_protected/app/index'
 import { Route as ProtectedAppBatchesIndexRouteImport } from './routes/_protected/app/batches/index'
@@ -27,6 +28,7 @@ import { Route as ProtectedAppTemplatesIndexRouteImport } from './routes/_protec
 import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from './routes/_protected/app/templates/$templateId'
 import { Route as ProtectedAppTemplatesNewRouteImport } from './routes/_protected/app/templates/new'
 import { Route as ProtectedAppBatchesBatchIdApproveRouteImport } from './routes/_protected/app/batches/$batchId_.approve'
+import { Route as ProtectedAppBatchesBatchIdClaimPortalRouteImport } from './routes/_protected/app/batches/$batchId_.claim-portal'
 import { Route as ProtectedAppBatchesBatchIdImportRouteImport } from './routes/_protected/app/batches/$batchId_.import'
 import { Route as ProtectedAppBatchesBatchIdProgressRouteImport } from './routes/_protected/app/batches/$batchId_.progress'
 import { Route as ProtectedAppBatchesBatchIdResultsRouteImport } from './routes/_protected/app/batches/$batchId_.results'
@@ -71,6 +73,11 @@ const ProtectedAppRoute = ProtectedAppRouteImport.update({
   id: '/app',
   path: '/app',
   getParentRoute: () => ProtectedRoute,
+} as any)
+const ClaimPublicSlugRoute = ClaimPublicSlugRouteImport.update({
+  id: '/claim/$publicSlug',
+  path: '/claim/$publicSlug',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const DebugErrorsRoute = DebugErrorsRouteImport.update({
   id: '/debug/errors',
@@ -129,6 +136,12 @@ const ProtectedAppBatchesBatchIdApproveRoute =
     path: '/batches/$batchId/approve',
     getParentRoute: () => ProtectedAppRoute,
   } as any)
+const ProtectedAppBatchesBatchIdClaimPortalRoute =
+  ProtectedAppBatchesBatchIdClaimPortalRouteImport.update({
+    id: '/batches/$batchId_/claim-portal',
+    path: '/batches/$batchId/claim-portal',
+    getParentRoute: () => ProtectedAppRoute,
+  } as any)
 const ProtectedAppBatchesBatchIdImportRoute =
   ProtectedAppBatchesBatchIdImportRouteImport.update({
     id: '/batches/$batchId_/import',
@@ -168,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/app': typeof ProtectedAppRouteWithChildren
+  '/claim/$publicSlug': typeof ClaimPublicSlugRoute
   '/debug/errors': typeof DebugErrorsRoute
   '/app/': typeof ProtectedAppIndexRoute
   '/app/batches/new': typeof ProtectedAppBatchesNewRoute
@@ -178,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/app/batches/': typeof ProtectedAppBatchesIndexRoute
   '/app/templates/': typeof ProtectedAppTemplatesIndexRoute
   '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
+  '/app/batches/$batchId/claim-portal': typeof ProtectedAppBatchesBatchIdClaimPortalRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/app/batches/$batchId/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
   '/app/batches/$batchId/results': typeof ProtectedAppBatchesBatchIdResultsRoute
@@ -191,6 +206,7 @@ export interface FileRoutesByTo {
   '/sign-in': typeof SignInRoute
   '/terms': typeof TermsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
+  '/claim/$publicSlug': typeof ClaimPublicSlugRoute
   '/debug/errors': typeof DebugErrorsRoute
   '/app': typeof ProtectedAppIndexRoute
   '/app/batches/new': typeof ProtectedAppBatchesNewRoute
@@ -201,6 +217,7 @@ export interface FileRoutesByTo {
   '/app/batches': typeof ProtectedAppBatchesIndexRoute
   '/app/templates': typeof ProtectedAppTemplatesIndexRoute
   '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
+  '/app/batches/$batchId/claim-portal': typeof ProtectedAppBatchesBatchIdClaimPortalRoute
   '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/app/batches/$batchId/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
   '/app/batches/$batchId/results': typeof ProtectedAppBatchesBatchIdResultsRoute
@@ -217,6 +234,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/terms-of-service': typeof TermsOfServiceRoute
   '/_protected/app': typeof ProtectedAppRouteWithChildren
+  '/claim/$publicSlug': typeof ClaimPublicSlugRoute
   '/debug/errors': typeof DebugErrorsRoute
   '/_protected/app/': typeof ProtectedAppIndexRoute
   '/_protected/app/batches/new': typeof ProtectedAppBatchesNewRoute
@@ -227,6 +245,7 @@ export interface FileRoutesById {
   '/_protected/app/batches/': typeof ProtectedAppBatchesIndexRoute
   '/_protected/app/templates/': typeof ProtectedAppTemplatesIndexRoute
   '/_protected/app/batches/$batchId_/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
+  '/_protected/app/batches/$batchId_/claim-portal': typeof ProtectedAppBatchesBatchIdClaimPortalRoute
   '/_protected/app/batches/$batchId_/import': typeof ProtectedAppBatchesBatchIdImportRoute
   '/_protected/app/batches/$batchId_/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
   '/_protected/app/batches/$batchId_/results': typeof ProtectedAppBatchesBatchIdResultsRoute
@@ -243,6 +262,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/terms-of-service'
     | '/app'
+    | '/claim/$publicSlug'
     | '/debug/errors'
     | '/app/'
     | '/app/batches/new'
@@ -253,6 +273,7 @@ export interface FileRouteTypes {
     | '/app/batches/'
     | '/app/templates/'
     | '/app/batches/$batchId/approve'
+    | '/app/batches/$batchId/claim-portal'
     | '/app/batches/$batchId/import'
     | '/app/batches/$batchId/progress'
     | '/app/batches/$batchId/results'
@@ -266,6 +287,7 @@ export interface FileRouteTypes {
     | '/sign-in'
     | '/terms'
     | '/terms-of-service'
+    | '/claim/$publicSlug'
     | '/debug/errors'
     | '/app'
     | '/app/batches/new'
@@ -276,6 +298,7 @@ export interface FileRouteTypes {
     | '/app/batches'
     | '/app/templates'
     | '/app/batches/$batchId/approve'
+    | '/app/batches/$batchId/claim-portal'
     | '/app/batches/$batchId/import'
     | '/app/batches/$batchId/progress'
     | '/app/batches/$batchId/results'
@@ -291,6 +314,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/terms-of-service'
     | '/_protected/app'
+    | '/claim/$publicSlug'
     | '/debug/errors'
     | '/_protected/app/'
     | '/_protected/app/batches/new'
@@ -301,6 +325,7 @@ export interface FileRouteTypes {
     | '/_protected/app/batches/'
     | '/_protected/app/templates/'
     | '/_protected/app/batches/$batchId_/approve'
+    | '/_protected/app/batches/$batchId_/claim-portal'
     | '/_protected/app/batches/$batchId_/import'
     | '/_protected/app/batches/$batchId_/progress'
     | '/_protected/app/batches/$batchId_/results'
@@ -316,6 +341,7 @@ export interface RootRouteChildren {
   SignInRoute: typeof SignInRoute
   TermsRoute: typeof TermsRoute
   TermsOfServiceRoute: typeof TermsOfServiceRoute
+  ClaimPublicSlugRoute: typeof ClaimPublicSlugRoute
   DebugErrorsRoute: typeof DebugErrorsRoute
 }
 
@@ -376,6 +402,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app'
       preLoaderRoute: typeof ProtectedAppRouteImport
       parentRoute: typeof ProtectedRoute
+    }
+    '/claim/$publicSlug': {
+      id: '/claim/$publicSlug'
+      path: '/claim/$publicSlug'
+      fullPath: '/claim/$publicSlug'
+      preLoaderRoute: typeof ClaimPublicSlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/debug/errors': {
       id: '/debug/errors'
@@ -447,6 +480,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProtectedAppBatchesBatchIdApproveRouteImport
       parentRoute: typeof ProtectedAppRoute
     }
+    '/_protected/app/batches/$batchId_/claim-portal': {
+      id: '/_protected/app/batches/$batchId_/claim-portal'
+      path: '/batches/$batchId/claim-portal'
+      fullPath: '/app/batches/$batchId/claim-portal'
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdClaimPortalRouteImport
+      parentRoute: typeof ProtectedAppRoute
+    }
     '/_protected/app/batches/$batchId_/import': {
       id: '/_protected/app/batches/$batchId_/import'
       path: '/batches/$batchId/import'
@@ -495,6 +535,7 @@ interface ProtectedAppRouteChildren {
   ProtectedAppBatchesIndexRoute: typeof ProtectedAppBatchesIndexRoute
   ProtectedAppTemplatesIndexRoute: typeof ProtectedAppTemplatesIndexRoute
   ProtectedAppBatchesBatchIdApproveRoute: typeof ProtectedAppBatchesBatchIdApproveRoute
+  ProtectedAppBatchesBatchIdClaimPortalRoute: typeof ProtectedAppBatchesBatchIdClaimPortalRoute
   ProtectedAppBatchesBatchIdImportRoute: typeof ProtectedAppBatchesBatchIdImportRoute
   ProtectedAppBatchesBatchIdProgressRoute: typeof ProtectedAppBatchesBatchIdProgressRoute
   ProtectedAppBatchesBatchIdResultsRoute: typeof ProtectedAppBatchesBatchIdResultsRoute
@@ -513,6 +554,8 @@ const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
   ProtectedAppTemplatesIndexRoute: ProtectedAppTemplatesIndexRoute,
   ProtectedAppBatchesBatchIdApproveRoute:
     ProtectedAppBatchesBatchIdApproveRoute,
+  ProtectedAppBatchesBatchIdClaimPortalRoute:
+    ProtectedAppBatchesBatchIdClaimPortalRoute,
   ProtectedAppBatchesBatchIdImportRoute: ProtectedAppBatchesBatchIdImportRoute,
   ProtectedAppBatchesBatchIdProgressRoute:
     ProtectedAppBatchesBatchIdProgressRoute,
@@ -547,6 +590,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignInRoute: SignInRoute,
   TermsRoute: TermsRoute,
   TermsOfServiceRoute: TermsOfServiceRoute,
+  ClaimPublicSlugRoute: ClaimPublicSlugRoute,
   DebugErrorsRoute: DebugErrorsRoute,
 }
 export const routeTree = rootRouteImport
