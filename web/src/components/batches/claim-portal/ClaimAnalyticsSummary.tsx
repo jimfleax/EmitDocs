@@ -1,6 +1,8 @@
 /**
  * @file ClaimAnalyticsSummary.tsx
  * @description Stat tiles for total eligible, unique claimed, unclaimed, and claim rate percentage.
+ * @architecture Presentation metrics card grid rendered in ClaimPortalWorkspace overview tab.
+ * @agent_note Displays high-level adoption telemetry: total eligible, claimed count, unclaimed backlog, and percentage conversion rate.
  */
 
 import { Users, CheckCircle, Clock, ChartPie } from "@phosphor-icons/react";
@@ -16,6 +18,18 @@ export interface ClaimAnalyticsSummaryProps {
   isLoading?: boolean;
 }
 
+/**
+ * @component ClaimAnalyticsSummary
+ * @description Visualizes claim portal participation telemetry including total eligible, unique claims, and claim conversion rate.
+ * @param {ClaimAnalyticsSummaryProps} props - Component properties.
+ * @param {Object} props.analytics - Claim rate analytics payload.
+ * @param {number} props.analytics.totalEligible - Total participants configured for claims.
+ * @param {number} props.analytics.uniqueClaimedCount - Total unique recipients who claimed certificates.
+ * @param {number} props.analytics.unclaimedCount - Total recipients remaining to claim.
+ * @param {number} props.analytics.claimRatePercent - Percentage conversion rate (0-100).
+ * @param {boolean} [props.isLoading=false] - Whether analytics metrics are being fetched.
+ * @returns {JSX.Element} Responsive four-column metric card grid.
+ */
 export function ClaimAnalyticsSummary({
   analytics,
   isLoading = false,

@@ -1,6 +1,8 @@
 /**
  * @file ClaimSuccessSummary.tsx
  * @description Participant confirmation card with safe event label, participant reference, and retention indicator.
+ * @architecture Public claim interface status banner confirming verified credentials and stating automated retention policy.
+ * @agent_note Displays verified recipient name and retention expiration deadline without exposing sensitive credential data.
  */
 
 import { CheckCircle, Clock } from "@phosphor-icons/react";
@@ -12,6 +14,15 @@ export interface ClaimSuccessSummaryProps {
   expiresAt?: string | Date;
 }
 
+/**
+ * @component ClaimSuccessSummary
+ * @description Confirmation banner displaying verified claim details and retention timeline.
+ * @param {ClaimSuccessSummaryProps} props - Component properties.
+ * @param {string} props.eventLabel - Display title of the event or credential portal.
+ * @param {string} props.recipientName - Verified recipient display name.
+ * @param {boolean} [props.isFirstClaim] - Whether this is the participant's initial claim action.
+ * @param {string | Date} [props.expiresAt] - Date when access to the claimed document will expire.
+ */
 export function ClaimSuccessSummary({
   eventLabel,
   recipientName,

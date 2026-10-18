@@ -1,6 +1,8 @@
 /**
  * @file claim-portal-workspace-fixes.test.ts
  * @description Unit tests validating review comment fixes in ClaimPortalWorkspace and related API endpoints.
+ * @architecture Service and model integration test suite verifying error message extractions, batch preflight validations, and token download formats.
+ * @agent_note Run via `npx tsx test/claim-portal-workspace-fixes.test.ts`. Requires MONGODB_URI in api/.env; runs against isolated database emitdocs_workspace_fixes_test.
  */
 
 import assert from "node:assert";
@@ -20,6 +22,10 @@ import { ClaimPortal } from "../api/src/models/ClaimPortal.js";
 import { ClaimCredentialSet } from "../api/src/models/ClaimCredentialSet.js";
 import { ClaimPortalLifecycle } from "../api/src/services/claim-portal-lifecycle.js";
 
+/**
+ * @desc Main test runner validating workspace error handling, batch preflight exclusions, and export acknowledgements.
+ * @returns Promise resolving when all workspace review fix checks pass.
+ */
 async function run() {
   console.log("Starting ClaimPortalWorkspace review fixes verification...\n");
 

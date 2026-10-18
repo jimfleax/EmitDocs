@@ -36,9 +36,23 @@ const BURN = [{ transform: "scaleX(1)" }, { transform: "scaleX(0)" }];
 const HAS_STARTING_STYLE =
   typeof window !== "undefined" && "CSSStartingStyleRule" in window;
 
+/**
+ * @function rubberband
+ * @description Computes nonlinear resistant displacement for drag gestures extending past bounds.
+ * @param {number} over - Drag distance past boundary.
+ * @param {number} dim - Dimension of the container.
+ * @param {number} [c=0.55] - Resistance coefficient.
+ * @returns {number} Dampened pixel displacement.
+ */
 const rubberband = (over: number, dim: number, c = 0.55): number =>
   (over * dim * c) / (dim + c * Math.abs(over));
 
+/**
+ * @function velocityOf
+ * @description Calculates pointer velocity from timestamped coordinate history.
+ * @param {[number, number][]} hist - Array of [timestamp, coordinate] tuples.
+ * @returns {number} Computed velocity in pixels per millisecond.
+ */
 const velocityOf = (hist: [number, number][]): number => {
   if (hist.length < 2) return 0;
   const [t0, y0] = hist[0]!;
@@ -213,6 +227,7 @@ type ToastPhase = "open" | "closing" | "gone";
 /**
  * @component SwipeToast
  * @description Renders a toast notification card with gesture-based dismiss, fuse timer, and action buttons.
+ * @param {SwipeToastProps} props - Component properties.
  */
 export default function SwipeToast({
   variant = "default",

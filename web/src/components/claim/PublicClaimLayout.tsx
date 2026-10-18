@@ -1,6 +1,8 @@
 /**
  * @file PublicClaimLayout.tsx
  * @description Clean, mobile-first responsive container with prominent EmitDocs branding.
+ * @architecture Public claim interface layout wrapper providing consistent header chrome, ambient glows, and responsive margins.
+ * @agent_note Mobile-first responsive wrapper with centered brand identity and footer security badges.
  */
 
 export interface PublicClaimLayoutProps {
@@ -10,6 +12,15 @@ export interface PublicClaimLayoutProps {
   maxWidth?: "xl" | "2xl" | "3xl";
 }
 
+/**
+ * @component PublicClaimLayout
+ * @description Responsive container shell wrapping public claim interface forms, previews, and notices.
+ * @param {PublicClaimLayoutProps} props - Component properties.
+ * @param {React.ReactNode} props.children - Child components and forms.
+ * @param {string} [props.title] - Page title heading.
+ * @param {string} [props.subtitle] - Explanatory subtitle.
+ * @param {"xl" | "2xl" | "3xl"} [props.maxWidth="xl"] - Maximum width constraint.
+ */
 export function PublicClaimLayout({
   children,
   title,

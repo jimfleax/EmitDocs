@@ -2,6 +2,7 @@
  * @file LegalLayout.tsx
  * @description Public legal document layout with table of contents scrollspy, filter search, and print optimization.
  * @architecture Wraps Terms of Service and Privacy Policy pages with sticky sidebar navigation, tab switcher, and header/footer chrome.
+ * @agent_note Supports search filtering across legal clauses and automatic scrollspy tracking.
  */
 
 import React, { useState, useEffect } from "react";
@@ -20,6 +21,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CONTACT_EMAIL, CONTACT_MAILTO } from "@/lib/contact";
 
 export interface LegalLayoutProps {
   title: string;
@@ -297,17 +299,13 @@ export function LegalLayout({
                 <a
                   href={
                     activeDoc === "terms"
-                      ? "mailto:legal@emitdocs.com"
-                      : "mailto:privacy@emitdocs.com"
+                      ? CONTACT_MAILTO.legal
+                      : CONTACT_MAILTO.privacy
                   }
                   className="inline-flex items-center gap-1.5 text-slate-600 hover:text-blue-600 transition-colors font-medium text-xs"
                 >
                   <EnvelopeSimple size={14} weight="bold" />
-                  <span>
-                    {activeDoc === "terms"
-                      ? "legal@emitdocs.com"
-                      : "privacy@emitdocs.com"}
-                  </span>
+                  <span>{CONTACT_EMAIL}</span>
                 </a>
               </div>
             </div>
@@ -390,7 +388,7 @@ export function LegalLayout({
               Sign In
             </Link>
             <a
-              href="mailto:legal@emitdocs.com"
+              href={CONTACT_MAILTO.legal}
               className="hover:text-blue-600 transition-colors"
             >
               Contact Legal

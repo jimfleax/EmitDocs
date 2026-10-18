@@ -35,9 +35,18 @@ interface FieldPropertiesPanelProps {
 }
 
 /**
- * @component FieldPropertiesPanel
+ * @component FieldPropertiesPanelComponent
  * @description Detailed properties editor panel for inspecting and modifying field geometry, typography, and format rules.
  * @param {FieldPropertiesPanelProps} props - Component properties.
+ * @param {IFieldMapping | null} props.field - Currently selected field mapping.
+ * @param {IFieldMapping[]} [props.fields] - All field mappings across the active template.
+ * @param {string[]} [props.selectedFieldIds] - Array of multi-selected field IDs.
+ * @param {(id: string | null, isMulti?: boolean) => void} [props.onSelectField] - Field selection change callback.
+ * @param {(updated: IFieldMapping) => void} props.onUpdate - Callback to update field properties.
+ * @param {(id: string) => void} props.onDelete - Callback to delete single selected field.
+ * @param {(ids: string[]) => void} [props.onDeleteMultiple] - Callback to delete multiple selected fields.
+ * @state Controlled form inputs reflecting current field properties and file input ref for custom font upload.
+ * @api Parent callbacks: onSelectField, onUpdate, onDelete, onDeleteMultiple.
  * @returns {JSX.Element} Property fields form, multi-field summary, or empty selection state.
  */
 const FieldPropertiesPanelComponent: React.FC<FieldPropertiesPanelProps> = ({
@@ -767,6 +776,12 @@ function areFieldsEqual(
   return true;
 }
 
+/**
+ * @component FieldPropertiesPanel
+ * @description Performance-optimized memoized export of FieldPropertiesPanelComponent with custom shallow equality checks.
+ * @param {FieldPropertiesPanelProps} props - Component properties.
+ * @returns {JSX.Element} Memoized field properties editor panel.
+ */
 export const FieldPropertiesPanel = React.memo(
   FieldPropertiesPanelComponent,
   (prevProps, nextProps) => {

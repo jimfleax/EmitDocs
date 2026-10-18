@@ -1,6 +1,8 @@
 /**
  * @file ClaimPortalSettingsPanel.tsx
  * @description Editable form for claim portal settings (label, instructions, public slug, and retention details).
+ * @architecture Settings tab view in ClaimPortalWorkspace for managing user-facing labels, guidelines, and public link access.
+ * @agent_note Provides dirty-state detection, input reset, and patch updates to /api/claim-portals/:portalId.
  */
 
 import { useState, useEffect } from "react";
@@ -24,6 +26,27 @@ export interface ClaimPortalSettingsPanelProps {
   onUpdatePortal: (updatedPortal: any) => void;
 }
 
+/**
+ * @component ClaimPortalSettingsPanel
+ * @description Form panel allowing organizers to customize portal title, public claim instructions, and copy shareable URLs.
+ * @param {ClaimPortalSettingsPanelProps} props - Component properties.
+ * @param {Object} props.portal - Claim portal entity data.
+ * @param {string} props.portal._id - Portal unique ID.
+ * @param {string} props.portal.publicSlug - URL slug for public recipient access.
+ * @param {string} props.portal.label - Human-readable portal title.
+ * @param {string} [props.portal.instructions] - Instructions displayed on the public claim screen.
+ * @param {string | Date} props.portal.expiresAt - Expiration timestamp of the claim portal.
+ * @param {number} props.portal.version - Optimistic concurrency version number.
+ * @param {string} props.portal.status - Current portal lifecycle status.
+ * @param {(updatedPortal: any) => void} props.onUpdatePortal - Callback invoked when settings update succeeds.
+ * @state {string} label - Current text in title input field.
+ * @state {string} instructions - Current text in instructions textarea.
+ * @state {boolean} isSaving - Network in-flight state during patch request.
+ * @state {string | null} error - Error message string if save fails.
+ * @state {boolean} copied - Clipboard copy confirmation feedback flag.
+ * @api {PATCH} /api/claim-portals/:portalId - Saves updated label and instructions.
+ * @returns {JSX.Element} Settings form cards with live public link preview.
+ */
 export function ClaimPortalSettingsPanel({
   portal,
   onUpdatePortal,
@@ -38,7 +61,7 @@ export function ClaimPortalSettingsPanel({
     setLabel(portal.label || "");
     setInstructions(portal.instructions || "");
     setError(null);
-  }, [portal._id, portal.version]);
+  }, [portal.label, portal.instructions]);
 
   const isDirty =
     label.trim() !== (portal.label || "").trim() ||

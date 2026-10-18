@@ -1,3 +1,10 @@
+/**
+ * @file auth-redirect-uri.test.ts
+ * @description Tests OAuth redirect URI calculation and base URL resolution for BetterAuth authentication integration.
+ * @architecture Unit & integration test suite verifying auth URL resolution and origin validation across localhost, preview, and production deployment environments.
+ * @agent_note Uses node:test runner; does not require database connection.
+ */
+
 import assert from "node:assert";
 import { describe, it } from "node:test";
 import { resolveAuthBaseURL } from "../src/lib/auth-url.js";

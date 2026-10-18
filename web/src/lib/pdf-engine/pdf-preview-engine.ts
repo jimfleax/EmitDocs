@@ -83,6 +83,11 @@ export function parseHexColor(hex: string): Color {
   return rgb(0, 0, 0);
 }
 
+/**
+ * @desc Decodes a base64 encoded string to Uint8Array in browser or Node environments.
+ * @param {string} base64 - Base64 string to decode.
+ * @returns {Uint8Array} Decoded byte array.
+ */
 function decodeBase64(base64: string): Uint8Array {
   if (typeof atob === "function") {
     const bin = atob(base64);

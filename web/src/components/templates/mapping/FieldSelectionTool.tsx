@@ -27,6 +27,9 @@ interface FieldSelectionToolProps {
  * @param {boolean} props.isActive - Whether marquee drawing mode is currently enabled.
  * @param {(pdfRect: PdfRect) => void} props.onAreaSelected - Callback triggered on mouse up with normalized PDF bounds.
  * @param {React.ReactNode} props.children - Enclosed canvas or page elements.
+ * @state {Object | null} startPoint - Origin {x, y} coordinate of mouse drag in DOM pixels.
+ * @state {Object | null} currentPoint - Current {x, y} coordinate of mouse cursor during drag.
+ * @api Parent callback: onAreaSelected.
  * @returns {JSX.Element} Wrapper container with drawing canvas overlay.
  */
 export const FieldSelectionTool: React.FC<FieldSelectionToolProps> = ({

@@ -1,6 +1,8 @@
 /**
  * @file claim-portals.route.ts
- * @description Route definitions and router setup for organizer claim portals (PRD-CORE-11 Slice 2).
+ * @description Route definitions and router setup for organizer certificate claim portals (PRD-CORE-11 Slice 2).
+ * @architecture Sub-router mounted under /api/claim-portals in the primary Hono application pipeline.
+ * @agent_note All organizer portal endpoints require Better-Auth session enforced by requireAuth middleware.
  */
 
 import { Hono } from 'hono';
@@ -22,6 +24,9 @@ import {
   getAnalytics,
 } from '../controllers/claim-portals.controller.js';
 
+/**
+ * @desc Sub-router mounting organizer claim portal management and lifecycle endpoints.
+ */
 const claimPortalsApp = new Hono();
 
 // All organizer portal endpoints require Better-Auth session

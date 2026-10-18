@@ -1,6 +1,8 @@
 /**
  * @file SinglePdfPreviewModal.tsx
  * @description Fast canvas PDF preview modal with PDF.js renderer, zoom controls, diagnostic warning badges, and download button.
+ * @architecture Modal dialog portaled to document.body providing sub-20ms preview verification of individual recipient certificates.
+ * @agent_note Initializes PDF.js canvas rendering, handles window resize, keyboard escape dismiss, and zoom scaling (50% to 200%).
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -33,6 +35,23 @@ export interface SinglePdfPreviewModalProps {
   onDownload?: () => void;
 }
 
+/**
+ * @component SinglePdfPreviewModal
+ * @description Interactive canvas modal rendering individual recipient PDF documents with zoom and diagnostic inspection.
+ * @param {SinglePdfPreviewModalProps} props - Component properties.
+ * @param {boolean} props.isOpen - Whether the preview modal is currently open.
+ * @param {() => void} props.onClose - Modal close handler.
+ * @param {string} props.recipientKey - Identifier key of the previewed recipient.
+ * @param {string} [props.recipientName] - Display name of the recipient.
+ * @param {Uint8Array | null} props.pdfBytes - Raw PDF binary bytes to render.
+ * @param {EngineWarning[]} [props.warnings=[]] - Array of layout or font engine warnings.
+ * @param {number} [props.durationMs] - Generation latency in milliseconds.
+ * @param {() => void} [props.onDownload] - Direct file download handler.
+ * @state {number} scale - Canvas zoom multiplier (0.5 to 2.0).
+ * @state {boolean} isRendering - PDF.js page rasterization in-flight state.
+ * @state {string | null} renderError - Error message if PDF rendering fails.
+ * @returns {JSX.Element | null} Portaled modal dialog or null if closed.
+ */
 export function SinglePdfPreviewModal({
   isOpen,
   onClose,

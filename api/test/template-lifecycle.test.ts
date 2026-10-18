@@ -1,3 +1,10 @@
+/**
+ * @file template-lifecycle.test.ts
+ * @description Tests complete template lifecycle including version publishing, optimistic concurrency checks, SHA-256 mapping hashes, and Cloudinary asset streaming.
+ * @architecture Service layer integration test suite validating TemplateLifecycle business logic, typed errors, and MongoDB persistence.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_test database with isolated mock owners and mocked Cloudinary clients.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -25,6 +32,10 @@ import {
   StorageAssetError,
 } from '../src/services/template-lifecycle.js';
 
+/**
+ * @desc Main test runner verifying template CRUD operations, version control, mapping hashes, and thumbnail lifecycle.
+ * @returns Promise resolving when all template lifecycle assertions pass.
+ */
 async function runTests() {
   console.log('🧪 Starting TemplateLifecycle Slice 1 & 2 test suite...\n');
 

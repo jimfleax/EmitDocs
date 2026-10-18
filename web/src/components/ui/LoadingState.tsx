@@ -2,6 +2,7 @@
  * @file LoadingState.tsx
  * @description Centered loading spinner/track state with optional title and description text.
  * @architecture Used across pages, panels, and route transitions to convey async loading status.
+ * @agent_note Implements role="status" and aria-live="polite" with flexible size variants for page, section, or fullscreen loading.
  */
 
 import * as React from "react";

@@ -1,6 +1,8 @@
 /**
  * @file ImportedCredentialColumnMapper.tsx
  * @description Column mapper for primary identifier and optional secondary factor from approved batch schema.
+ * @architecture Configuration dropdown card rendered in ClaimPortalWorkspace credentials tab for mapped credential mode.
+ * @agent_note Allows selecting primary and secondary column keys from approved batch spreadsheet headers with validation alerts.
  */
 
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
@@ -17,6 +19,19 @@ export interface ImportedCredentialColumnMapperProps {
   requiresSecondary?: boolean;
 }
 
+/**
+ * @component ImportedCredentialColumnMapper
+ * @description Dropdown selector allowing organizers to designate primary and optional secondary credential columns for participant verification.
+ * @param {ImportedCredentialColumnMapperProps} props - Component properties.
+ * @param {string[]} props.availableColumns - List of column headers available in the batch dataset.
+ * @param {string} props.primaryFieldKey - Selected primary identifier column key.
+ * @param {string} [props.secondaryFieldKey] - Selected secondary verification column key.
+ * @param {(field: string) => void} props.onPrimaryChange - Callback when primary column selection changes.
+ * @param {(field: string | undefined) => void} props.onSecondaryChange - Callback when secondary column selection changes.
+ * @param {boolean} [props.disabled=false] - Whether dropdowns are disabled.
+ * @param {boolean} [props.requiresSecondary=false] - Whether secondary factor is enforced due to weak primary entropy.
+ * @returns {JSX.Element} Form card with primary and secondary column dropdown selectors.
+ */
 export function ImportedCredentialColumnMapper({
   availableColumns,
   primaryFieldKey,

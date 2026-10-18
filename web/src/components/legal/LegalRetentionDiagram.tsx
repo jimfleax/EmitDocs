@@ -2,6 +2,7 @@
  * @file LegalRetentionDiagram.tsx
  * @description Visual four-stage data retention and automated purging lifecycle diagram.
  * @architecture Illustrates data retention guarantees (PRD-CORE-09) from job completion to physical R2/MongoDB deletion.
+ * @agent_note Illustrates the 4-phase data lifecycle conforming to PRD-CORE-09 automated retention rules.
  */
 
 import { Clock, ShieldSlash, Trash, ChartBar } from "@phosphor-icons/react";

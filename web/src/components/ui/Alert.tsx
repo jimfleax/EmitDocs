@@ -2,6 +2,7 @@
  * @file Alert.tsx
  * @description Contextual feedback callout component with icons, status badges, retry actions, and dismiss controls.
  * @architecture Base design system UI primitive providing error, warning, info, and success variants via class-variance-authority.
+ * @agent_note Renders accessible role="alert" banner with variant-specific styling and optional action handlers.
  */
 
 import * as React from "react";

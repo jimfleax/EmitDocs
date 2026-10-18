@@ -6,6 +6,7 @@
  *               while the ClaimPortal audit record is preserved with aggregate counts.
  *               Also verifies that cascading user account deletion removes all user claim portals,
  *               credential sets, credentials, sessions, and recipient states.
+ * @agent_note Run via `npx tsx test/claim-retention.test.ts`. Requires MONGODB_URI in api/.env. Tests verify retention expiry pruners and cascading account deletion across claim collections.
  */
 
 import dotenv from 'dotenv';
@@ -27,6 +28,10 @@ import { ClaimSession } from '../api/src/models/ClaimSession.js';
 import { ClaimRecipientState } from '../api/src/models/ClaimRecipientState.js';
 import { ClaimCredentialSet } from '../api/src/models/ClaimCredentialSet.js';
 
+/**
+ * @desc Main test runner verifying batch expiry pruning, credential cleanup, and account deletion cascade.
+ * @returns Promise resolving when all retention assertions pass.
+ */
 async function runTests() {
   console.log('--- Starting Slice 5 Claim Retention & Account Deletion Tests ---');
   await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/emitdocs_test');

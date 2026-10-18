@@ -100,9 +100,14 @@ export interface FloatingTopToolbarProps {
 type TabType = "properties" | "fields" | "tokens" | "warnings";
 
 /**
- * @component FloatingTopToolbar
+ * @component FloatingTopToolbarComponent
  * @description Workspace header and inspector toolbar housing tool switches, pagination, alignment triggers, and status panels.
  * @param {FloatingTopToolbarProps} props - Component properties.
+ * @state {boolean} isDrawerOpen - Collapsed or expanded drawer visibility.
+ * @state {TabType} activeTab - Selected inspector drawer tab (properties, fields, tokens, warnings).
+ * @state {boolean} isSecondaryMenuOpen - Popover visibility for secondary actions menu.
+ * @state {boolean} isShortcutsModalOpen - Visibility flag for keyboard shortcuts modal dialog.
+ * @api Parent callbacks: onSaveVersion, onAddField, onPrevPage, onNextPage, onToggleSnap, onApplyAlignment.
  * @returns {JSX.Element} React Flow floating panel with nested interactive drawers and controls.
  */
 const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
@@ -974,6 +979,12 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
   );
 };
 
+/**
+ * @component FloatingTopToolbar
+ * @description Performance-memoized React Flow top toolbar and inspector panel component.
+ * @param {FloatingTopToolbarProps} props - Component properties.
+ * @returns {JSX.Element} Memoized floating toolbar panel.
+ */
 export const FloatingTopToolbar = React.memo<FloatingTopToolbarProps>(
   FloatingTopToolbarComponent,
 );

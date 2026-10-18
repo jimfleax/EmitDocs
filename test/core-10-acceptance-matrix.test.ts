@@ -28,6 +28,8 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
 
 dotenv.config({ path: path.resolve(rootDir, 'api/.env') });
+process.env.NODE_ENV = 'test';
+process.env.ENABLE_TEST_AUTH = 'true';
 
 // Domain & Middleware Imports
 import {
@@ -53,6 +55,10 @@ import { requireAuth } from '../api/src/middleware/auth.middleware.js';
 import { checkContractDrift } from '../api/src/scripts/check-contract-drift.js';
 import { runPreviewSmokeTests } from './smoke/preview-smoke.test.js';
 
+/**
+ * @desc Executes PRD-CORE-10 Acceptance Matrix AC1 through AC10 covering clone readiness, CI/CD, OpenAPI drift, smoke tests, resource limits, and email kill-switch.
+ * @returns {Promise<void>} Resolves when all pilot readiness acceptance criteria assertions pass.
+ */
 async function runCore10Matrix() {
   console.log('===========================================================');
   console.log('  PRD-CORE-10 ACCEPTANCE CRITERIA MATRIX (AC1 - AC10)      ');

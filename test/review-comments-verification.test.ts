@@ -7,6 +7,8 @@
  *   4. Retention pruner claim deletions occur before batch status update.
  *   5. Turnstile fetch timeout signal and structured failure handling.
  *   6. Turnstile bypass gating (test or TURNSTILE_ALLOW_BYPASS only, fails closed otherwise).
+ * @architecture Service, security, and lifecycle integration test suite verifying credential redaction, HMAC secrets, atomic state updates, pruner sequencing, and Turnstile timeouts.
+ * @agent_note Run via `npx tsx test/review-comments-verification.test.ts`. Requires active MongoDB instance via MONGODB_URI in api/.env. Runs tests against isolated database emitdocs_review_verification_test.
  */
 
 import assert from 'node:assert';
@@ -30,6 +32,10 @@ import { ApprovedRecipient } from '../api/src/models/ApprovedRecipient.js';
 import { DraftRow } from '../api/src/models/DraftRow.js';
 import { RetentionPruner } from '../api/src/services/retention-pruner.js';
 
+/**
+ * @desc Main test runner verifying review fixes across credential evaluations, atomic state updates, pruner deletion order, and Turnstile bypass guards.
+ * @returns {Promise<void>} Resolves when all review verification test cases pass.
+ */
 async function run() {
   console.log('=== STARTING REVIEW COMMENTS VERIFICATION TEST SUITE ===');
 
@@ -262,6 +268,7 @@ async function run() {
   let prodMissingFailed = false;
   try {
     execSync('NODE_PATH=./node_modules:../api/node_modules npx tsx -e "import(\'../api/src/services/participant-claim.js\')"', {
+      cwd: __dirname,
       env: {
         ...process.env,
         NODE_ENV: 'production',
@@ -283,6 +290,7 @@ async function run() {
   let prodShortFailed = false;
   try {
     execSync('NODE_PATH=./node_modules:../api/node_modules npx tsx -e "import(\'../api/src/services/participant-claim.js\')"', {
+      cwd: __dirname,
       env: {
         ...process.env,
         NODE_ENV: 'production',
@@ -302,6 +310,7 @@ async function run() {
 
   // C. Valid secret (>= 32 bytes) in production succeeds
   execSync('NODE_PATH=./node_modules:../api/node_modules npx tsx -e "import(\'../api/src/services/participant-claim.js\')"', {
+    cwd: __dirname,
     env: {
       ...process.env,
       NODE_ENV: 'production',
@@ -363,6 +372,7 @@ async function run() {
   let prodMissingSaltFailed = false;
   try {
     execSync('NODE_PATH=./node_modules:../api/node_modules npx tsx -e "import(\'../api/src/services/claim-rate-limiter.js\')"', {
+      cwd: __dirname,
       env: {
         ...process.env,
         NODE_ENV: 'production',
@@ -381,6 +391,7 @@ async function run() {
 
   // B. Valid salt in production succeeds
   execSync('NODE_PATH=./node_modules:../api/node_modules npx tsx -e "import(\'../api/src/services/claim-rate-limiter.js\')"', {
+    cwd: __dirname,
     env: {
       ...process.env,
       NODE_ENV: 'production',
@@ -391,6 +402,7 @@ async function run() {
 
   // C. Development fallback works when salt is missing
   const devSaltOutput = execSync('NODE_PATH=./node_modules:../api/node_modules npx tsx -e "import(\'../api/src/services/claim-rate-limiter.js\').then(m => console.log(m.ROTATING_SALT))"', {
+    cwd: __dirname,
     env: {
       ...process.env,
       NODE_ENV: 'development',

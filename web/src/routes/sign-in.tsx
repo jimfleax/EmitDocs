@@ -15,6 +15,10 @@ interface SignInSearch {
   error?: string;
 }
 
+/**
+ * @constant Route
+ * @description Public sign-in route with search param validation and beforeLoad guard redirecting logged-in users to /app.
+ */
 export const Route = createFileRoute("/sign-in")({
   validateSearch: (search: Record<string, unknown>): SignInSearch => ({
     error: typeof search.error === "string" ? search.error : undefined,
@@ -34,6 +38,8 @@ const CURRENT_YEAR = new Date().getFullYear();
 /**
  * @component SignIn
  * @description Authentication portal with Google OAuth login and animated interactive background.
+ * @state URL search parameter `error` for displaying authentication error toasts.
+ * @api Better Auth Google social login integration via GoogleSignInButton.
  * @returns {JSX.Element} Split-screen sign-in interface.
  */
 function SignIn() {

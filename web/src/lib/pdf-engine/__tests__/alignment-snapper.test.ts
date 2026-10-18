@@ -1,7 +1,18 @@
+/**
+ * @file alignment-snapper.test.ts
+ * @description Unit tests for magnetic alignment and guide calculation algorithms.
+ * @architecture Verifies page-center snapping, sibling-field alignment, Alt-key bypass, and 8-point resize handle math.
+ * @agent_note Run via node or tsx runner; assert failures will throw AssertionError.
+ */
+
 import assert from "assert";
 import { calculateSnapping } from "../alignment-snapper";
 import type { DomRect, ViewportConfig } from "../coordinate-transforms";
 
+/**
+ * @desc Executes unit test suite verifying calculateSnapping edge cases, thresholds, and guide outputs.
+ * @returns {void}
+ */
 function runSnapperTests() {
   console.log("=== RUNNING ALIGNMENT SNAPPER UNIT TESTS ===\n");
 

@@ -2,6 +2,7 @@
  * @file TemplateDetailsSkeleton.tsx
  * @description Loading skeleton for the template details and version history screen.
  * @architecture Suspense fallback for the /app/templates/$templateId route.
+ * @agent_note Wireframes the document preview card and version history list on the template details screen.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

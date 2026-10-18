@@ -1,6 +1,8 @@
 /**
  * @file CredentialModeSwitchDialog.tsx
  * @description Dialog warning that switching credential mode revokes prior credentials and pauses portal.
+ * @architecture Confirmation modal rendered in ClaimPortalWorkspace before changing authentication modes on an active portal.
+ * @agent_note Warns that mode switching increments credential revision, invalidates previous secrets, and pauses the portal.
  */
 
 import {
@@ -24,6 +26,17 @@ export interface CredentialModeSwitchDialogProps {
   isSwitching?: boolean;
 }
 
+/**
+ * @component CredentialModeSwitchDialog
+ * @description Warning modal prompting confirmation before switching credential modes, explaining token invalidation and portal pausing.
+ * @param {CredentialModeSwitchDialogProps} props - Component properties.
+ * @param {boolean} props.open - Whether dialog is visible.
+ * @param {(open: boolean) => void} props.onOpenChange - Open state callback.
+ * @param {ClaimCredentialMode} props.targetMode - Intended new credential mode.
+ * @param {() => Promise<void>} props.onConfirm - Async confirmation execution handler.
+ * @param {boolean} [props.isSwitching=false] - Whether mutation is currently in flight.
+ * @returns {JSX.Element} Radix Dialog with destructive warning message and action buttons.
+ */
 export function CredentialModeSwitchDialog({
   open,
   onOpenChange,

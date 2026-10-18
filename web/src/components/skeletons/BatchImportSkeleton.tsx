@@ -2,6 +2,7 @@
  * @file BatchImportSkeleton.tsx
  * @description Loading skeleton for the batch spreadsheet import wizard.
  * @architecture Visual placeholder for step navigation, file dropzone, and mapping guidelines during async batch loading.
+ * @agent_note Mirrors the step pills bar and file dropzone layout of the batch import page.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

@@ -17,6 +17,13 @@ import { TemplateVersion, ITemplateVersion, IFieldMapping } from '../models/Temp
 import { Batch } from '../models/Batch.js';
 import { BatchImport } from '../models/BatchImport.js';
 import { DraftRow } from '../models/DraftRow.js';
+import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
+import { ApprovedRecipient } from '../models/ApprovedRecipient.js';
+import { ClaimPortal } from '../models/ClaimPortal.js';
+import { ClaimCredentialSet } from '../models/ClaimCredentialSet.js';
+import { ClaimCredential } from '../models/ClaimCredential.js';
+import { ClaimSession } from '../models/ClaimSession.js';
+import { ClaimRecipientState } from '../models/ClaimRecipientState.js';
 import {
   cleanupUnreferencedCloudinaryAssets,
   type CloudinaryCleanupSummary,
@@ -948,6 +955,12 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
     }
   }
 
+  const userPortals =
+    batchIds.length > 0
+      ? await ClaimPortal.find({ batchId: { $in: batchIds } }).select('_id')
+      : [];
+  const portalIds = userPortals.map((p) => p._id);
+
   let session: mongoose.ClientSession | null = null;
   let transactionCommitted = false;
 
@@ -956,6 +969,16 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
     session.startTransaction();
 
     if (batchIds.length > 0) {
+      if (portalIds.length > 0) {
+        await ClaimCredential.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimSession.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimPortal.deleteMany({ _id: { $in: portalIds } }, { session });
+      }
+
+      await ApprovedRecipient.deleteMany({ batchId: { $in: batchIds } }, { session });
+      await ApprovedSnapshot.deleteMany({ batchId: { $in: batchIds } }, { session });
       await DraftRow.deleteMany({ batchId: { $in: batchIds } }, { session });
       await BatchImport.deleteMany({ batchId: { $in: batchIds } }, { session });
       const deleteBatchesResult = await Batch.deleteMany(
@@ -970,6 +993,7 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
       }
     }
 
+    await ApprovedSnapshot.deleteMany({ templateId: template._id }, { session });
     await TemplateVersion.deleteMany({ templateId: template._id }, { session });
     await Template.deleteOne({ _id: template._id }, { session });
 
@@ -1004,7 +1028,19 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
   if (!transactionCommitted) {
     try {
       if (batchIds.length > 0) {
+        if (portalIds.length > 0) {
+          await Promise.all([
+            ClaimCredential.deleteMany({ portalId: { $in: portalIds } }),
+            ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }),
+            ClaimSession.deleteMany({ portalId: { $in: portalIds } }),
+            ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }),
+          ]);
+          await ClaimPortal.deleteMany({ _id: { $in: portalIds } });
+        }
+
         await Promise.all([
+          ApprovedRecipient.deleteMany({ batchId: { $in: batchIds } }),
+          ApprovedSnapshot.deleteMany({ batchId: { $in: batchIds } }),
           DraftRow.deleteMany({ batchId: { $in: batchIds } }),
           BatchImport.deleteMany({ batchId: { $in: batchIds } }),
         ]);
@@ -1021,7 +1057,10 @@ export async function deleteTemplate(input: DeleteTemplateInput): Promise<Delete
         deletedBatchesCount = batchIds.length;
       }
 
-      await TemplateVersion.deleteMany({ templateId: template._id });
+      await Promise.all([
+        ApprovedSnapshot.deleteMany({ templateId: template._id }),
+        TemplateVersion.deleteMany({ templateId: template._id }),
+      ]);
       await Template.deleteOne({ _id: template._id });
     } catch (fallbackError) {
       await restoreClaimedBatches();

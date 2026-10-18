@@ -10,10 +10,11 @@
 import { createAuthClient } from "better-auth/react";
 
 /**
- * Resolves the client API base URL dynamically.
- * In browser runtime, always resolves to window.location.origin so requests go through the
- * same-origin reverse proxy (/api/*), enabling first-party cookies.
- * Falls back to VITE_API_BASE_URL or http://localhost:3000 in non-browser / SSR contexts.
+ * @desc    Resolves the client API base URL dynamically.
+ *          In browser runtime, always resolves to window.location.origin so requests go through the
+ *          same-origin reverse proxy (/api/*), enabling first-party cookies.
+ *          Falls back to VITE_API_BASE_URL or http://localhost:3000 in non-browser / SSR contexts.
+ * @returns {string} Fully qualified base URL string for Better Auth.
  */
 function getClientBaseURL(): string {
   if (typeof window !== "undefined" && window.location?.origin) {

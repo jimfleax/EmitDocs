@@ -71,7 +71,9 @@ export class GenerationInProgressError extends Error {
 /* -------------------------------------------------------------------------- */
 
 /**
- * Recursively orders object keys alphabetically to produce deterministic JSON.
+ * @desc    Recursively orders object keys alphabetically to produce deterministic JSON.
+ * @param   {any} val - Value or object to serialize.
+ * @returns {string} Deterministically sorted JSON string.
  */
 export function canonicalStringify(val: any): string {
   if (val === null || typeof val !== 'object') {
@@ -85,7 +87,13 @@ export function canonicalStringify(val: any): string {
 }
 
 /**
- * Computes a deterministic SHA-256 fingerprint for an individual recipient record.
+ * @desc    Computes a deterministic SHA-256 fingerprint for an individual recipient record.
+ * @param   {Object} recipient - Recipient data to hash.
+ * @param   {string} recipient.recipientKey - Unique recipient identifier.
+ * @param   {number} recipient.sourceRowNumber - Row number in the source spreadsheet.
+ * @param   {Record<string, any>} recipient.effectiveData - Validated row field values.
+ * @param   {Record<string, any>} [recipient.overrides] - User-specified manual cell overrides.
+ * @returns {string} Hex-encoded SHA-256 digest string.
  */
 export function computeCanonicalRecipientDigest(recipient: {
   recipientKey: string;
@@ -103,7 +111,9 @@ export function computeCanonicalRecipientDigest(recipient: {
 }
 
 /**
- * Computes a deterministic SHA-256 digest across all valid recipients in canonical order.
+ * @desc    Computes a deterministic SHA-256 digest across all valid recipients sorted into canonical order.
+ * @param   {any[]} recipients - Array of recipient objects to hash.
+ * @returns {string} Hex-encoded SHA-256 digest string.
  */
 export function computeCanonicalSnapshotDigest(recipients: any[]): string {
   if (!recipients || recipients.length === 0) {
@@ -172,7 +182,10 @@ export interface ApproveBatchResult {
 }
 
 /**
- * Retrieves preflight review summary and verification metrics before batch approval.
+ * @desc    Retrieves preflight review summary and verification metrics before batch approval.
+ * @param   {GetApprovalPreflightInput} input - Parameters containing batchId and ownerId.
+ * @returns {Promise<GetApprovalPreflightResult>} Preflight summary, batch/template version info, and retention presets.
+ * @throws  {BatchNotFoundError} When the batch or template version does not exist or access is denied.
  */
 export async function getApprovalPreflight(
   input: GetApprovalPreflightInput
@@ -226,7 +239,13 @@ export async function getApprovalPreflight(
 }
 
 /**
- * Atomically freezes valid draft rows into an immutable snapshot under optimistic concurrency locks.
+ * @desc    Atomically freezes valid draft rows into an immutable snapshot under optimistic concurrency locks.
+ * @param   {ApproveBatchInput} input - Parameters containing batchId, ownerId, concurrency checks, retention, and idempotencyKey.
+ * @returns {Promise<ApproveBatchResult>} Created or resumed ApprovedSnapshot document.
+ * @throws  {BatchNotFoundError} When the batch or template version is not found.
+ * @throws  {BatchApprovalValidationError} When retention preset is invalid, idempotencyKey is missing, or 0 valid rows exist.
+ * @throws  {GenerationInProgressError} When the batch is generating or ready for download.
+ * @throws  {StaleVersionConflictError} When optimistic concurrency version checks fail.
  */
 export async function approveBatch(input: ApproveBatchInput): Promise<ApproveBatchResult> {
   const {
@@ -476,7 +495,11 @@ export async function approveBatch(input: ApproveBatchInput): Promise<ApproveBat
 }
 
 /**
- * Retrieves the currently approved snapshot for a batch.
+ * @desc    Retrieves the currently approved snapshot for a batch.
+ * @param   {Object} input - Query parameters.
+ * @param   {string | mongoose.Types.ObjectId} input.batchId - Batch ID.
+ * @param   {string} input.ownerId - Owner user ID.
+ * @returns {Promise<IApprovedSnapshotDoc | null>} The approved snapshot document, or null if none.
  */
 export async function getApprovedSnapshot(input: {
   batchId: string | mongoose.Types.ObjectId;
@@ -491,7 +514,13 @@ export async function getApprovedSnapshot(input: {
 }
 
 /**
- * Paginates approved recipients for a frozen snapshot.
+ * @desc    Paginates approved recipients for a frozen snapshot.
+ * @param   {Object} input - Pagination parameters.
+ * @param   {string | mongoose.Types.ObjectId} input.batchId - Batch ID.
+ * @param   {string} input.ownerId - Owner user ID.
+ * @param   {number} [input.page=1] - Page number (1-indexed).
+ * @param   {number} [input.limit=50] - Number of items per page.
+ * @returns {Promise<{ recipients: IApprovedRecipientDoc[]; total: number; page: number; limit: number; totalPages: number }>} Paginated approved recipients.
  */
 export async function getApprovedRecipients(input: {
   batchId: string | mongoose.Types.ObjectId;

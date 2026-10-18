@@ -1,6 +1,8 @@
 /**
  * @file ExpiryCountdownBadge.tsx
  * @description Real-time countdown badge indicating batch data retention deadline (PRD-CORE-09).
+ * @architecture Live status badge embedded into ResultsWorkspace header and volume cards to track data retention time remaining.
+ * @agent_note Updates every 30 seconds via setInterval, displaying days/hours remaining or expired status.
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -14,6 +16,16 @@ export interface ExpiryCountdownBadgeProps {
   showIcon?: boolean;
 }
 
+/**
+ * @component ExpiryCountdownBadge
+ * @description Badge showing time remaining until batch document and recipient data is permanently pruned.
+ * @param {ExpiryCountdownBadgeProps} props - Component properties.
+ * @param {string | Date | null | undefined} props.expiresAt - Retention expiry ISO date string or Date object.
+ * @param {string} [props.className] - Additional CSS class names.
+ * @param {boolean} [props.showIcon=true] - Whether to display clock or alert icons inside the badge.
+ * @state {number} now - Timestamp state updated periodically to compute relative time diff.
+ * @returns {JSX.Element} Badge displaying time remaining or expired status.
+ */
 export function ExpiryCountdownBadge({
   expiresAt,
   className,

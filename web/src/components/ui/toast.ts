@@ -23,7 +23,8 @@ function notify() {
 }
 
 /**
- * @desc Dismisses an active toast notification by ID.
+ * @function dismissToast
+ * @description Dismisses an active toast notification by ID.
  * @param {string} id - Unique identifier of the toast to remove.
  */
 export function dismissToast(id: string) {
@@ -32,7 +33,8 @@ export function dismissToast(id: string) {
 }
 
 /**
- * @desc Clears all active toast notifications.
+ * @function clearToasts
+ * @description Clears all active toast notifications.
  */
 export function clearToasts() {
   activeToasts = [];
@@ -40,7 +42,8 @@ export function clearToasts() {
 }
 
 /**
- * @desc Subscribes an external listener to active toast changes.
+ * @function subscribeToasts
+ * @description Subscribes an external listener to active toast changes.
  * @param {ToastListener} listener - Callback invoked with cloned toast items.
  * @returns {() => void} Unsubscribe function.
  */
@@ -52,7 +55,8 @@ export function subscribeToasts(listener: ToastListener): () => void {
 }
 
 /**
- * @desc Returns current snapshot of active toast notifications.
+ * @function getActiveToasts
+ * @description Returns current snapshot of active toast notifications.
  * @returns {ToastItem[]} Copy of active toasts.
  */
 export function getActiveToasts(): ToastItem[] {
@@ -61,7 +65,8 @@ export function getActiveToasts(): ToastItem[] {
 
 
 /**
- * @desc Triggers a toast notification with the given options or title message.
+ * @function toast
+ * @description Triggers a toast notification with the given options or title message.
  * @param {Omit<ToastItem, "id"> | string} options - Toast message text or full configuration object.
  * @returns {string} Unique toast ID for programmatic dismissal.
  */

@@ -1,6 +1,8 @@
 /**
  * @file retention.tsx
  * @description Retention and data lifecycle settings page (PRD-CORE-09).
+ * @architecture Authenticated settings page mounted inside AppShell with PageShell layout.
+ * @agent_note Allows users to configure default TTL retention windows and explains zero-storage architecture.
  */
 
 import { useState } from "react";
@@ -10,6 +12,10 @@ import { PageShell } from "@/components/layout/PageShell";
 import { RetentionPresetSelector } from "@/components/batches/approval/RetentionPresetSelector";
 import { toast } from "@/components/ui/toast";
 
+/**
+ * @constant Route
+ * @description Route definition for data retention settings at "/app/settings/retention".
+ */
 export const Route = createFileRoute("/_protected/app/settings/retention")({
   component: RetentionSettingsPage,
 });
@@ -20,6 +26,13 @@ const PRESETS = [
   { hours: 720, label: "30 Days" },
 ];
 
+/**
+ * @component RetentionSettingsPage
+ * @description Configuration screen for default batch retention periods and architectural privacy guarantees.
+ * @state Local state and localStorage sync for `defaultHours` (24h, 7d, 30d presets).
+ * @api Stores default retention preference in localStorage for subsequent batch creation flows.
+ * @returns {JSX.Element} Retention settings interface.
+ */
 function RetentionSettingsPage() {
   const [defaultHours, setDefaultHours] = useState(() => {
     if (typeof window !== "undefined") {

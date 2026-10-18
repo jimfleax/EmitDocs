@@ -2,6 +2,7 @@
  * @file select-utils.ts
  * @description Helper functions and cache for Radix Select components and label resolution.
  * @architecture Supports the custom Select component by maintaining label/text lookups for complex option trees.
+ * @agent_note Populates and queries selectItemCache to support string extraction from complex React node option trees.
  */
 
 import * as React from "react";

@@ -48,6 +48,30 @@ interface PdfDocumentViewportProps {
  * @component PdfDocumentViewport
  * @description Coordinate-managed container rendering PDF page canvas, selection overlay, and interactive field nodes.
  * @param {PdfDocumentViewportProps} props - Component properties.
+ * @param {Uint8Array | null} props.sourcePdfBytes - Raw PDF binary data buffer.
+ * @param {number} props.activePageIndex - Currently visible page index (0-indexed).
+ * @param {number} props.scale - Display zoom scale multiplier.
+ * @param {number} props.rotation - Rotation angle in degrees (0, 90, 180, 270).
+ * @param {IFieldMapping[]} props.fieldMappings - Array of all field mappings.
+ * @param {string | null} props.selectedFieldId - ID of currently selected field.
+ * @param {(id: string | null) => void} props.onSelectField - Field selection callback.
+ * @param {(field: IFieldMapping) => void} props.onUpdateField - Field mutation callback.
+ * @param {(pdfRect: PdfRect) => void} props.onAreaSelected - Callback fired when marquee selection completes.
+ * @param {DetectedToken[]} props.detectedTokens - Auto-discovered token candidates.
+ * @param {(tokens: DetectedToken[]) => void} props.onTokensDiscovered - Token discovery notification callback.
+ * @param {(token: DetectedToken) => void} props.onConfirmToken - Token confirmation callback.
+ * @param {boolean} props.isDrawMode - Whether marquee drawing tool is active.
+ * @param {(count: number) => void} props.onPageCountDetermined - Callback fired when document page count resolves.
+ * @param {(vp: ViewportConfig) => void} [props.onViewportChange] - Viewport configuration change callback.
+ * @param {(field: IFieldMapping) => void} [props.onDuplicateField] - Field duplication callback.
+ * @param {(id: string) => void} [props.onDeleteField] - Field deletion callback.
+ * @param {boolean} [props.isSnapEnabled] - Magnetic snap toggle flag.
+ * @param {number} [props.snapThresholdPx] - Magnetic snap threshold in pixels.
+ * @state {any} doc - Loaded PDF.js document proxy.
+ * @state {ViewportConfig | null} viewportConfig - Active coordinate transform parameters.
+ * @state {boolean} loading - Document/page rendering spinner flag.
+ * @state {string | null} error - Render error message.
+ * @api Parent callbacks: onSelectField, onUpdateField, onAreaSelected, onTokensDiscovered, onConfirmToken, onPageCountDetermined, onViewportChange, onDuplicateField, onDeleteField.
  * @returns {JSX.Element} Interactive PDF canvas container with overlays.
  */
 export const PdfDocumentViewport: React.FC<PdfDocumentViewportProps> = ({

@@ -2,6 +2,7 @@
  * @file DraftGallerySkeleton.tsx
  * @description Compact list placeholder for recipient draft rows during review.
  * @architecture Child loading skeleton embedded within DraftReviewSkeleton.
+ * @agent_note Supports customizable row count to match paginated recipient lists.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

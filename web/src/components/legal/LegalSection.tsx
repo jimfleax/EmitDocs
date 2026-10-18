@@ -2,6 +2,7 @@
  * @file LegalSection.tsx
  * @description Policy section container with numbered headings, anchor deep-links, and plain-English TL;DR callouts.
  * @architecture Reusable statutory legal clause wrapper used inside LegalLayout.
+ * @agent_note Provides deep-linkable section anchors and clear summary callouts for statutory terms.
  */
 
 import React from "react";

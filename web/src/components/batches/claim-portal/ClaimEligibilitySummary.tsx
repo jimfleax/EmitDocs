@@ -1,6 +1,8 @@
 /**
  * @file ClaimEligibilitySummary.tsx
  * @description Stat tiles for snapshot rows, eligible recipients, excluded recipients, and missing outputs.
+ * @architecture Preflight inspection dashboard rendered in ClaimPortalWorkspace preflight tab.
+ * @agent_note Evaluates eligibility gates (valid records, generated document presence, exclusion flags) prior to portal activation.
  */
 
 import { Users, CheckCircle, Warning, FileX } from "@phosphor-icons/react";
@@ -15,6 +17,17 @@ export interface ClaimEligibilitySummaryProps {
   isReady: boolean;
 }
 
+/**
+ * @component ClaimEligibilitySummary
+ * @description Displays pre-activation verification tallies highlighting eligible recipients and exclusion blockers.
+ * @param {ClaimEligibilitySummaryProps} props - Component properties.
+ * @param {number} props.snapshotTotal - Total recipients sealed in the batch snapshot.
+ * @param {number} props.eligibleCount - Number of recipients satisfying all claim prerequisites.
+ * @param {number} props.excludedCount - Number of recipients flagged or excluded from claiming.
+ * @param {number} props.missingOutputCount - Count of recipients missing generated PDF certificate outputs.
+ * @param {boolean} props.isReady - Whether all eligibility checks pass with zero fatal blockers.
+ * @returns {JSX.Element} Preflight summary card grid with readiness callout banner.
+ */
 export function ClaimEligibilitySummary({
   snapshotTotal,
   eligibleCount,

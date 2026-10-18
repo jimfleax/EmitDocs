@@ -1,6 +1,17 @@
+/**
+ * @file templates-thumbnail.test.ts
+ * @description Tests template thumbnail URL generation, format transformation, PDF extension stripping, and legacy URL repair routines.
+ * @architecture Controller unit test suite verifying deterministic URL generation and signature generation in templates.controller.
+ * @agent_note Runs offline without MongoDB; uses mock Cloudinary environment variables.
+ */
+
 import assert from 'assert';
 import { generateThumbnailUrl, repairThumbnailUrl } from '../src/controllers/templates.controller';
 
+/**
+ * @desc Main test runner verifying template thumbnail URL formatting and legacy URL repair logic.
+ * @returns Promise resolving when all thumbnail URL tests succeed.
+ */
 async function runTests() {
   console.log('--- RUNNING TEMPLATE THUMBNAIL UNIT TESTS ---');
 

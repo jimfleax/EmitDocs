@@ -2,6 +2,7 @@
  * @file LegalSubprocessorTable.tsx
  * @description Searchable table of infrastructure sub-processors, roles, transferred data, and security safeguards.
  * @architecture GDPR/privacy compliance component listing cloud partners (MongoDB, Cloudflare, Google, Cloudinary, Vercel).
+ * @agent_note Includes client-side fuzzy searching across subprocessor names, roles, and transfer scopes.
  */
 
 import { useState } from "react";

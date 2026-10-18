@@ -11,7 +11,8 @@
 import { resolveAuthBaseURL } from './auth-url.js';
 
 /**
- * Canonical production and default local development origins.
+ * @constant {string[]} CANONICAL_ORIGINS
+ * @description Canonical production and default local development origins.
  */
 const CANONICAL_ORIGINS = [
   'https://emitdocs.jimfleax.in',
@@ -21,7 +22,8 @@ const CANONICAL_ORIGINS = [
 ];
 
 /**
- * Regex matching Vercel preview environments:
+ * @constant {RegExp} VERCEL_PREVIEW_REGEX
+ * @description Regex matching Vercel preview environments:
  * e.g., https://emitdocs.vercel.app, https://emitdocs-git-feature.vercel.app,
  * or https://emitdocs-abc1234.vercel.app
  */

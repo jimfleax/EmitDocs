@@ -1,3 +1,10 @@
+/**
+ * @file architecture-audit-remediation.test.ts
+ * @description Validates architectural audit remediations including schema cascading delete behavior, template lifecycle conflict protections, and batch intake validation.
+ * @architecture Controller and service integration test suite exercising Hono handlers, Mongoose schemas, and transaction rollbacks against MongoDB.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_test database with isolated unique owner namespaces.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -19,6 +26,11 @@ import {
   isTransactionUnsupportedError,
 } from '../src/controllers/batches.controller.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for simulating authenticated API requests.
+ * @param options - Context configuration options including user identity, params, query parameters, body, and headers.
+ * @returns Mock context object with param/query readers, json response writer, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {}, body = null, headers = {} }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -39,6 +51,10 @@ function createMockContext({ user, params = {}, query = {}, body = null, headers
   };
 }
 
+/**
+ * @desc Main test runner executing architecture audit remediation verification suites across template and batch domain workflows.
+ * @returns Promise resolving when all test assertions have succeeded.
+ */
 async function runTests() {
   console.log('🧪 Starting Architecture Audit Remediation Test Suite...\n');
 

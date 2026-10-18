@@ -18,6 +18,7 @@ cloudinary.config({
 
 /**
  * @module cloudinary
+ * @desc Configured Cloudinary v2 SDK instance.
  * @description Configured Cloudinary v2 SDK instance.
  */
 export default cloudinary;

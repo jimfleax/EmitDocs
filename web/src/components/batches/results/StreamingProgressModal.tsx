@@ -2,6 +2,7 @@
  * @file StreamingProgressModal.tsx
  * @description Standard shadcn/ui Dialog visualizing real-time streaming ZIP packaging progress (PRD-CORE-08).
  * @architecture Portaled fixed dialog displaying essential packaging metrics and cancel controls.
+ * @agent_note Displays real-time compression progress, elapsed/ETA timers, processed file counts, and throughput speed.
  */
 
 import {
@@ -31,6 +32,17 @@ export interface StreamingProgressModalProps {
   onCancel: () => void;
 }
 
+/**
+ * @component StreamingProgressModal
+ * @description Modal dialog displaying real-time streaming ZIP packaging progress, transfer speeds, and cancel controls.
+ * @param {StreamingProgressModalProps} props - Component properties.
+ * @param {boolean} props.isOpen - Whether the progress dialog is currently open.
+ * @param {ZipExportProgress} props.progress - Live ZIP export telemetry from useBatchGeneratorWorker.
+ * @param {string} props.zipFilename - Output archive target file name.
+ * @param {string} [props.volumeLabel] - Label of the current volume partition (if multi-volume).
+ * @param {() => void} props.onCancel - Callback to abort ZIP stream compression.
+ * @returns {JSX.Element} Dialog displaying progress bar, metrics, and cancel button.
+ */
 export function StreamingProgressModal({
   isOpen,
   progress,

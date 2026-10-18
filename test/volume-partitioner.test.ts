@@ -1,6 +1,8 @@
 /**
  * @file volume-partitioner.test.ts
- * @description TDD test suite for batch volume partitioning and archive size estimation (PRD-CORE-08).
+ * @description TDD test suite for batch volume partitioning, slug generation, and ZIP archive boundary estimation.
+ * @architecture Web client engine unit test suite validating dual-boundary volume splitting (1,000 files / 1GB thresholds) in web/src/lib/pdf-engine/volume-partitioner.js.
+ * @agent_note Run via `npx tsx test/volume-partitioner.test.ts`. Offline unit tests validating volume partitioning and sizing math without I/O.
  */
 
 import assert from "node:assert";
@@ -10,6 +12,10 @@ import {
   predictDocumentZipEntryBytes,
 } from "../web/src/lib/pdf-engine/volume-partitioner.js";
 
+/**
+ * @desc Main test runner verifying batch volume partitioning, slug sanitization, and predictDocumentZipEntryBytes.
+ * @returns {void}
+ */
 function runTests() {
   console.log("=== Running Volume Partitioner Test Suite ===");
 

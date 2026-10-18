@@ -67,6 +67,9 @@ export interface IBatch extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Mongoose schema for Batch records.
+ */
 const BatchSchema = new Schema<IBatch>(
   {
     ownerId: { type: String, required: true, index: true },
@@ -111,6 +114,7 @@ BatchSchema.index({ ownerId: 1, status: 1 });
 
 /**
  * @module Batch
+ * @desc Mongoose schema and model for Batch
  * @description Compiled Mongoose model for Batch documents.
  */
 export const Batch = mongoose.models.Batch || mongoose.model<IBatch>('Batch', BatchSchema);

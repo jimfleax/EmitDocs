@@ -2,6 +2,7 @@
  * @file Skeleton.tsx
  * @description Animated pulsing placeholder primitive for loading placeholders and content mockups.
  * @architecture Base design system primitive for building composite skeleton screens.
+ * @agent_note Marked with aria-hidden="true" to prevent redundant screen reader announcements while content loads.
  */
 
 import * as React from "react";

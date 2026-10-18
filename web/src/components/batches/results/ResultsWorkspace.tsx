@@ -1,6 +1,8 @@
 /**
  * @file ResultsWorkspace.tsx
  * @description Master results workspace orchestrating batch generation, live stats, controls, and recipient delivery (PRD-CORE-07).
+ * @architecture Feature container managing the client-side PDF rendering worker, streaming ZIP packaging, and recipient inspection.
+ * @agent_note Coordinates Web Worker generation lifecycle via useBatchGeneratorWorker, volume partitioning, and blob downloads.
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
@@ -37,6 +39,31 @@ export interface ResultsWorkspaceProps {
   batchId: string;
 }
 
+/**
+ * @component ResultsWorkspace
+ * @description Main results view coordinating Web Worker PDF generation, live progress tracking, ZIP export, and recipient tables.
+ * @param {ResultsWorkspaceProps} props - Component properties.
+ * @param {string} props.batchId - Unique batch identifier.
+ * @state {boolean} isLoading - Loading state during initial snapshot and template version fetch.
+ * @state {string | null} error - Error message string if data retrieval or worker init fails.
+ * @state {any} batch - Batch document entity.
+ * @state {any} snapshot - Sealed immutable snapshot data.
+ * @state {any} templateVersion - Active template version and layout schema.
+ * @state {Uint8Array | null} basePdfBytes - Binary array of base template PDF loaded for rendering.
+ * @state {any[]} recipients - Current page of approved recipients.
+ * @state {number} totalRecipients - Total recipient count in the approved snapshot.
+ * @state {number} page - Active recipient table page index.
+ * @state {boolean} copiedDigest - Feedback state for canonical digest clipboard copy.
+ * @state {boolean} copiedId - Feedback state for batch ID clipboard copy.
+ * @state {boolean} showAuditDetails - Toggle state for expanding cryptographic verification details.
+ * @state {boolean} hasStartedGeneration - Tracking flag for whether generation has been kicked off.
+ * @state {boolean} isStarting - Loading flag during initial base PDF fetch and worker spin-up.
+ * @api {GET} /api/batches/:batchId - Fetches batch metadata.
+ * @api {GET} /api/batches/:batchId/snapshot - Retrieves frozen immutable snapshot.
+ * @api {GET} /api/templates/:templateId/versions/:version - Retrieves locked template version and layout schema.
+ * @api {GET} /api/batches/:batchId/recipients - Retrieves paginated approved recipient records.
+ * @returns {JSX.Element} Results dashboard wrapped in PageShell with generation controls and download tools.
+ */
 export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

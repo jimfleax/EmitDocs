@@ -2,6 +2,7 @@
  * @file NewBatchFormSkeleton.tsx
  * @description Form loading skeleton for new batch configuration and template selection.
  * @architecture Suspense boundary placeholder for the /app/batches/new route.
+ * @agent_note Displays wireframe inputs matching the batch creation form layout.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

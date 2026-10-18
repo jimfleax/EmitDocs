@@ -33,6 +33,21 @@ export interface ReimportModalProps {
  * @component ReimportModal
  * @description Step-by-step modal for uploading an updated spreadsheet and reconciling changes against manual overrides.
  * @param {ReimportModalProps} props - Component properties.
+ * @param {boolean} props.isOpen - Whether modal is visible.
+ * @param {() => void} props.onClose - Modal close handler.
+ * @param {string} props.batchId - Target batch ID.
+ * @param {any} props.templateVersion - Bound template version and mappings.
+ * @param {number} props.currentRevision - Current batch import revision counter.
+ * @param {() => void} props.onReconciled - Success callback invoked after reconciliation completes.
+ * @state {1 | 2 | 3 | 4} step - Active modal step (1: upload, 2: map, 3: diff review, 4: conflict resolution).
+ * @state {ParsedSpreadsheetResult | null} parsedResult - Re-uploaded spreadsheet parsed data.
+ * @state {string | null} newImportId - Newly initiated import session identifier.
+ * @state {Record<string, string>} columnMap - Column mapping configuration for re-imported file.
+ * @state {string} reconciliationKey - Unique identifier column used for record alignment.
+ * @state {ReimportDiffResult | null} diffResult - Calculated diff between existing rows and new file rows.
+ * @api {POST} /api/batches/:batchId/imports - Initializes a new import session for the re-uploaded file.
+ * @api {POST} /api/batches/:batchId/reimport-diff - Computes row additions, removals, and modifications.
+ * @api {POST} /api/batches/:batchId/reconcile - Commits reconciliation decisions and updates batch revision.
  * @returns {JSX.Element | null} Modal dialog overlay or null when closed.
  */
 export function ReimportModal({

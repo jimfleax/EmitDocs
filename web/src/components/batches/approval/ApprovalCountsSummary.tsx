@@ -1,6 +1,8 @@
 /**
  * @file ApprovalCountsSummary.tsx
  * @description Summary cards displaying row validation counts for batch approval preflight.
+ * @architecture Presentation card deck rendered within ApprovalWorkspace to show ingestion and validation totals before freezing.
+ * @agent_note Displays four metric tiles: Total Ingested, Valid (Ready to Seal), Invalid (Skipped), and Duplicates.
  */
 
 import { CheckCircle, Warning, WarningCircle, Users } from "@phosphor-icons/react";
@@ -13,6 +15,16 @@ interface ApprovalCountsSummaryProps {
   duplicateRows: number;
 }
 
+/**
+ * @component ApprovalCountsSummary
+ * @description Metric cards showing total, valid, invalid, and duplicate row breakdowns for preflight approval.
+ * @param {ApprovalCountsSummaryProps} props - Component properties.
+ * @param {number} props.totalRows - Total number of ingested draft rows.
+ * @param {number} props.validRows - Total number of valid rows eligible for certificate issuance.
+ * @param {number} props.invalidRows - Total number of invalid rows excluded from the sealed snapshot.
+ * @param {number} props.duplicateRows - Total number of rows flagged with potential duplication.
+ * @returns {JSX.Element} Four-column responsive metric grid.
+ */
 export function ApprovalCountsSummary({
   totalRows,
   validRows,

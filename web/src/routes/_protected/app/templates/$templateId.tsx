@@ -8,6 +8,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { TemplateDetails } from "@/components/templates/TemplateDetails";
 
+/**
+ * @constant Route
+ * @description Parameterized route definition for template details at "/app/templates/$templateId".
+ */
 export const Route = createFileRoute("/_protected/app/templates/$templateId")({
   component: TemplateDetailRoute,
 });
@@ -15,6 +19,8 @@ export const Route = createFileRoute("/_protected/app/templates/$templateId")({
 /**
  * @component TemplateDetailRoute
  * @description Route component rendering TemplateDetails for the active route parameter templateId.
+ * @state Extracts route parameter `templateId` via Route.useParams().
+ * @api Fetches template metadata, version history, and handles deletion in TemplateDetails.
  * @returns {JSX.Element} Template details view.
  */
 function TemplateDetailRoute() {

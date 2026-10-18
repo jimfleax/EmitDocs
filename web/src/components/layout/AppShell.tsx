@@ -2,6 +2,7 @@
  * @file AppShell.tsx
  * @description Primary application shell layout with responsive sidebar navigation, user session badge, and route container.
  * @architecture Wraps all authenticated routes under /app/*, providing fixed navigation planes and sign-out controls.
+ * @agent_note Manages persistent desktop sidebar and bottom mobile navigation bars for authenticated routes.
  */
 
 import React, { useState } from "react";

@@ -309,6 +309,11 @@ export function normalizeDateValue(
   };
 }
 
+/**
+ * @desc Expands 2-digit years to 4-digit Gregorian calendar years using a 50-year pivot.
+ * @param {number} year - 2-digit or 4-digit input year.
+ * @returns {number} 4-digit year.
+ */
 function normalizeYear(year: number): number {
   if (year < 100) {
     return year + (year < 50 ? 2000 : 1900);
@@ -316,6 +321,13 @@ function normalizeYear(year: number): number {
   return year;
 }
 
+/**
+ * @desc Validates calendar date validity in UTC, checking month boundaries and leap year days.
+ * @param {number} year - Gregorian year (1900-2100).
+ * @param {number} month - Calendar month (1-12).
+ * @param {number} day - Day of month (1-31).
+ * @returns {boolean} True if values represent a valid calendar date.
+ */
 function isValidCalendarDate(
   year: number,
   month: number,

@@ -4,10 +4,28 @@
  * @architecture Stores solely HMAC-SHA-256 verifiers rather than plaintext secret tokens.
  *               Links a recipient in an approved snapshot to their verifiable credential for an active revision.
  *               Indexed for constant-time lookup and recipient uniqueness.
+ * @agent_note Raw secret tokens or credentials must never be persisted; only HMAC verifiers are stored.
  */
 
 import mongoose, { Schema, Document } from "mongoose";
 
+/**
+ * @interface IClaimCredential
+ * @description Mongoose document interface for a recipient claim credential verifier.
+ * @property {string} ownerId - Better-Auth user ID of the credential set owner.
+ * @property {mongoose.Types.ObjectId} portalId - Reference to the parent ClaimPortal.
+ * @property {mongoose.Types.ObjectId} credentialSetId - Reference to the versioned ClaimCredentialSet.
+ * @property {number} credentialSetRevision - Revision number of the credential set.
+ * @property {mongoose.Types.ObjectId} recipientId - Reference to the ApprovedRecipient.
+ * @property {string} credentialVerifier - HMAC-SHA-256 verifier hash.
+ * @property {"single" | "pair"} credentialKind - Single secret token or two-field credential pair.
+ * @property {number} verifierKeyVersion - Version of the HMAC key used to compute verifier.
+ * @property {"generated" | "strong_import" | "two_field_import"} strengthClass - Classification of credential strength.
+ * @property {"active" | "revoked" | "expired"} status - Verification lifecycle status.
+ * @property {Date} [revokedAt] - Timestamp when credential was revoked, if applicable.
+ * @property {Date} createdAt - Ingestion timestamp.
+ * @property {Date} updatedAt - Modification timestamp.
+ */
 export interface IClaimCredential extends Document {
   ownerId: string;
   portalId: mongoose.Types.ObjectId;
@@ -24,6 +42,9 @@ export interface IClaimCredential extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Mongoose schema for ClaimCredential records.
+ */
 const ClaimCredentialSchema = new Schema<IClaimCredential>(
   {
     ownerId: { type: String, required: true, index: true },
@@ -59,6 +80,11 @@ ClaimCredentialSchema.index(
   { unique: true }
 );
 
+/**
+ * @module ClaimCredential
+ * @desc Mongoose schema and model for ClaimCredential
+ * @description Compiled Mongoose model for ClaimCredential documents.
+ */
 export const ClaimCredential =
   mongoose.models.ClaimCredential ||
   mongoose.model<IClaimCredential>("ClaimCredential", ClaimCredentialSchema);

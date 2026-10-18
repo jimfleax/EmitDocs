@@ -2,6 +2,7 @@
  * @file popover.tsx
  * @description Radix UI Popover primitive wrappers with animated overlay content.
  * @architecture Encapsulates @radix-ui/react-popover primitives with project design system styling.
+ * @agent_note Projects floating popover overlay via PopoverPrimitive.Portal with collision detection and alignment options.
  */
 
 import * as React from "react";

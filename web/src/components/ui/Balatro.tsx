@@ -27,6 +27,12 @@ export interface BalatroProps extends React.ComponentProps<"div"> {
   mouseInteraction?: boolean;
 }
 
+/**
+ * @function hexToVec4
+ * @description Converts a hex color string into a normalized RGBA 4-component vector tuple for WebGL shaders.
+ * @param {string} hex - Hexadecimal color code (e.g. "#RRGGBB" or "#RRGGBBAA").
+ * @returns {[number, number, number, number]} Normalized RGBA values between 0.0 and 1.0.
+ */
 function hexToVec4(hex: string): [number, number, number, number] {
   const hexStr = hex.replace("#", "");
   let r = 0,

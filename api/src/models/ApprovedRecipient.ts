@@ -35,6 +35,9 @@ export interface IApprovedRecipientDoc extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Mongoose schema for ApprovedRecipient records.
+ */
 const ApprovedRecipientSchema = new Schema<IApprovedRecipientDoc>(
   {
     snapshotId: { type: Schema.Types.ObjectId, ref: 'ApprovedSnapshot', required: true, index: true },
@@ -68,6 +71,7 @@ ApprovedRecipientSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 /**
  * @module ApprovedRecipient
+ * @desc Mongoose schema and model for ApprovedRecipient
  * @description Compiled Mongoose model for ApprovedRecipient documents.
  */
 export const ApprovedRecipient =

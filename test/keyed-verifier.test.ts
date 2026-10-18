@@ -4,6 +4,7 @@
  * @architecture Verifies CSPRNG token entropy, base64url encoding, deterministic HMAC-SHA-256 verifiers,
  *               constant-time string comparison, credential canonicalization, imported credential strength / collision checks,
  *               and Mongoose schema validations & index definitions for PRD-CORE-11 models.
+ * @agent_note Run via `npx tsx test/keyed-verifier.test.ts`. Offline unit tests verifying cryptographic verifiers and Mongoose schema invariants via validateSync().
  */
 
 import assert from "node:assert";
@@ -23,6 +24,10 @@ import { ClaimSession } from "../api/src/models/ClaimSession.js";
 import { ClaimRecipientState } from "../api/src/models/ClaimRecipientState.js";
 import { ClaimRateLimit } from "../api/src/models/ClaimRateLimit.js";
 
+/**
+ * @desc Main test runner verifying token entropy, HMAC verifiers, constant-time equality, and claim model invariants.
+ * @returns {Promise<void>} Resolves when all cryptographic verifier and model tests pass.
+ */
 async function run() {
   console.log("=== RUNNING KEYED VERIFIER & DOMAIN MODEL UNIT TESTS ===");
 
@@ -35,9 +40,31 @@ async function run() {
   assert.strictEqual(uniqueTokens.size, 100, "All 100 generated tokens must be distinct");
 
   const base64UrlPattern = /^[A-Za-z0-9_-]{43}$/;
+  const leadingAlphanumericPattern = /^[A-Za-z0-9]/;
+  const formulaPrefixPattern = /^[=+\-@\t\r]/;
   for (const token of tokens) {
     assert.strictEqual(token.length, 43, `Token ${token} must have length 43`);
     assert.ok(base64UrlPattern.test(token), `Token ${token} must be valid base64url without padding`);
+    assert.ok(
+      leadingAlphanumericPattern.test(token),
+      `Token ${token} must begin with an alphanumeric character`
+    );
+    assert.ok(
+      !formulaPrefixPattern.test(token),
+      `Token ${token} must not begin with a spreadsheet formula prefix`
+    );
+  }
+
+  const sampleTokens = generateSecureTokens(500);
+  for (const token of sampleTokens) {
+    assert.ok(
+      leadingAlphanumericPattern.test(token),
+      `Token ${token} must begin with an alphanumeric character`
+    );
+    assert.ok(
+      !formulaPrefixPattern.test(token),
+      `Token ${token} must not begin with a spreadsheet formula prefix`
+    );
   }
 
   // 2. Credential Canonicalization

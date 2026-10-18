@@ -1,6 +1,8 @@
 /**
  * @file ClaimPortalWorkspace.tsx
  * @description Master organizer workspace assembling tabs (Overview, Credentials, Preflight, Recipients, Settings) and lifecycle actions.
+ * @architecture Comprehensive feature container orchestrating claim portal configuration, security modes, and recipient distribution.
+ * @agent_note Coordinates multi-tab portal workflow, token export flow, column mapping, preflight validation, and status lifecycle operations.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -24,11 +26,45 @@ import { ClaimPortalLifecycleControls } from "./ClaimPortalLifecycleControls";
 import { ClaimAnalyticsSummary } from "./ClaimAnalyticsSummary";
 import { RecipientClaimStatusTable } from "./RecipientClaimStatusTable";
 import { ClaimPortalSettingsPanel } from "./ClaimPortalSettingsPanel";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export interface ClaimPortalWorkspaceProps {
   batchId: string;
 }
 
+/**
+ * @component ClaimPortalWorkspace
+ * @description Top-level claim portal management studio coordinating credentials, preflight verification, recipient access, and analytics.
+ * @param {ClaimPortalWorkspaceProps} props - Component properties.
+ * @param {string} props.batchId - Parent batch unique identifier.
+ * @state {"overview" | "credentials" | "preflight" | "recipients" | "settings"} activeTab - Selected navigation tab.
+ * @state {boolean} isLoading - Loading indicator during initial data fetching.
+ * @state {string | null} error - Error message banner content.
+ * @state {any} batch - Parent batch record.
+ * @state {any} portal - Active claim portal record.
+ * @state {"preparing" | "awaiting_export_ack" | "ready" | "revoked" | "expired"} credentialSetStatus - Status of CSPRNG tokens or mapped credentials.
+ * @state {any} analytics - Adoption metrics (claim rate, total eligible, claimed counts).
+ * @state {any} preflight - Eligibility preflight telemetry payload.
+ * @state {string[]} availableColumns - Available spreadsheet headers from batch schema.
+ * @state {string} primaryFieldKey - Selected primary credential column.
+ * @state {string | undefined} secondaryFieldKey - Selected secondary credential column.
+ * @state {any} credentialStrength - Calculated security entropy report for imported credentials.
+ * @state {boolean} isRotatingTokens - Modal state for token rotation.
+ * @state {boolean} isSwitchingMode - Modal state for credential mode migration.
+ * @api {GET} /api/batches/:batchId/claim-portal - Fetches claim portal record and status.
+ * @api {POST} /api/batches/:batchId/claim-portal - Creates initial claim portal if nonexistent.
+ * @api {GET} /api/claim-portals/:portalId/preflight - Fetches pre-activation eligibility verification.
+ * @api {GET} /api/claim-portals/:portalId/analytics - Retrieves claim conversion statistics.
+ * @api {POST} /api/claim-portals/:portalId/lifecycle/:action - Executes lifecycle state transitions (activate, pause, resume, disable, close).
+ * @returns {JSX.Element} Claim portal dashboard with navigation tabs wrapped in PageShell.
+ */
 export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "credentials" | "preflight" | "recipients" | "settings">("overview");
   const [isLoading, setIsLoading] = useState(true);
@@ -66,6 +102,8 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   // Dialog states
   const [rotationDialogOpen, setRotationDialogOpen] = useState(false);
   const [modeSwitchTarget, setModeSwitchTarget] = useState<any>(null);
+  const [isActivating, setIsActivating] = useState(false);
+  const [ackExclusionsModalOpen, setAckExclusionsModalOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -201,8 +239,14 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
     }
   }, [activeTab, loadRecipients]);
 
+  const fatalBlockers = (preflight?.blockers || []).filter(
+    (b: string) => !/missing generated certificate outputs/i.test(b)
+  );
+  const hasFatalBlockers = fatalBlockers.length > 0;
+  const missingOutputCount = preflight?.missingOutputCount || 0;
+
   // Lifecycle action handlers
-  const handleActivate = async (ackExclusions = true) => {
+  const handleActivate = async (ackExclusions = false) => {
     const res = await fetch(`/api/claim-portals/${portal._id}/activate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -215,6 +259,31 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
     }
     toast.success("Portal Activated", "Participants can now access the portal.");
     await loadData();
+  };
+
+  const runActivation = async (ackExclusions: boolean) => {
+    if (isActivating) return;
+    try {
+      setIsActivating(true);
+      await handleActivate(ackExclusions);
+    } catch (err: any) {
+      toast.error("Activation Failed", err?.message || "Failed to activate claim portal");
+    } finally {
+      setIsActivating(false);
+    }
+  };
+
+  const handleQuickActivate = () => {
+    if (isActivating) return;
+    if (hasFatalBlockers) {
+      toast.error("Cannot Activate Portal", fatalBlockers.join("; "));
+      return;
+    }
+    if (missingOutputCount > 0) {
+      setAckExclusionsModalOpen(true);
+      return;
+    }
+    void runActivation(false);
   };
 
   const handlePause = async () => {
@@ -368,11 +437,12 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
             </div>
             <Button
               size="sm"
-              onClick={() => handleActivate(true)}
+              onClick={handleQuickActivate}
+              disabled={isActivating || hasFatalBlockers}
               className="text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
             >
-              <ShieldCheck className="w-4 h-4" />
-              <span>Activate Portal Now</span>
+              {isActivating ? <Spinner size="sm" /> : <ShieldCheck className="w-4 h-4" />}
+              <span>{isActivating ? "Activating..." : "Activate Portal Now"}</span>
             </Button>
           </div>
         )}
@@ -403,15 +473,14 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
               status={portal.status}
               isReady={preflight?.isReady ?? false}
               hasBlockers={(preflight?.blockers?.length ?? 0) > 0}
-              missingOutputCount={preflight?.missingOutputCount || 0}
-              fatalBlockers={(preflight?.blockers || []).filter(
-                (b: string) => !/missing generated certificate outputs/i.test(b)
-              )}
+              missingOutputCount={missingOutputCount}
+              fatalBlockers={fatalBlockers}
               onActivate={handleActivate}
               onPause={handlePause}
               onResume={handleResume}
               onDisable={handleDisable}
               onClose={handleClose}
+              isLoading={isActivating}
             />
           </div>
         )}
@@ -589,6 +658,42 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
             }}
           />
         )}
+
+        {/* Acknowledge Missing Outputs Dialog */}
+        <Dialog open={ackExclusionsModalOpen} onOpenChange={setAckExclusionsModalOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Activate Portal with Dynamic Generation?</DialogTitle>
+              <DialogDescription className="space-y-2 pt-1 text-xs">
+                <p>
+                  <strong>{missingOutputCount} recipient(s)</strong> do not have pre-generated certificate output files.
+                </p>
+                <p>
+                  EmitDocs will synthesize valid certificates on-demand when recipients complete their claim.
+                </p>
+                <p>
+                  Proceeding will publish this portal and allow participants with valid credentials to claim their certificates.
+                </p>
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setAckExclusionsModalOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                disabled={isActivating}
+                onClick={async () => {
+                  setAckExclusionsModalOpen(false);
+                  await runActivation(true);
+                }}
+              >
+                {isActivating ? <Spinner size="sm" /> : null}
+                <span>Acknowledge & Activate</span>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </PageShell>
   );

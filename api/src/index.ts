@@ -1,19 +1,8 @@
 /**
  * @file index.ts
  * @description Main application server entry point, database connection manager, middleware pipeline, and route mount registry for the EmitDocs API.
- *
- * @architecture
- * - Instantiates the root Hono application with base path `/api`.
- * - Configures global CORS using dynamic origin resolution (`resolveCorsOrigin`).
- * - Manages serverless-safe Mongoose connection pooling with caching and exponential retry backoff.
- * - Mounts Better-Auth wildcard routes (`/auth/*`) with request reconstruction for pre-parsed bodies.
- * - Registers sub-routers for templates (`/templates`), batches (`/batches`), and storage (`/storage`).
- * - Provides standardized global 404 (notFound) and 500 (onError) handlers.
- * - Exports both `honoApp` instance and Node listener via `getRequestListener` for serverless or Node runtime hosts.
- *
- * @agent_note
- * Vercel serverless functions disable standard body parsing via `export const config = { api: { bodyParser: false } }`.
- * When proxying incoming bodies to Better-Auth, `incoming.body` is reconstructed into a standard `Request` object if present.
+ * @architecture Root Hono application instance mounting global middlewares, database lifecycle, sub-routers, error handlers, and Node listener.
+ * @agent_note Vercel serverless functions disable standard body parsing via config. When proxying incoming bodies to Better-Auth, incoming.body is reconstructed into a standard Request object if present.
  */
 
 import { Hono } from 'hono'
@@ -266,12 +255,23 @@ export const honoApp = app
 export default getRequestListener(app.fetch)
 
 // In local Node development outside Vercel, start the HTTP server on port 3000
-if (!process.env.VERCEL && process.env.NODE_ENV !== 'test') {
-  const port = Number(process.env.PORT) || 3000
-  serve({
-    fetch: app.fetch,
-    port,
-  }, (info) => {
-    console.log(`[EmitDocs API] Server listening on http://localhost:${info.port}`)
-  })
+const isDirectEntry = Boolean(
+  process.argv[1] && (process.argv[1].endsWith('index.ts') || process.argv[1].endsWith('index.js'))
+);
+const isTestEnv =
+  process.env.NODE_ENV === 'test' ||
+  Boolean(process.env.npm_lifecycle_event?.includes('test')) ||
+  process.argv.some((arg) => arg.includes('test'));
+
+if (!process.env.VERCEL && !isTestEnv && isDirectEntry) {
+  const port = Number(process.env.PORT) || 3000;
+  serve(
+    {
+      fetch: app.fetch,
+      port,
+    },
+    (info) => {
+      console.log(`[EmitDocs API] Server listening on http://localhost:${info.port}`);
+    }
+  );
 }

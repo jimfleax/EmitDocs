@@ -2,6 +2,7 @@
  * @file DefaultPageSkeleton.tsx
  * @description Generic fallback page loading skeleton with metric cards and content body placeholders.
  * @architecture Used during Suspense transitions for standard dashboard or overview routes.
+ * @agent_note Displays fallback metric cards and content areas to prevent layout shifts during navigation.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

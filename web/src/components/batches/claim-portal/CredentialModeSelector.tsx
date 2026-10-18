@@ -1,6 +1,8 @@
 /**
  * @file CredentialModeSelector.tsx
  * @description Radio card selection between generated CSPRNG tokens and mapped imported credentials.
+ * @architecture Interactive radio group component rendered in ClaimPortalWorkspace credentials tab.
+ * @agent_note Toggles between random generated single-use tokens and imported spreadsheet credential columns with security caveats.
  */
 
 import { Key, Table, ShieldCheck, Warning } from "@phosphor-icons/react";
@@ -16,6 +18,16 @@ export interface CredentialModeSelectorProps {
   isExistingPortal?: boolean;
 }
 
+/**
+ * @component CredentialModeSelector
+ * @description Radio card selector allowing organizers to pick between generated single-use tokens and imported spreadsheet credentials.
+ * @param {CredentialModeSelectorProps} props - Component properties.
+ * @param {ClaimCredentialMode} props.mode - Currently active credential authentication mode.
+ * @param {(mode: ClaimCredentialMode) => void} props.onChange - Selection change callback.
+ * @param {boolean} [props.disabled=false] - Whether selection is disabled.
+ * @param {boolean} [props.isExistingPortal=false] - Whether switching modes on an active portal will invalidate prior credentials.
+ * @returns {JSX.Element} Accessible radiogroup container with descriptive mode cards.
+ */
 export function CredentialModeSelector({
   mode,
   onChange,

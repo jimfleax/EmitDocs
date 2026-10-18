@@ -4,6 +4,7 @@
  *              1,000 documents OR 1GB (1,073,741,824 bytes), whichever threshold is reached first (PRD-CORE-08).
  * @architecture Features a high-precision multi-tiered size estimation algorithm modeling exact ZIP STORE container
  *               framing overhead, analytical PDF overlay delta, and empirical ground-truth sample calibration.
+ * @agent_note Partitions batch recipients using the more restrictive of maxDocs (1000) or maxBytes (1GB). Guarantees consistent filenames and labels.
  */
 
 export interface BatchVolumeInfo {
@@ -31,7 +32,10 @@ const DEFAULT_MAX_BYTES = 1024 * 1024 * 1024; // 1GB (1,073,741,824 bytes)
 const ZIP_EOCD_BYTES = 22;                    // Central Directory End of Record
 
 /**
- * Formats a byte number into a clean, human-readable string (e.g. 1.2 MB).
+ * @desc    Formats a byte number into a clean, human-readable string (e.g. 1.2 MB).
+ * @param   {number} bytes - Raw byte count to format.
+ * @param   {number} [decimals=1] - Decimal precision to retain.
+ * @returns {string} Formatted size string.
  */
 export function formatBytes(bytes: number, decimals = 1): string {
   if (!bytes || bytes <= 0) return "0 B";
@@ -43,7 +47,9 @@ export function formatBytes(bytes: number, decimals = 1): string {
 }
 
 /**
- * Converts a batch name into a clean, filesystem-safe filename slug.
+ * @desc    Converts a batch name into a clean, filesystem-safe filename slug.
+ * @param   {string} name - Raw batch name string.
+ * @returns {string} Sanitized filesystem-safe slug string.
  */
 export function slugifyBatchName(name: string): string {
   if (!name || typeof name !== "string") {
@@ -55,8 +61,8 @@ export function slugifyBatchName(name: string): string {
 }
 
 /**
- * Predicts the exact resulting byte size of a single document including its PDF payload
- * and ZIP container framing (local header, data descriptor, central directory entry).
+ * @desc    Predicts the exact resulting byte size of a single document including its PDF payload
+ *          and ZIP container framing (local header, data descriptor, central directory entry).
  *
  * Algorithm hierarchy:
  * 1. Tier 1 (Empirical ground truth): If actual generated PDF byte lengths are provided,
@@ -64,6 +70,9 @@ export function slugifyBatchName(name: string): string {
  * 2. Tier 2 (Analytical PDF overlay model): Models base PDF + font references (~650B) +
  *    content stream operators (~160B per field).
  * 3. Tier 3 (Statistical baseline): 46KB standard single-page certificate baseline + overlay.
+ * @param   {number} [basePdfSizeBytes] - Byte length of the base template PDF.
+ * @param   {VolumePartitionOptions} [options] - Custom partition configuration limits and estimation hints.
+ * @returns {{ perDocPdfBytes: number; perDocZipOverhead: number; perDocTotalBytes: number }} Predicted size breakdown.
  */
 export function predictDocumentZipEntryBytes(
   basePdfSizeBytes?: number,
@@ -106,13 +115,13 @@ export function predictDocumentZipEntryBytes(
 }
 
 /**
- * Calculates volume partitions using dual boundary: 1,000 documents OR 1GB, whichever comes first.
- * Employs high-precision size estimation modeling both PDF payload and ZIP STORE container framing.
- *
- * @param totalRecipients Total count of approved recipients in the batch.
- * @param batchName Name of the batch for archive naming.
- * @param basePdfSizeBytes Byte length of the base template PDF.
- * @param options Custom partition configuration limits and estimation hints.
+ * @desc    Calculates volume partitions using dual boundary: 1,000 documents OR 1GB, whichever comes first.
+ *          Employs high-precision size estimation modeling both PDF payload and ZIP STORE container framing.
+ * @param   {number} totalRecipients - Total count of approved recipients in the batch.
+ * @param   {string} batchName - Name of the batch for archive naming.
+ * @param   {number} [basePdfSizeBytes] - Byte length of the base template PDF.
+ * @param   {VolumePartitionOptions} [options] - Custom partition configuration limits and estimation hints.
+ * @returns {BatchVolumeInfo[]} Array of planned download volume partitions.
  */
 export function calculateBatchVolumes(
   totalRecipients: number,

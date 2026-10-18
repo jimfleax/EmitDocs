@@ -1,10 +1,8 @@
 /**
  * @file batches.controller.ts
  * @description HTTP controller endpoints managing bulk document issuance batches, intake, and draft rows.
- * @architecture Thin HTTP layer routing requests to MongoDB models and `BatchIntake` service routines.
- *               Manages batch lifecycle transitions, chunked spreadsheet uploads, draft row pagination and search,
- *               inline cell editing under optimistic locking, and 4-way re-import reconciliation.
- * @agent_note Protected by `requireAuth` middleware. Access is strictly scoped to `ownerId === user.id`.
+ * @architecture Thin HTTP layer routing requests to MongoDB models and BatchIntake / BatchApproval service routines.
+ * @agent_note Protected by requireAuth middleware. Access is strictly scoped to ownerId === user.id.
  */
 
 import { Context } from 'hono';
@@ -14,6 +12,14 @@ import { BatchImport } from '../models/BatchImport.js';
 import { DraftRow } from '../models/DraftRow.js';
 import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
+import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
+import { ApprovedRecipient } from '../models/ApprovedRecipient.js';
+import { ClaimPortal } from '../models/ClaimPortal.js';
+import { ClaimCredentialSet } from '../models/ClaimCredentialSet.js';
+import { ClaimCredential } from '../models/ClaimCredential.js';
+import { ClaimSession } from '../models/ClaimSession.js';
+import { ClaimRecipientState } from '../models/ClaimRecipientState.js';
+import { cleanupUnreferencedCloudinaryAssets } from '../services/cloudinary-cleanup.js';
 import { getJsonBody } from '../lib/request.js';
 import { isTransactionUnsupportedError } from '../lib/transactions.js';
 export { isTransactionUnsupportedError };
@@ -832,6 +838,9 @@ export const deleteBatch = async (c: Context) => {
     }
     previousStatus = batch.status;
 
+    const portals = await ClaimPortal.find({ batchId: batch._id }).select('_id');
+    const portalIds = portals.map((p) => p._id);
+
     // Wrap permanent cascade delete in a Mongoose session transaction where supported, fallback gracefully
     let session: mongoose.ClientSession | null = null;
     let transactionCommitted = false;
@@ -839,6 +848,17 @@ export const deleteBatch = async (c: Context) => {
     try {
       session = await mongoose.startSession();
       session.startTransaction();
+
+      if (portalIds.length > 0) {
+        await ClaimCredential.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimSession.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }, { session });
+        await ClaimPortal.deleteMany({ _id: { $in: portalIds } }, { session });
+      }
+
+      await ApprovedRecipient.deleteMany({ batchId: batch._id }, { session });
+      await ApprovedSnapshot.deleteMany({ batchId: batch._id }, { session });
       await DraftRow.deleteMany({ batchId: batch._id }, { session });
       await BatchImport.deleteMany({ batchId: batch._id }, { session });
       await Batch.deleteOne({ _id: batch._id }, { session });
@@ -870,12 +890,30 @@ export const deleteBatch = async (c: Context) => {
       }
 
       // Graceful fallback without transaction (e.g. standalone Mongo where transactions are unsupported).
-      // Delete child records first; only remove batch document if both child cleanups succeed to preserve recovery path.
+      // Delete child records first; only remove batch document if child cleanups succeed to preserve recovery path.
+      if (portalIds.length > 0) {
+        await Promise.all([
+          ClaimCredential.deleteMany({ portalId: { $in: portalIds } }),
+          ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }),
+          ClaimSession.deleteMany({ portalId: { $in: portalIds } }),
+          ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }),
+        ]);
+        await ClaimPortal.deleteMany({ _id: { $in: portalIds } });
+      }
+
       await Promise.all([
+        ApprovedRecipient.deleteMany({ batchId: batch._id }),
+        ApprovedSnapshot.deleteMany({ batchId: batch._id }),
         DraftRow.deleteMany({ batchId: batch._id }),
         BatchImport.deleteMany({ batchId: batch._id }),
       ]);
       await Batch.deleteOne({ _id: batch._id });
+    }
+
+    try {
+      await cleanupUnreferencedCloudinaryAssets({ ownerId: user.id });
+    } catch (cleanupErr) {
+      console.warn('[Batches] Failed to run Cloudinary cleanup after batch deletion:', cleanupErr);
     }
 
     return c.json({ success: true, message: 'Batch deleted' });
@@ -895,9 +933,10 @@ export const deleteBatch = async (c: Context) => {
 };
 
 /**
- * @desc Retrieves preflight review summary and verification metrics before batch approval.
- * @route GET /api/batches/:id/approval-preflight
- * @access Private
+ * @desc    Retrieves preflight review summary and verification metrics before batch approval.
+ * @route   GET /api/batches/:id/approval-preflight
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with approval preflight metrics and readiness state, 404 if not found, 500 on failure.
  */
 export const getApprovalPreflight = async (c: Context) => {
   const user = c.get('user');
@@ -918,9 +957,11 @@ export const getApprovalPreflight = async (c: Context) => {
 };
 
 /**
- * @desc Freezes valid batch rows into an immutable snapshot under optimistic concurrency checks.
- * @route POST /api/batches/:id/approve
- * @access Private
+ * @desc    Freezes valid batch rows into an immutable snapshot under optimistic concurrency checks.
+ * @route   POST /api/batches/:id/approve
+ * @access  Private (Authenticated User)
+ * @body    {Object} body - Approval payload with expectedBatchVersion, expectedTemplateVersion, expectedImportRevision, retentionHours, and idempotencyKey.
+ * @returns {Promise<Response>} 200 JSON with `{ snapshot: IApprovedSnapshot }`, 400 validation error, 404 not found, or 409 conflict.
  */
 export const approveBatch = async (c: Context) => {
   const user = c.get('user');
@@ -972,9 +1013,10 @@ export const approveBatch = async (c: Context) => {
 };
 
 /**
- * @desc Retrieves the currently active approved snapshot for a batch.
- * @route GET /api/batches/:id/snapshot
- * @access Private
+ * @desc    Retrieves the currently active approved snapshot for a batch.
+ * @route   GET /api/batches/:id/snapshot
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ snapshot: IApprovedSnapshot }`, 404 if not found, 500 on failure.
  */
 export const getApprovedSnapshot = async (c: Context) => {
   const user = c.get('user');
@@ -995,9 +1037,10 @@ export const getApprovedSnapshot = async (c: Context) => {
 };
 
 /**
- * @desc Retrieves paginated approved recipient records for a frozen snapshot.
- * @route GET /api/batches/:id/snapshot/recipients
- * @access Private
+ * @desc    Retrieves paginated approved recipient records for a frozen snapshot.
+ * @route   GET /api/batches/:id/snapshot/recipients
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with paginated recipient records, 404 if not found, 410 if expired, 500 on failure.
  */
 export const getApprovedRecipients = async (c: Context) => {
   const user = c.get('user');

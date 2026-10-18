@@ -1,3 +1,10 @@
+/**
+ * @file storage-api.test.ts
+ * @description Tests storage calculation helpers, byte formatters, and getUserStorage controller authorization boundaries.
+ * @architecture Controller and utility integration test suite verifying storage aggregation queries and formatters against MongoDB.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_test database with isolated test owner identifiers.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -9,6 +16,11 @@ import {
   getUserStorage,
 } from '../src/controllers/storage.controller.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for testing storage controller endpoints.
+ * @param options - Options object with user, params, query parameters, and body.
+ * @returns Mock context object with param/query readers, JSON responder, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -28,6 +40,10 @@ function createMockContext({ user, params = {}, query = {}, body = null }: any) 
   };
 }
 
+/**
+ * @desc Main test runner verifying storage formatting, controller auth gating, and user storage aggregation.
+ * @returns Promise resolving when all storage API tests pass.
+ */
 async function runTests() {
   console.log('🧪 Starting storage-api controller and calculation test suite...\n');
 

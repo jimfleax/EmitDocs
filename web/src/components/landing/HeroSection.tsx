@@ -2,12 +2,12 @@
  * @file HeroSection.tsx
  * @description Hero section featuring the authoritative value proposition, primary CTAs, and interactive workflow canvas.
  * @architecture Clean SaaS typographic hierarchy with ambient radial backdrops and live micro-app centerpiece.
+ * @agent_note Connects directly with Better Auth session state to dynamically alter primary CTA between Sign In and Dashboard.
  */
 
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
-  Sparkle,
   ShieldCheck,
   CheckCircle,
   Lightning,
@@ -19,6 +19,10 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { HeroWorkflowPreview } from "./HeroWorkflowPreview";
 
+/**
+ * @component HeroSection
+ * @description Hero billboard component highlighting the core product proposition, auth CTAs, and interactive workspace demo.
+ */
 export function HeroSection() {
   const { data: session } = authClient.useSession();
 
@@ -37,18 +41,6 @@ export function HeroSection() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12 sm:space-y-16">
         {/* Hero Narrative & Action Controls */}
         <div className="max-w-4xl mx-auto text-center space-y-6 sm:space-y-8">
-          {/* Top Domain Announcement Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/90 border border-blue-200/90 text-blue-700 text-xs font-semibold shadow-2xs hover:bg-blue-100/80 transition-colors">
-            <Sparkle size={14} weight="fill" className="text-blue-600" />
-            <span className="tracking-tight">
-              Next-Gen Bulk Document Automation · Text &amp; Template Precision
-            </span>
-            <span className="hidden sm:inline-block text-blue-300">·</span>
-            <span className="hidden sm:inline-block font-mono text-[11px] text-blue-600">
-              v1.0 Ready
-            </span>
-          </div>
-
           {/* Master Headline */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 leading-[1.08]">
             One template. <br className="hidden sm:inline" />
@@ -82,7 +74,7 @@ export function HeroSection() {
                 <Button
                   asChild
                   size="lg"
-                  className="w-full sm:w-auto h-12 px-8 rounded-2xl bg-[#18181b] hover:bg-[#27272a] text-white font-bold text-sm shadow-[0_10px_24px_-10px_rgba(0,0,0,0.45)] transition-all active:scale-[0.98]"
+                  className="w-full sm:w-auto h-12 px-8 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-[0_10px_25px_-8px_rgba(37,99,235,0.4)] transition-all active:scale-[0.98]"
                 >
                   <Link to="/sign-in" className="flex items-center gap-2">
                     <span>Start Issuing Free</span>

@@ -1,6 +1,17 @@
+/**
+ * @file duplicate-detector.test.ts
+ * @description Unit tests for in-memory duplicate row detection and preservation invariants.
+ * @architecture Verifies row fingerprint calculation, warning annotations, and row preservation without dropping duplicates.
+ * @agent_note Executes as a standalone Node test suite using node:assert.
+ */
+
 import assert from "node:assert";
 import { detectDuplicatesAcrossRows } from "../duplicate-detector.js";
 
+/**
+ * @desc Executes test cases ensuring duplicate rows are detected, referenced, and never pruned.
+ * @returns {Promise<void>}
+ */
 async function runTests() {
   console.log("🧪 Starting duplicate-detector unit test suite...");
 

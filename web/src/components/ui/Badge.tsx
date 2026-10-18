@@ -2,6 +2,7 @@
  * @file Badge.tsx
  * @description Compact status indicator badge with color variants, pill/rounded shapes, and dot markers.
  * @architecture Base design system badge component configured with class-variance-authority tokens.
+ * @agent_note Supports dot indicators and monospace styling for status metadata and counts.
  */
 
 import * as React from "react";

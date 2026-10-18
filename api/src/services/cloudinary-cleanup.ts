@@ -15,6 +15,7 @@ import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
 import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
 import { ApprovedRecipient } from '../models/ApprovedRecipient.js';
+import { Batch } from '../models/Batch.js';
 
 /* -------------------------------------------------------------------------- */
 /*                            Interfaces & Payloads                           */
@@ -65,6 +66,15 @@ export interface CleanupOptions {
   ownerId: string;
 }
 
+/**
+ * @interface PruneOrphansResult
+ * @description Summary of pruned database records for orphaned snapshots and recipients.
+ */
+export interface PruneOrphansResult {
+  prunedSnapshotsCount: number;
+  prunedRecipientsCount: number;
+}
+
 /* -------------------------------------------------------------------------- */
 /*                        Cleanup Service Implementation                      */
 /* -------------------------------------------------------------------------- */
@@ -73,6 +83,9 @@ export interface CleanupOptions {
  * Retrieves all referenced keys and preview thumbnail URLs in MongoDB across all models.
  * Scans TemplateVersion (sourceObjectKey), ApprovedSnapshot (templateSourceChecksum),
  * ApprovedRecipient (outputKey), and Template (thumbnailUrl).
+ * 
+ * Filters out orphaned snapshots whose batchId or templateId no longer exist,
+ * and orphaned recipients whose batchId no longer exists.
  * 
  * @desc Collects database asset references for a given owner or across the entire database.
  * @param {string} [ownerId] - Optional owner filter.
@@ -83,12 +96,16 @@ export async function getReferencedKeysInDatabase(
 ): Promise<{ referencedKeys: Set<string>; thumbnailUrls: string[] }> {
   const filter = ownerId ? { ownerId } : {};
 
-  const [versions, snapshots, recipients, templates] = await Promise.all([
+  const [versions, activeBatches, activeTemplates, snapshots, recipients] = await Promise.all([
     TemplateVersion.find(filter).select('sourceObjectKey').lean(),
-    ApprovedSnapshot.find(filter).select('templateSourceChecksum').lean(),
-    ApprovedRecipient.find(filter).select('outputKey').lean(),
-    Template.find(filter).select('thumbnailUrl').lean(),
+    Batch.find(filter).select('_id').lean(),
+    Template.find(filter).select('_id thumbnailUrl').lean(),
+    ApprovedSnapshot.find(filter).select('batchId templateId templateSourceChecksum').lean(),
+    ApprovedRecipient.find(filter).select('batchId outputKey').lean(),
   ]);
+
+  const activeBatchIdSet = new Set(activeBatches.map((b: any) => String(b._id)));
+  const activeTemplateIdSet = new Set(activeTemplates.map((t: any) => String(t._id)));
 
   const referencedKeys = new Set<string>();
   const thumbnailUrls: string[] = [];
@@ -103,7 +120,10 @@ export async function getReferencedKeysInDatabase(
   }
 
   for (const s of snapshots) {
-    if (s.templateSourceChecksum) {
+    const isBatchActive = s.batchId ? activeBatchIdSet.has(s.batchId.toString()) : false;
+    const isTemplateActive = s.templateId ? activeTemplateIdSet.has(s.templateId.toString()) : false;
+
+    if (isBatchActive && isTemplateActive && s.templateSourceChecksum) {
       referencedKeys.add(s.templateSourceChecksum);
       const clean = s.templateSourceChecksum.replace(/\.[^/.]+$/, '');
       referencedKeys.add(clean);
@@ -112,7 +132,9 @@ export async function getReferencedKeysInDatabase(
   }
 
   for (const r of recipients) {
-    if (r.outputKey) {
+    const isBatchActive = r.batchId ? activeBatchIdSet.has(r.batchId.toString()) : false;
+
+    if (isBatchActive && r.outputKey) {
       referencedKeys.add(r.outputKey);
       const clean = r.outputKey.replace(/\.[^/.]+$/, '');
       referencedKeys.add(clean);
@@ -120,13 +142,58 @@ export async function getReferencedKeysInDatabase(
     }
   }
 
-  for (const t of templates) {
+  for (const t of activeTemplates) {
     if (t.thumbnailUrl) {
       thumbnailUrls.push(t.thumbnailUrl);
     }
   }
 
   return { referencedKeys, thumbnailUrls };
+}
+
+/**
+ * Prunes dangling ApprovedSnapshot and ApprovedRecipient records whose referenced batches
+ * or templates have been deleted.
+ * 
+ * @desc Deletes orphaned snapshots and recipients from MongoDB.
+ * @param {string} [ownerId] - Optional owner filter.
+ * @returns {Promise<PruneOrphansResult>} Number of pruned snapshot and recipient documents.
+ */
+export async function pruneOrphanedSnapshotsAndRecipients(
+  ownerId?: string
+): Promise<PruneOrphansResult> {
+  const filter = ownerId ? { ownerId } : {};
+
+  const [activeBatches, activeTemplates] = await Promise.all([
+    Batch.find(filter).select('_id').lean(),
+    Template.find(filter).select('_id').lean(),
+  ]);
+
+  const activeBatchIds = activeBatches.map((b) => b._id);
+  const activeTemplateIds = activeTemplates.map((t) => t._id);
+
+  const snapshotFilter: any = {
+    ...filter,
+    $or: [
+      { batchId: { $nin: activeBatchIds } },
+      { templateId: { $nin: activeTemplateIds } },
+    ],
+  };
+
+  const recipientFilter: any = {
+    ...filter,
+    batchId: { $nin: activeBatchIds },
+  };
+
+  const [snapDeleteRes, recDeleteRes] = await Promise.all([
+    ApprovedSnapshot.deleteMany(snapshotFilter),
+    ApprovedRecipient.deleteMany(recipientFilter),
+  ]);
+
+  return {
+    prunedSnapshotsCount: snapDeleteRes?.deletedCount ?? 0,
+    prunedRecipientsCount: recDeleteRes?.deletedCount ?? 0,
+  };
 }
 
 /**
@@ -307,6 +374,9 @@ export async function markUnreferencedAssets(
 /**
  * Deletes unreferenced assets from Cloudinary in chunks of <= 100.
  * Groups assets by resource type and executes authenticated deletion requests.
+ * If any asset deletion returns 'not_found', retries with alternate resource type ('raw' | 'image')
+ * and delivery type ('upload') to ensure mismatched resource types or upload delivery types
+ * are thoroughly eradicated.
  * 
  * @desc Purges unreferenced assets in chunks of <= 100 to adhere to API constraints.
  * @param {CloudinaryAssetSummary[]} assets - Assets to delete.
@@ -340,11 +410,16 @@ export async function deleteAssetsFromCloudinary(
           type: 'authenticated',
         });
 
+        const notFoundIds: string[] = [];
+
         if (result?.deleted && typeof result.deleted === 'object') {
-          const count = Object.values(result.deleted).filter(
-            (v) => v === 'deleted' || v === true
-          ).length;
-          totalDeleted += count > 0 ? count : Object.keys(result.deleted).length;
+          for (const [id, status] of Object.entries(result.deleted)) {
+            if (status === 'deleted' || status === true) {
+              totalDeleted += 1;
+            } else if (status === 'not_found') {
+              notFoundIds.push(id);
+            }
+          }
         } else if (result?.deleted_counts) {
           totalDeleted += Object.values(result.deleted_counts as Record<string, number>).reduce(
             (a, b) => a + b,
@@ -352,6 +427,41 @@ export async function deleteAssetsFromCloudinary(
           );
         } else {
           totalDeleted += chunk.length;
+        }
+
+        // Retry not_found assets with alternate resource type or upload delivery type
+        if (notFoundIds.length > 0) {
+          const altType = resType === 'image' ? 'raw' : 'image';
+          const retryConfigs = [
+            { resource_type: resType, type: 'upload' },
+            { resource_type: altType, type: 'authenticated' },
+            { resource_type: altType, type: 'upload' },
+          ];
+
+          let remainingNotFound = [...notFoundIds];
+
+          for (const cfg of retryConfigs) {
+            if (remainingNotFound.length === 0) break;
+            try {
+              const retryResult: any = await cloudinary.api.delete_resources(remainingNotFound, cfg);
+              if (retryResult?.deleted && typeof retryResult.deleted === 'object') {
+                const stillNotFound: string[] = [];
+                for (const [id, status] of Object.entries(retryResult.deleted)) {
+                  if (status === 'deleted' || status === true) {
+                    totalDeleted += 1;
+                  } else {
+                    stillNotFound.push(id);
+                  }
+                }
+                remainingNotFound = stillNotFound;
+              }
+            } catch (retryErr: any) {
+              console.warn(
+                `[cloudinary-cleanup] Retry delete failed for ${remainingNotFound.length} assets with options ${JSON.stringify(cfg)}:`,
+                retryErr?.message || retryErr
+              );
+            }
+          }
         }
       } catch (err: any) {
         console.warn(`[cloudinary-cleanup] Failed to delete chunk of ${chunk.length} ${resType} assets:`, err?.message || err);
@@ -405,6 +515,14 @@ export async function cleanupUnreferencedCloudinaryAssets(
   const errors: string[] = [];
 
   try {
+    // 0. Prune orphaned snapshots and recipients before asset discovery
+    try {
+      await pruneOrphanedSnapshotsAndRecipients(ownerId);
+    } catch (pruneErr: any) {
+      console.warn(`[cloudinary-cleanup] Failed to prune orphaned snapshots/recipients for owner ${ownerId}:`, pruneErr?.message || pruneErr);
+      errors.push(`Failed to prune orphaned snapshots/recipients: ${pruneErr?.message || pruneErr}`);
+    }
+
     // 1. Discover all assets in Cloudinary for this owner
     let ownerAssets: CloudinaryAssetSummary[] = [];
     try {
@@ -514,4 +632,5 @@ export const CloudinaryCleanup = {
   markUnreferencedAssets,
   deleteAssetsFromCloudinary,
   cleanupUnreferencedCloudinaryAssets,
+  pruneOrphanedSnapshotsAndRecipients,
 };

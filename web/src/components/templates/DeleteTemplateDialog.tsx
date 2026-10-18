@@ -1,6 +1,8 @@
 /**
  * @file DeleteTemplateDialog.tsx
  * @description Dialog confirming template deletion, with warnings for active dependent batches (PRD-CORE-09).
+ * @architecture Modal dialog coordinator preventing accidental deletion of templates with dependent batch records.
+ * @agent_note Intercepts template deletion to check for dependent batch cascades, requires explicit confirmation on cascade warnings, and issues DELETE /api/templates/:id.
  */
 
 import { useState } from "react";
@@ -28,6 +30,19 @@ export interface DeleteTemplateDialogProps {
   onDeleted?: (templateId: string) => void;
 }
 
+/**
+ * @component DeleteTemplateDialog
+ * @description Accessible confirmation modal alerting users to cascade risks and executing template deletion.
+ * @param {DeleteTemplateDialogProps} props - Component properties.
+ * @param {DeleteTemplateTarget | null} props.template - Target template entity to delete.
+ * @param {boolean} props.open - Modal visibility state.
+ * @param {(open: boolean) => void} props.onOpenChange - Open state change handler.
+ * @param {(templateId: string) => void} [props.onDeleted] - Callback fired upon successful deletion.
+ * @state {boolean} isDeleting - Network mutation loading indicator.
+ * @state {Object | null} cascadeWarning - Dependent active batches warning payload returned by server.
+ * @api {DELETE} /api/templates/:id - Deletes the template and returns cascade dependency warnings if active batches exist.
+ * @returns {JSX.Element} Confirmation dialog with cascade warnings.
+ */
 export function DeleteTemplateDialog({
   template,
   open,
@@ -68,7 +83,7 @@ export function DeleteTemplateDialog({
       setIsDeleting(true);
       const shouldForce = forceCascade && cascadeWarning?.templateId === template._id;
       const url = shouldForce
-        ? `/api/templates/${template._id}?force=true`
+        ? `/api/templates/${template._id}?confirmCascade=true&force=true`
         : `/api/templates/${template._id}`;
 
       const res = await fetch(url, {

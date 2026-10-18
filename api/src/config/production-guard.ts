@@ -1,8 +1,27 @@
 /**
  * @file production-guard.ts
  * @description Fail-closed environment validation and test-auth guard for production runtime.
+ * @architecture Validates all required environment variables at application startup, preventing insecure or misconfigured boots.
+ * @agent_note Ensures test-auth is strictly blocked in production environments to protect tenant isolation and data integrity.
  */
 
+/**
+ * @interface EnvConfig
+ * @description Strongly-typed schema representing validated runtime environment variables.
+ * @property {string} NODE_ENV - Active Node runtime environment mode.
+ * @property {number} PORT - Server listener TCP port.
+ * @property {string} MONGODB_URI - Primary MongoDB connection URI.
+ * @property {string} DB_NAME - Target MongoDB database name.
+ * @property {string} BETTER_AUTH_SECRET - Secret encryption key for Better-Auth.
+ * @property {string} BETTER_AUTH_URL - Canonical base URL for auth redirects.
+ * @property {string} GOOGLE_CLIENT_ID - Google OAuth client identifier.
+ * @property {string} GOOGLE_CLIENT_SECRET - Google OAuth client secret.
+ * @property {string} CLOUDINARY_CLOUD_NAME - Cloudinary account cloud name.
+ * @property {string} CLOUDINARY_API_KEY - Cloudinary API access key.
+ * @property {string} CLOUDINARY_API_SECRET - Cloudinary API secret token.
+ * @property {string[]} ALLOWED_ORIGINS - Array of permitted CORS origins.
+ * @property {boolean} ENABLE_TEST_AUTH - Flag enabling mock authentication for tests.
+ */
 export interface EnvConfig {
   NODE_ENV: string;
   PORT: number;
@@ -19,6 +38,11 @@ export interface EnvConfig {
   ENABLE_TEST_AUTH: boolean;
 }
 
+/**
+ * @class ConfigurationError
+ * @extends Error
+ * @description Custom error thrown when mandatory environment variables are missing or invalid.
+ */
 export class ConfigurationError extends Error {
   code: string;
   constructor(message: string) {
@@ -29,6 +53,12 @@ export class ConfigurationError extends Error {
   }
 }
 
+/**
+ * @desc Validates environment variables against required production and development invariants.
+ * @param {Record<string, string | undefined>} [env=process.env] - Raw environment variables dictionary.
+ * @returns {EnvConfig} Sanitized and typed environment configuration object.
+ * @throws {ConfigurationError} When mandatory variables are missing or invalid configuration invariants are breached.
+ */
 export function validateEnvironment(env: Record<string, string | undefined> = process.env): EnvConfig {
   const isProd = env.NODE_ENV === 'production';
   const enableTestAuth = env.ENABLE_TEST_AUTH === 'true';

@@ -1,17 +1,15 @@
 /**
  * @file storage.controller.ts
  * @description Controller and calculation engine for user cloud storage metrics.
- * @architecture Computes cloud storage consumption across Cloudinary Admin API assets (`templates/{userId}/*`)
- *               and MongoDB TemplateVersion records. Employs a resilient fallback strategy if Cloudinary
- *               is rate-limited or unreachable.
- * @agent_note When computing storage metrics, assets are correlated with MongoDB templates and versions
- *               to enrich document names and template IDs.
+ * @architecture Computes cloud storage consumption across Cloudinary Admin API assets and MongoDB TemplateVersion records.
+ * @agent_note When computing storage metrics, assets are correlated with MongoDB templates and versions to enrich document names.
  */
 
 import { Context } from 'hono';
 import cloudinary from '../lib/cloudinary.js';
 import { Template } from '../models/Template.js';
 import { TemplateVersion } from '../models/TemplateVersion.js';
+import { cleanupUnreferencedCloudinaryAssets } from '../services/cloudinary-cleanup.js';
 
 /**
  * @interface StoredDocumentItem
@@ -95,14 +93,23 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
     templateMap.set(String(t._id), t);
   }
 
+  const validSourceKeys = new Set<string>();
   const sourceKeyMap = new Map<string, { templateName: string; templateId: string }>();
   for (const v of versions) {
     const tmpl = templateMap.get(String(v.templateId));
     if (v.sourceObjectKey) {
-      sourceKeyMap.set(v.sourceObjectKey, {
+      const clean = v.sourceObjectKey.replace(/\.[^/.]+$/, '');
+      validSourceKeys.add(v.sourceObjectKey);
+      validSourceKeys.add(clean);
+      validSourceKeys.add(`${clean}.pdf`);
+
+      const entry = {
         templateName: tmpl?.name || v.sourceObjectKey.split('/').pop() || 'Document',
         templateId: String(v.templateId),
-      });
+      };
+      sourceKeyMap.set(v.sourceObjectKey, entry);
+      sourceKeyMap.set(clean, entry);
+      sourceKeyMap.set(`${clean}.pdf`, entry);
     }
   }
 
@@ -174,36 +181,65 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
     }
   }
 
-  // 3. Build documents map starting with MongoDB versions
+  // 3. Short-circuit: If user has 0 templates and 0 versions in MongoDB, storage is strictly 0 B
+  if (templates.length === 0 && versions.length === 0) {
+    // If residual/orphaned files exist in Cloudinary, purge them in the background
+    if (usedCloudinary && cloudinaryAssets.length > 0) {
+      cleanupUnreferencedCloudinaryAssets({ ownerId: userId }).catch((err) => {
+        console.warn('[Storage] Background cleanup of orphaned Cloudinary assets failed:', err);
+      });
+    }
+
+    return {
+      success: true,
+      totalBytes: 0,
+      formattedTotal: '0 B',
+      documentCount: 0,
+      documents: [],
+      source: usedCloudinary && cloudinaryAssets.length > 0 ? 'cloudinary' : 'database',
+    };
+  }
+
+  // 4. Build documents map starting with MongoDB versions
   const docMap = new Map<string, StoredDocumentItem>();
 
   for (const ver of versions) {
     const tmpl = templateMap.get(String(ver.templateId));
     const key = ver.sourceObjectKey || String(ver._id);
+    const cleanKey = ver.sourceObjectKey ? ver.sourceObjectKey.replace(/\.[^/.]+$/, '') : key;
     const name = tmpl?.name || ver.sourceObjectKey?.split('/').pop() || 'Template Document';
     const bytes = ver.bytes || 0;
 
-    docMap.set(key, {
-      id: key,
+    docMap.set(cleanKey, {
+      id: ver.sourceObjectKey || cleanKey,
       name,
       bytes,
       formattedSize: formatBytes(bytes),
       format: 'pdf',
-      resourceType: 'image',
+      resourceType: ver.resourceType || 'image',
       createdAt: ver.createdAt ? new Date(ver.createdAt).toISOString() : undefined,
       templateId: String(ver.templateId),
     });
   }
 
-  // If Cloudinary returned assets, update live sizes and include any additional cloud assets
+  // If Cloudinary returned assets, update live sizes for active documents only
+  let hasOrphanedCloudinaryAssets = false;
   if (usedCloudinary) {
     for (const asset of cloudinaryAssets) {
-      const keyInfo = sourceKeyMap.get(asset.public_id);
+      const cleanId = asset.public_id.replace(/\.[^/.]+$/, '');
+      const isReferenced = validSourceKeys.has(asset.public_id) || validSourceKeys.has(cleanId);
+
+      if (!isReferenced) {
+        hasOrphanedCloudinaryAssets = true;
+        continue;
+      }
+
+      const keyInfo = sourceKeyMap.get(asset.public_id) || sourceKeyMap.get(cleanId);
       const fileName = asset.public_id.split('/').pop() || asset.public_id;
       const name = keyInfo?.templateName || fileName;
       const bytes = asset.bytes || 0;
 
-      docMap.set(asset.public_id, {
+      docMap.set(cleanId, {
         id: asset.public_id,
         name,
         bytes,
@@ -214,11 +250,17 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
         templateId: keyInfo?.templateId,
       });
     }
+
+    if (hasOrphanedCloudinaryAssets) {
+      cleanupUnreferencedCloudinaryAssets({ ownerId: userId }).catch((err) => {
+        console.warn('[Storage] Background cleanup of unreferenced Cloudinary assets failed:', err);
+      });
+    }
   }
 
   const documents = Array.from(docMap.values());
 
-  // 4. Calculate total storage consumed
+  // 5. Calculate total storage consumed
   const totalBytes = documents.reduce((sum, doc) => sum + (doc.bytes || 0), 0);
   const formattedTotal = formatBytes(totalBytes);
   const documentCount = documents.length;
@@ -234,12 +276,9 @@ export async function calculateUserStorage(userId: string): Promise<UserStorageS
 }
 
 /**
- * Controller handler for GET /api/storage and GET /api/storage/summary
- * 
- * @desc Retrieves total cloud storage consumption metrics, asset details, and byte counts for the authenticated user.
- * @route GET /api/storage
- * @route GET /api/storage/summary
- * @access Private
+ * @desc    Retrieves total cloud storage consumption metrics, asset details, and byte counts for the authenticated user.
+ * @route   GET /api/storage
+ * @access  Private (Authenticated User)
  * @returns {Promise<Response>} 200 JSON UserStorageSummary payload, 401 if unauthorized, or 500 on failure.
  */
 export const getUserStorage = async (c: Context) => {

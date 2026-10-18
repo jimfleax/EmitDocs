@@ -4,6 +4,7 @@
  * @architecture Validates session token hashes against MongoDB, guarantees IDOR/BOLA defense
  *               by strictly scoping download authorization to session.recipientId, and validates
  *               logical portal expiry before authorizing artifact delivery.
+ * @agent_note Session tokens are single-purpose and stored hashed (SHA-256). Download URLs are strictly derived from the validated session context to prevent BOLA/IDOR.
  */
 
 import crypto from 'node:crypto';
@@ -49,11 +50,13 @@ export interface AuthorizedDownloadPayload {
 }
 
 /**
- * Validates a participant claim session token against portal state and database hash (AC-014, AC-016, AC-017).
- *
- * @param {string} publicSlug - Portal public slug.
- * @param {string} rawToken - Plaintext session token from cookie.
- * @returns {Promise<ValidatedSession>}
+ * @desc    Validates a participant claim session token against portal state and database hash (AC-014, AC-016, AC-017).
+ * @param   {string} publicSlug - Portal public slug.
+ * @param   {string} rawToken - Plaintext session token from cookie.
+ * @returns {Promise<ValidatedSession>} Validated portal, session, and recipient documents.
+ * @throws  {ClaimSessionInvalidError} If token is missing, invalid, or expired.
+ * @throws  {ClaimPortalInactiveError} If portal is not active or has expired.
+ * @throws  {ClaimNotAvailableError} If recipient state is revoked or excluded.
  */
 export async function validateClaimSession(
   publicSlug: string,
@@ -112,11 +115,11 @@ export async function validateClaimSession(
 }
 
 /**
- * Authorizes certificate download payload strictly from session context, ignoring client inputs (AC-011).
- *
- * @param {string} publicSlug - Portal public slug.
- * @param {string} rawToken - Session token.
+ * @desc    Authorizes certificate download payload strictly from session context, ignoring client inputs (AC-011).
+ * @param   {string} publicSlug - Portal public slug.
+ * @param   {string} rawToken - Session token.
  * @returns {Promise<AuthorizedDownloadPayload>}
+ * @throws  {ClaimSessionInvalidError} If session token is invalid or expired.
  */
 export async function getAuthorizedDownloadPayload(
   publicSlug: string,
@@ -149,10 +152,9 @@ export async function getAuthorizedDownloadPayload(
 }
 
 /**
- * Revokes an active claim session immediately.
- *
- * @param {string} rawToken - Raw session token.
- * @returns {Promise<boolean>}
+ * @desc    Revokes an active claim session immediately by setting revokedAt timestamp.
+ * @param   {string} rawToken - Raw session token.
+ * @returns {Promise<boolean>} True if session was found and revoked, false otherwise.
  */
 export async function revokeClaimSession(rawToken: string): Promise<boolean> {
   if (!rawToken || typeof rawToken !== 'string') return false;
@@ -176,8 +178,11 @@ export interface ClaimRenderPayload {
 }
 
 /**
- * Retrieves the full generation payload (template field mappings and recipient effective data)
- * for an authorized claim session, allowing deterministic client-side or server-side custom PDF synthesis.
+ * @desc    Retrieves the full generation payload (template field mappings and recipient effective data) for an authorized claim session.
+ * @param   {string} publicSlug - Portal public slug.
+ * @param   {string} rawToken - Plaintext session token.
+ * @returns {Promise<ClaimRenderPayload>} Render metadata, field mappings, and recipient effective data.
+ * @throws  {ClaimSessionInvalidError} If session, snapshot, or template version is not found.
  */
 export async function getClaimRenderPayload(
   publicSlug: string,
@@ -216,7 +221,11 @@ export async function getClaimRenderPayload(
 }
 
 /**
- * Retrieves the base PDF template stream for an authorized claim session.
+ * @desc    Retrieves the base PDF template stream for an authorized claim session.
+ * @param   {string} publicSlug - Portal public slug.
+ * @param   {string} rawToken - Plaintext session token.
+ * @returns {Promise<{ body: any; filename: string }>} Binary stream and filename of the base template.
+ * @throws  {ClaimSessionInvalidError} If session or snapshot is invalid.
  */
 export async function getClaimTemplateAsset(
   publicSlug: string,
@@ -235,7 +244,11 @@ export async function getClaimTemplateAsset(
 }
 
 /**
- * Retrieves the base PDF template bytes as Buffer for server-side overlay generation.
+ * @desc    Retrieves the base PDF template bytes as Buffer for server-side overlay generation.
+ * @param   {string} portalId - Claim portal ID.
+ * @param   {string} ownerId - Portal owner ID.
+ * @param   {string} snapshotId - Approved snapshot ID.
+ * @returns {Promise<Buffer | null>} Base PDF bytes as Buffer, or null if unresolvable.
  */
 export async function getClaimTemplateBaseBytes(
   portalId: string,

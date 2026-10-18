@@ -2,6 +2,7 @@
  * @file GeneralErrorView.tsx
  * @description 500 Internal Server Error presentation component.
  * @architecture Pre-configured wrapper around ErrorView for unexpected client/server runtime exceptions.
+ * @agent_note Displays exception details and stack traces when running in development mode.
  */
 
 import { ErrorView, type ErrorVariant } from "./ErrorView";

@@ -1,6 +1,8 @@
 /**
  * @file ExcludedRecipientReviewTable.tsx
  * @description Table listing recipients excluded from the claim portal with exclusion reason.
+ * @architecture Review component in ClaimPortalWorkspace preflight tab explaining why particular recipients cannot claim.
+ * @agent_note Includes client-side search filtering by name, email, recipient key, or exclusion rationale.
  */
 
 import { useState } from "react";
@@ -18,6 +20,14 @@ export interface ExcludedRecipientReviewTableProps {
   excludedRecipients: ExcludedRecipientItem[];
 }
 
+/**
+ * @component ExcludedRecipientReviewTable
+ * @description Searchable table enumerating recipients ineligible for portal claims alongside specific rejection reasons.
+ * @param {ExcludedRecipientReviewTableProps} props - Component properties.
+ * @param {ExcludedRecipientItem[]} props.excludedRecipients - List of excluded recipient items.
+ * @state {string} search - Search query string for filtering excluded rows.
+ * @returns {JSX.Element} Table of excluded recipients with search filter or success state if clean.
+ */
 export function ExcludedRecipientReviewTable({
   excludedRecipients,
 }: ExcludedRecipientReviewTableProps) {

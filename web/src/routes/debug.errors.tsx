@@ -16,6 +16,10 @@ import {
 } from "@/components/errors";
 import { Button } from "@/components/ui/button";
 
+/**
+ * @constant Route
+ * @description Development error preview route guarded by beforeLoad to throw 404 in non-development environments.
+ */
 export const Route = createFileRoute("/debug/errors")({
   beforeLoad: () => {
     if (!import.meta.env.DEV) {
@@ -28,6 +32,8 @@ export const Route = createFileRoute("/debug/errors")({
 /**
  * @component DebugErrorsPage
  * @description Interactive visual workbench for inspecting error views and simulating uncaught exceptions.
+ * @state Local states for active error tab, layout variant, and simulated crash trigger flags.
+ * @api Client-side debug studio; does not execute backend queries.
  * @returns {JSX.Element} Interactive debug studio.
  */
 function DebugErrorsPage() {

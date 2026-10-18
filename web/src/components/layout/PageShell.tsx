@@ -2,6 +2,7 @@
  * @file PageShell.tsx
  * @description Standardized header bar and body wrapper for views within the authenticated workspace.
  * @architecture Renders full-width headers with title, subtitle, back navigation, actions slot, and responsive maxWidth centering.
+ * @agent_note Standard wrapper for all authenticated views supporting skeleton loading states and max-width constraints.
  */
 
 import React from "react";

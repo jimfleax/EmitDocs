@@ -1,6 +1,7 @@
 /**
  * @file toast-lifecycle.test.ts
  * @description TDD unit tests for toast notification state lifecycle, test seams, and event subscriptions.
+ * @architecture UI component state unit test suite verifying pub/sub event emitters, timer dismissals, and toast queue lifecycle in web/src/components/ui/toast.tsx.
  * @agent_note Run via `pnpm run test:toast`. Tests execute in Node via tsx.
  */
 

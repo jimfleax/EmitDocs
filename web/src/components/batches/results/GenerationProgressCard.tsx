@@ -1,6 +1,8 @@
 /**
  * @file GenerationProgressCard.tsx
  * @description Real-time progress metrics card for batch PDF generation (PRD-CORE-07).
+ * @architecture Telemetry card rendered in ResultsWorkspace showing throughput, progress percentage, ETA, and layout warnings.
+ * @agent_note Displays animated progress bars and live performance metrics (docs/sec, estimated remaining seconds).
  */
 
 import { CheckCircle, Speedometer, Hourglass, WarningCircle } from "@phosphor-icons/react";
@@ -18,6 +20,19 @@ export interface GenerationProgressCardProps {
   status: WorkerStatus;
 }
 
+/**
+ * @component GenerationProgressCard
+ * @description Card visualizing batch PDF generation progress, speed metrics, ETA calculations, and layout warnings.
+ * @param {GenerationProgressCardProps} props - Component properties.
+ * @param {number} props.current - Number of certificates generated so far.
+ * @param {number} props.total - Total number of certificates in the approved batch.
+ * @param {number} props.percent - Percentage of generation completed (0-100).
+ * @param {number} props.itemsPerSec - Throughput rate in documents generated per second.
+ * @param {number} props.etaSeconds - Estimated time remaining in seconds until completion.
+ * @param {number} props.warningsCount - Count of non-fatal PDF engine layout warnings encountered.
+ * @param {WorkerStatus} props.status - Generator worker lifecycle status.
+ * @returns {JSX.Element} Progress telemetry dashboard card.
+ */
 export function GenerationProgressCard({
   current,
   total,

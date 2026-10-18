@@ -1,3 +1,10 @@
+/**
+ * @file batch-intake.test.ts
+ * @description Tests BatchIntake domain service methods including chunk ingestion, concurrency conflict handling, validation, and import finalization.
+ * @architecture Service layer integration test suite verifying BatchIntake business logic, typed domain errors, and MongoDB persistence.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_test database with unique user namespaces.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -14,6 +21,10 @@ import {
   BatchIntakeValidationError,
 } from '../src/services/batch-intake.js';
 
+/**
+ * @desc Main test runner executing BatchIntake service tests covering typed errors, chunk ingestion, and import finalization.
+ * @returns Promise resolving when all batch intake test assertions pass.
+ */
 async function runTests() {
   console.log('🧪 Starting BatchIntake Slice 1 (ingestChunk & finalizeImport) test suite...\n');
 

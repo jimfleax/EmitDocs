@@ -29,6 +29,8 @@ export interface RouterContext {
 /**
  * @component RootComponent
  * @description Root application shell providing global providers and mounting active child routes.
+ * @state Subscribes to router pathname via useRouterState for analytics and devtools.
+ * @api Mounts application-wide UI providers and devtools; no direct API requests.
  * @returns {JSX.Element} Configured root layout with dev tools in development.
  */
 function RootComponent() {
@@ -46,6 +48,12 @@ function RootComponent() {
   );
 }
 
+/**
+ * @component RootNotFound
+ * @description Global 404 Not Found fallback view switching between standalone and embedded AppShell variants.
+ * @state Inspects current pathname via useRouterState to determine whether to embed within AppShell.
+ * @api Pure client-side UI error boundary fallback.
+ */
 function RootNotFound() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname.startsWith("/app")) {
@@ -58,6 +66,12 @@ function RootNotFound() {
   return <NotFoundView variant="standalone" />;
 }
 
+/**
+ * @component RootError
+ * @description Global error boundary handler displaying general error view in standalone or embedded variant.
+ * @state Inspects pathname via useRouterState and receives caught error object with reset retry callback.
+ * @api Pure client-side error boundary handler.
+ */
 function RootError({ error, reset }: { error: unknown; reset: () => void }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   if (pathname.startsWith("/app")) {
@@ -70,6 +84,10 @@ function RootError({ error, reset }: { error: unknown; reset: () => void }) {
   return <GeneralErrorView error={error} reset={reset} variant="standalone" />;
 }
 
+/**
+ * @constant Route
+ * @description Root route declaration with TanStack Router context, mounting global error, not found, and provider shell.
+ */
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
   notFoundComponent: RootNotFound,

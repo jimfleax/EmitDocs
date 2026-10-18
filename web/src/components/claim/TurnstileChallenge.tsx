@@ -1,6 +1,8 @@
 /**
  * @file TurnstileChallenge.tsx
  * @description Cloudflare Turnstile container using window.turnstile or mock fallback for dev/test.
+ * @architecture Anti-abuse protection wrapper embedding Cloudflare Turnstile CAPTCHA widget for public claim rate limiting.
+ * @agent_note In test/dev environments without a siteKey, simulates an automatic pass callback after 100ms.
  */
 
 import { useEffect, useRef } from "react";
@@ -24,6 +26,16 @@ export interface TurnstileChallengeProps {
   theme?: "light" | "dark" | "auto";
 }
 
+/**
+ * @component TurnstileChallenge
+ * @description Embeds Cloudflare Turnstile bot verification widget with automatic mock fallback in development.
+ * @param {TurnstileChallengeProps} props - Component properties.
+ * @param {string} [props.siteKey] - Turnstile site key override.
+ * @param {(token: string) => void} props.onSuccess - Callback receiving verified challenge token.
+ * @param {() => void} [props.onError] - Challenge error callback.
+ * @param {() => void} [props.onExpire] - Challenge expiration callback.
+ * @param {"light" | "dark" | "auto"} [props.theme="auto"] - Color theme for the challenge widget.
+ */
 export function TurnstileChallenge({
   siteKey,
   onSuccess,

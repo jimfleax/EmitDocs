@@ -2,14 +2,19 @@
  * @file LandingHeader.tsx
  * @description Fixed public navigation header for the EmitDocs homepage.
  * @architecture Supports smooth scroll anchor links, mobile navigation drawer, and dynamic auth state.
+ * @agent_note Features sticky frosted-glass header with mobile drawer toggle and auth routing buttons.
  */
 
 import { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, House, List, X, Sparkle } from "@phosphor-icons/react";
+import { ArrowRight, House, List, X } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
+/**
+ * @component LandingHeader
+ * @description Sticky header navigation bar with product anchor links and authentication action buttons.
+ */
 export function LandingHeader() {
   const { data: session } = authClient.useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -80,36 +85,24 @@ export function LandingHeader() {
           {session?.user ? (
             <Button
               asChild
-              size="sm"
-              className="rounded-xl text-xs sm:text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs px-4 h-9.5 transition-all"
+              className="rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs px-5 h-10 transition-all active:scale-[0.98]"
             >
-              <Link to="/app" className="flex items-center gap-1.5">
-                <House size={15} weight="bold" />
+              <Link to="/app" className="flex items-center gap-2">
+                <House size={16} weight="bold" />
                 <span>Open Dashboard</span>
-                <ArrowRight size={14} weight="bold" />
+                <ArrowRight size={15} weight="bold" />
               </Link>
             </Button>
           ) : (
-            <>
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="text-xs sm:text-sm font-semibold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl px-3.5 h-9 transition-colors"
-              >
-                <Link to="/sign-in">Sign In</Link>
-              </Button>
-              <Button
-                asChild
-                size="sm"
-                className="rounded-xl text-xs sm:text-sm font-semibold bg-[#18181b] hover:bg-[#27272a] text-white shadow-xs px-4 h-9.5 transition-all active:scale-[0.98]"
-              >
-                <Link to="/sign-in" className="flex items-center gap-1.5">
-                  <Sparkle size={14} weight="fill" className="text-amber-400" />
-                  <span>Get Started</span>
-                </Link>
-              </Button>
-            </>
+            <Button
+              asChild
+              className="rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white shadow-xs px-5 h-10 transition-all active:scale-[0.98]"
+            >
+              <Link to="/sign-in" className="flex items-center gap-2">
+                <span>Sign In</span>
+                <ArrowRight size={15} weight="bold" />
+              </Link>
+            </Button>
           )}
         </div>
 
@@ -118,16 +111,14 @@ export function LandingHeader() {
           {session?.user ? (
             <Button
               asChild
-              size="sm"
-              className="rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3 h-8.5"
+              className="rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3.5 h-9"
             >
               <Link to="/app">Dashboard</Link>
             </Button>
           ) : (
             <Button
               asChild
-              size="sm"
-              className="rounded-xl text-xs font-semibold bg-[#18181b] hover:bg-[#27272a] text-white px-3 h-8.5"
+              className="rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white px-3.5 h-9"
             >
               <Link to="/sign-in">Sign In</Link>
             </Button>
@@ -196,10 +187,10 @@ export function LandingHeader() {
             ) : (
               <Button
                 asChild
-                className="w-full justify-center rounded-xl bg-slate-900 text-white font-semibold"
+                className="w-full justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
               >
                 <Link to="/sign-in" onClick={() => setMobileMenuOpen(false)}>
-                  Get Started Free
+                  Sign In
                 </Link>
               </Button>
             )}

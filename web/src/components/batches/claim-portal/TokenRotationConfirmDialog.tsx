@@ -1,6 +1,8 @@
 /**
  * @file TokenRotationConfirmDialog.tsx
  * @description Radix Dialog warning that rotating tokens invalidates distributed tokens. Requires typing "ROTATE".
+ * @architecture Security confirmation modal in ClaimPortalWorkspace preventing accidental credential invalidation.
+ * @agent_note Requires user to type the word "ROTATE" before activating the confirmation action button.
  */
 
 import { useState } from "react";
@@ -24,6 +26,17 @@ export interface TokenRotationConfirmDialogProps {
   isRotating?: boolean;
 }
 
+/**
+ * @component TokenRotationConfirmDialog
+ * @description Destructive confirmation dialog requiring explicit string confirmation before rotating claim portal tokens.
+ * @param {TokenRotationConfirmDialogProps} props - Component properties.
+ * @param {boolean} props.open - Whether dialog modal is open.
+ * @param {(open: boolean) => void} props.onOpenChange - Open state change handler.
+ * @param {() => Promise<void>} props.onConfirm - Async token rotation confirmation handler.
+ * @param {boolean} [props.isRotating=false] - Whether rotation request is in progress.
+ * @state {string} confirmText - Text entered in confirmation input field (must equal "ROTATE").
+ * @returns {JSX.Element} Radix Dialog with text verification input and confirm action.
+ */
 export function TokenRotationConfirmDialog({
   open,
   onOpenChange,

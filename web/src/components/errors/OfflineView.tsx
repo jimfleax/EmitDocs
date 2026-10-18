@@ -2,6 +2,7 @@
  * @file OfflineView.tsx
  * @description Network disconnection presentation component with auto-reconnection listeners.
  * @architecture Pre-configured wrapper around ErrorView displayed when navigator.onLine is false.
+ * @agent_note Automatically triggers the reset callback once browser reconnects to the network.
  */
 
 import { ErrorView, type ErrorVariant } from "./ErrorView";

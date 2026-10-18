@@ -8,6 +8,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { TemplateLibrary } from "@/components/templates/TemplateLibrary";
 
+/**
+ * @constant Route
+ * @description Route definition for the template library catalog at "/app/templates/".
+ */
 export const Route = createFileRoute("/_protected/app/templates/")({
   component: TemplatesRoute,
 });
@@ -15,6 +19,8 @@ export const Route = createFileRoute("/_protected/app/templates/")({
 /**
  * @component TemplatesRoute
  * @description Mounts the TemplateLibrary catalog component.
+ * @state Delegates library filtering, search, and pagination state to TemplateLibrary.
+ * @api Fetches template list and handles template deletion in TemplateLibrary.
  * @returns {JSX.Element} Template catalog view.
  */
 function TemplatesRoute() {

@@ -2,6 +2,7 @@
  * @file InfinityTrack.tsx
  * @description Monospaced ASCII infinity loop animation for indeterminate progress states.
  * @architecture Micro-animation UI primitive using CSS keyframes and unicode grid blocks.
+ * @agent_note Renders an accessible role="status" container with animated character cells and screen-reader label.
  */
 
 import type * as React from "react";

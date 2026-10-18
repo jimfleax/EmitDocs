@@ -2,6 +2,7 @@
  * @file AccessDeniedView.tsx
  * @description 403 Forbidden error presentation component.
  * @architecture Pre-configured wrapper around ErrorView for permission denial and expired auth sessions.
+ * @agent_note Specializes ErrorView for 403 authorization failures with switch-account guidance.
  */
 
 import { ErrorView, type ErrorVariant } from "./ErrorView";

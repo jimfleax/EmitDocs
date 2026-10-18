@@ -3,6 +3,7 @@
  * @description Client-side streaming ZIP packaging wrapper using client-zip with STORE mode (PRD-CORE-08).
  * @architecture Generates standards-compliant ZIP archives directly in browser memory or streams to disk
  *               via FileSystem Access API with zero server buffering and flat RAM usage.
+ * @agent_note Operates in STORE mode (compression 0x0000) for zero CPU overhead. Prefers FileSystem Access API with fallback to Blob download.
  */
 
 import { makeZip } from "client-zip";
@@ -15,11 +16,9 @@ export interface ZipInputFile {
 }
 
 /**
- * Creates a streaming ZIP archive from an async (or sync) iterable of input files.
- * Uses client-zip makeZip which operates in STORE mode (compression method 0x0000).
- *
- * @param files Async or sync iterable yielding `{ name, input, lastModified?, size? }`.
- * @returns ReadableStream<Uint8Array> emitting raw ZIP bytes in chunks.
+ * @desc    Creates a streaming ZIP archive from an async or sync iterable of input files in STORE mode.
+ * @param   {AsyncIterable<ZipInputFile> | Iterable<ZipInputFile>} files - Async or sync iterable yielding file descriptors.
+ * @returns {ReadableStream<Uint8Array>} ReadableStream emitting raw ZIP bytes in chunks.
  */
 export function createStreamingZip(
   files: AsyncIterable<ZipInputFile> | Iterable<ZipInputFile>
@@ -29,13 +28,11 @@ export function createStreamingZip(
 }
 
 /**
- * Saves a ReadableStream directly to disk using the FileSystem Access API (`window.showSaveFilePicker`).
- * Prevents allocating memory for multi-hundred-megabyte or gigabyte archives in browser heap.
- *
- * @param stream ReadableStream of Uint8Array chunks.
- * @param suggestedFilename Default filename proposed in the save file dialog.
- * @param onProgress Optional callback reporting cumulative bytes written.
- * @returns Promise<boolean> true if stream saved successfully, false if unsupported or cancelled by user.
+ * @desc    Saves a ReadableStream directly to disk using the FileSystem Access API without browser heap exhaustion.
+ * @param   {ReadableStream<Uint8Array>} stream - ReadableStream of Uint8Array chunks.
+ * @param   {string} suggestedFilename - Default filename proposed in the save file dialog.
+ * @param   {(bytesWritten: number) => void} [onProgress] - Optional callback reporting cumulative bytes written.
+ * @returns {Promise<boolean>} True if stream saved successfully, false if unsupported or cancelled by user.
  */
 export async function saveZipStreamWithPicker(
   stream: ReadableStream<Uint8Array>,
@@ -99,10 +96,10 @@ export async function saveZipStreamWithPicker(
 }
 
 /**
- * Progressive fallback: Combines accumulated chunks into a Blob and triggers native browser file download.
- *
- * @param chunks Array of Uint8Array chunks emitted by streaming ZIP generator.
- * @param filename File name for the download anchor.
+ * @desc    Combines accumulated chunks into a Blob and triggers native browser file download.
+ * @param   {Uint8Array[]} chunks - Array of Uint8Array chunks emitted by streaming ZIP generator.
+ * @param   {string} filename - File name for the download anchor.
+ * @returns {void}
  */
 export function saveZipChunksAsBlob(chunks: Uint8Array[], filename: string): void {
   if (typeof window === "undefined" || typeof document === "undefined") {

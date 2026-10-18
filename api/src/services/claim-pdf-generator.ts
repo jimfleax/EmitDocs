@@ -1,18 +1,45 @@
 /**
  * @file claim-pdf-generator.ts
  * @description Server-side deterministic PDF overlay generator for certificate claim downloads.
+ * @architecture Uses pdf-lib with fontkit to composite recipient field text onto authenticated template PDF buffers.
+ * @agent_note Supports standard 14 PDF fonts and embedded Unicode TrueType fonts (Liberation Sans) to render special characters without throwing WinAnsi encoding errors.
  */
 
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { PDFDocument, rgb, StandardFonts, type PDFFont } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+function findFontFile(filename: string): Buffer | null {
+  const candidates = [
+    path.resolve(__dirname, `../../../web/public/standard_fonts/${filename}`),
+    path.resolve(process.cwd(), `web/public/standard_fonts/${filename}`),
+    path.resolve(process.cwd(), `../web/public/standard_fonts/${filename}`),
+    path.resolve(process.cwd(), `public/standard_fonts/${filename}`),
+    `/usr/share/fonts/liberation-sans-fonts/${filename}`,
+    `/usr/share/fonts/truetype/liberation/${filename}`,
+  ];
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return fs.readFileSync(candidate);
+      }
+    } catch {}
+  }
+  return null;
+}
+
 /**
- * Overlays field mappings and recipient data onto a base PDF document buffer.
- *
- * @param {Uint8Array | Buffer | null} basePdfBytes - Source PDF template bytes.
- * @param {any[]} fieldMappings - Field coordinates, typography, and alignment rules.
- * @param {Record<string, any>} data - Recipient effective data key-value pairs.
+ * @desc    Overlays field mappings and recipient data onto a base PDF document buffer.
+ * @param   {Uint8Array | Buffer | null} basePdfBytes - Source PDF template bytes.
+ * @param   {any[]} fieldMappings - Field coordinates, typography, and alignment rules.
+ * @param   {Record<string, any>} [data={}] - Recipient effective data key-value pairs.
  * @returns {Promise<Buffer>} Serialized PDF buffer with overlaid values.
+ * @throws  {Error} When base PDF template bytes are missing or invalid and placeholder generation is disallowed.
  */
 export async function generateServerPdfWithOverlay(
   basePdfBytes: Uint8Array | Buffer | null,
@@ -21,14 +48,25 @@ export async function generateServerPdfWithOverlay(
 ): Promise<Buffer> {
   let doc: PDFDocument;
 
+  const allowPlaceholder =
+    process.env.ENABLE_PLACEHOLDER_PDF === 'true' ||
+    process.env.ALLOW_PLACEHOLDER_PDF === 'true' ||
+    process.env.ALLOW_CLAIM_PLACEHOLDER === 'true';
+
   if (basePdfBytes && basePdfBytes.length > 0) {
     try {
       doc = await PDFDocument.load(basePdfBytes, { ignoreEncryption: true });
     } catch {
+      if (!allowPlaceholder) {
+        throw new Error('Failed to parse base PDF template bytes');
+      }
       doc = await PDFDocument.create();
       doc.addPage([612, 792]);
     }
   } else {
+    if (!allowPlaceholder) {
+      throw new Error('Base PDF template bytes are required for PDF generation');
+    }
     doc = await PDFDocument.create();
     doc.addPage([612, 792]);
   }
@@ -39,6 +77,22 @@ export async function generateServerPdfWithOverlay(
     // fontkit registration optional or already registered
   }
 
+  let unicodeRegular: PDFFont | null = null;
+  let unicodeBold: PDFFont | null = null;
+
+  try {
+    const regularBytes = findFontFile('LiberationSans-Regular.ttf');
+    if (regularBytes) {
+      unicodeRegular = await doc.embedFont(regularBytes);
+    }
+    const boldBytes = findFontFile('LiberationSans-Bold.ttf');
+    if (boldBytes) {
+      unicodeBold = await doc.embedFont(boldBytes);
+    }
+  } catch (err) {
+    console.warn('Failed to embed Unicode font:', err);
+  }
+
   const helvetica = await doc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await doc.embedFont(StandardFonts.HelveticaBold);
   const times = await doc.embedFont(StandardFonts.TimesRoman);
@@ -46,15 +100,53 @@ export async function generateServerPdfWithOverlay(
   const courier = await doc.embedFont(StandardFonts.Courier);
   const courierBold = await doc.embedFont(StandardFonts.CourierBold);
 
-  const getFont = (family?: string) => {
+  const customFonts: Record<string, PDFFont> = {};
+  for (const m of fieldMappings || []) {
+    if (m.customFontBytes && !customFonts[m.id || m.key]) {
+      try {
+        const fontBytes = Buffer.from(m.customFontBytes, 'base64');
+        customFonts[m.id || m.key] = await doc.embedFont(fontBytes);
+      } catch (err) {
+        console.warn('Failed to embed custom font bytes:', err);
+      }
+    }
+  }
+
+  const isRecipientNameField = (key?: string) => {
+    if (!key) return false;
+    const lower = key.toLowerCase();
+    return lower.includes('name') || lower.includes('recipient');
+  };
+
+  const getFont = (family?: string, key?: string, mappingId?: string): PDFFont => {
+    if (mappingId && customFonts[mappingId]) {
+      return customFonts[mappingId];
+    }
+    if (key && customFonts[key]) {
+      return customFonts[key];
+    }
+
     const f = family?.toLowerCase() || 'helvetica';
+    const isBold = f.includes('bold');
+
+    // For recipient names or explicit unicode requests, prefer the Unicode-capable fontkit font
+    if (unicodeRegular && (isRecipientNameField(key) || f.includes('liberation') || f.includes('unicode'))) {
+      return isBold && unicodeBold ? unicodeBold : unicodeRegular;
+    }
+
     if (f.includes('times')) {
-      return f.includes('bold') ? timesBold : times;
+      return isBold ? timesBold : times;
     }
     if (f.includes('courier')) {
-      return f.includes('bold') ? courierBold : courier;
+      return isBold ? courierBold : courier;
     }
-    return f.includes('bold') ? helveticaBold : helvetica;
+
+    // Default Helvetica fallback uses Unicode font if available so extended characters don't fail
+    if (unicodeRegular && (f.includes('helvetica') || f === 'sans-serif' || !family)) {
+      return isBold && unicodeBold ? unicodeBold : unicodeRegular;
+    }
+
+    return isBold ? helveticaBold : helvetica;
   };
 
   const pages = doc.getPages();
@@ -73,7 +165,7 @@ export async function generateServerPdfWithOverlay(
       if (mapping.textTransform === 'lowercase') text = text.toLowerCase();
 
       const fontSize = Number(mapping.fontSize) || 16;
-      const font = getFont(mapping.fontFamily);
+      const font = getFont(mapping.fontFamily, key, mapping.id);
 
       // Color parsing
       let textColor = rgb(0.1, 0.1, 0.1);

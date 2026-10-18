@@ -33,6 +33,18 @@ export interface DraftReviewWorkspaceProps {
  * @description Master-detail workspace for inspecting, editing, overriding, and approving draft records prior to document issuance.
  * @param {DraftReviewWorkspaceProps} props - Component properties.
  * @param {string} props.batchId - Target batch ID for draft review.
+ * @state {any} batch - Batch document loaded from backend.
+ * @state {any} template - Template entity associated with the batch.
+ * @state {any} templateVersion - Active version configuration and field mappings.
+ * @state {Uint8Array | null} sourcePdfBytes - Binary array of template PDF asset.
+ * @state {boolean} isLoading - Loading state during initial batch and PDF download.
+ * @state {string | null} error - Error message string if data retrieval fails.
+ * @state {DraftRowItem | null} selectedRow - Currently selected draft row for preview/editing.
+ * @state {"preview" | "edit"} rightPanelMode - Mode toggle between canvas PDF preview and inline row editor.
+ * @state {number} refreshTrigger - Counter triggering child list refetch after edits.
+ * @state {boolean} isReimportModalOpen - Visibility of the reimport spreadsheet modal.
+ * @api {GET} /api/batches/:batchId - Fetches batch details and template configuration.
+ * @api {GET} /api/templates/:templateId/versions/:version - Fetches template version details.
  * @returns {JSX.Element} Review interface with left draft list and right-hand preview/editor pane.
  */
 export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {

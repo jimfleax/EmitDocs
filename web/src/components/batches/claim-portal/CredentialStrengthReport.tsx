@@ -1,6 +1,8 @@
 /**
  * @file CredentialStrengthReport.tsx
  * @description Visual audit report for imported credential strength, collision warnings, and entropy gates.
+ * @architecture Security audit widget rendered in ClaimPortalWorkspace credentials tab for imported credential mode.
+ * @agent_note Displays collision alerts, weak entropy warnings, and enforces secondary verification column requirements.
  */
 
 import { CheckCircle } from "@phosphor-icons/react";
@@ -16,6 +18,17 @@ export interface CredentialStrengthReportProps {
   hasSecondaryField?: boolean;
 }
 
+/**
+ * @component CredentialStrengthReport
+ * @description Security audit report checking imported column uniqueness, collision counts, and minimum entropy requirements.
+ * @param {CredentialStrengthReportProps} props - Component properties.
+ * @param {Object | null} props.strength - Security evaluation report from server or client analysis.
+ * @param {boolean} props.strength.strong - Whether credentials satisfy brute-force protection standards.
+ * @param {string} [props.strength.reason] - Explanation of weakness if criteria are unmet.
+ * @param {string[]} props.strength.collisions - List of duplicate credential values detected.
+ * @param {boolean} [props.hasSecondaryField=false] - Whether a secondary verification factor is configured.
+ * @returns {JSX.Element} Alert or success badge summarizing credential security strength.
+ */
 export function CredentialStrengthReport({
   strength,
   hasSecondaryField = false,

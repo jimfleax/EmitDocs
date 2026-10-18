@@ -63,6 +63,8 @@ function formatDate(isoString: string): string {
  * @param {Object} props - Component properties.
  * @param {string | null} [props.thumbnailUrl] - Remote thumbnail URL.
  * @param {string} props.name - Template name for accessibility alt text.
+ * @state {string | null} errorUrl - Stores URL that triggered an onError event to render fallback.
+ * @api None (internal presentational helper).
  * @returns {JSX.Element} Thumbnail image or placeholder SVG graphic.
  */
 function TemplateCardThumbnail({
@@ -114,10 +116,15 @@ function TemplateCardThumbnail({
 /**
  * @component TemplateLibrary
  * @description Main template listing view with quick actions, search bar, empty states, and template grid.
+ * @param {Object} [props] - Component properties (accepts no external props).
  * @state {Template[]} templates - List of retrieved templates.
  * @state {boolean} loading - Loading indicator state.
  * @state {string} searchQuery - Search query string for filtering templates.
  * @state {string} error - Fetch error message.
+ * @state {Template | null} deleteTarget - Target template selected for deletion confirmation.
+ * @state {Object | null} cascadeWarning - Dependent active batches warning payload returned by server.
+ * @state {boolean} isDeleting - Network mutation loading indicator for deletion.
+ * @state {number} retryCount - Retry counter for manual query re-fetching.
  * @api {GET} /api/templates - Fetches template collection.
  * @api {DELETE} /api/templates/:id - Deletes a specified template.
  * @returns {JSX.Element} Template library catalog page.

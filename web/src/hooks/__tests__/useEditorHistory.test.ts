@@ -1,7 +1,18 @@
+/**
+ * @file useEditorHistory.test.ts
+ * @description Unit tests for immutable undo/redo history state machine.
+ * @architecture Validates snapshot stack push, undo transitions, redo branching, and 50-step depth clamping.
+ * @agent_note Executes as a standalone Node test suite using node assert.
+ */
+
 import assert from "assert";
 import { createEditorHistory } from "../useEditorHistory";
 import type { IFieldMapping } from "@/components/templates/mapping/types";
 
+/**
+ * @desc Executes test cases validating createEditorHistory stack operations and depth bounds.
+ * @returns {void}
+ */
 function runHistoryTests() {
   console.log("=== RUNNING EDITOR HISTORY UNIT TESTS ===\n");
 

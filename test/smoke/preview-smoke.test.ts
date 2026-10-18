@@ -27,6 +27,11 @@ process.env.BETTER_AUTH_URL = process.env.BETTER_AUTH_URL || 'http://localhost:3
 process.env.CLOUDINARY_API_SECRET = process.env.CLOUDINARY_API_SECRET || 'smoke_test_api_secret_1234567890';
 process.env.CLOUDINARY_API_KEY = process.env.CLOUDINARY_API_KEY || 'smoke_key';
 process.env.CLOUDINARY_CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || 'smoke_cloud';
+
+/**
+ * @desc Main runner executing preview smoke test suites covering health checks, CORS credentials reflection, Cloudinary signatures, and 404 correlation headers.
+ * @returns {Promise<void>} Resolves when all smoke assertions pass.
+ */
 export async function runPreviewSmokeTests() {
   console.log('===========================================================');
   console.log('  RUNNING PREVIEW SMOKE TEST SUITE                         ');

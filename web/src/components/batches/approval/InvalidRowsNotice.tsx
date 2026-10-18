@@ -1,6 +1,8 @@
 /**
  * @file InvalidRowsNotice.tsx
  * @description Alert notice banner displayed when draft rows contain errors that will be excluded upon approval.
+ * @architecture Warning presentation component rendered in ApprovalWorkspace informing the user of partial issuance.
+ * @agent_note Only rendered when invalidRows > 0, explaining that invalid rows will be skipped while valid rows proceed.
  */
 
 import { WarningCircle, CheckSquareOffset } from "@phosphor-icons/react";
@@ -10,6 +12,14 @@ interface InvalidRowsNoticeProps {
   validRows: number;
 }
 
+/**
+ * @component InvalidRowsNotice
+ * @description Informational alert detailing invalid row exclusion rules prior to batch snapshot approval.
+ * @param {InvalidRowsNoticeProps} props - Component properties.
+ * @param {number} props.invalidRows - Number of excluded invalid draft rows.
+ * @param {number} props.validRows - Number of valid rows proceeding to issuance.
+ * @returns {JSX.Element | null} Banner element if invalid rows exist, otherwise null.
+ */
 export function InvalidRowsNotice({ invalidRows, validRows }: InvalidRowsNoticeProps) {
   if (invalidRows === 0) return null;
 

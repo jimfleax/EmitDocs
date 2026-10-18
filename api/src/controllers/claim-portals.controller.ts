@@ -44,6 +44,12 @@ function getRequiredParam(c: Context, name: string): string {
   return val;
 }
 
+/**
+ * @desc    Retrieves claim portal details and active credential set configuration for a specific batch.
+ * @route   GET /api/batches/:id/claim-portal
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal | null }`, 400 on invalid batch, or 500 on error.
+ */
 export const getPortalByBatch = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -69,6 +75,13 @@ export const getPortalByBatch = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Creates a new draft claim portal for an approved batch with optional custom label and instructions.
+ * @route   POST /api/batches/:id/claim-portal
+ * @access  Private (Authenticated User)
+ * @body    {Object} [body] - Portal draft options including label and instructions.
+ * @returns {Promise<Response>} 201 Created JSON with `{ portal: IClaimPortal }`, 400 if ineligible, 409 if already exists.
+ */
 export const createPortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -89,6 +102,13 @@ export const createPortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Updates configuration settings (label, instructions, rate limits) for a claim portal.
+ * @route   PATCH /api/claim-portals/:portalId
+ * @access  Private (Authenticated User)
+ * @body    {Object} body - Updated portal settings including label, instructions, rateLimitPerIp, etc.
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal }`, 404 if not found, 500 on failure.
+ */
 export const updatePortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -103,6 +123,12 @@ export const updatePortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Generates unique access claim tokens for all eligible recipients in the portal's approved batch.
+ * @route   POST /api/claim-portals/:portalId/credentials/generate
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with generated credential set summary and token count, 404 if not found, 409 on conflict.
+ */
 export const generateTokens = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -116,6 +142,13 @@ export const generateTokens = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Records organizer acknowledgement of downloaded credential tokens, marking credential set exported.
+ * @route   POST /api/claim-portals/:portalId/credentials/export-ack
+ * @access  Private (Authenticated User)
+ * @body    {Object} body - Payload with credential set revision number.
+ * @returns {Promise<Response>} 200 JSON with `{ credentialSet: IClaimCredentialSet }`, 404 if not found, 409 if already acked.
+ */
 export const acknowledgeExport = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -130,6 +163,13 @@ export const acknowledgeExport = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Configures participant lookup fields (primary and secondary keys) from imported batch data.
+ * @route   POST /api/claim-portals/:portalId/credentials/import-config
+ * @access  Private (Authenticated User)
+ * @body    {Object} body - Configuration with primaryFieldKey and optional secondaryFieldKey.
+ * @returns {Promise<Response>} 200 JSON with `{ credentialSet: IClaimCredentialSet }`, 400 on weak credentials, 404 if not found.
+ */
 export const configureImport = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -147,6 +187,12 @@ export const configureImport = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Computes preflight validation checks, credential coverage, and activation readiness for a portal.
+ * @route   GET /api/claim-portals/:portalId/preflight
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with preflight metrics and readiness status, 404 if not found, 500 on failure.
+ */
 export const getPreflight = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -160,6 +206,13 @@ export const getPreflight = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Transitions a draft or paused claim portal to active status, enabling public participant claims.
+ * @route   POST /api/claim-portals/:portalId/activate
+ * @access  Private (Authenticated User)
+ * @body    {Object} [body] - Activation options with optional expectedVersion CAS token and ackExclusions flag.
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal }`, 400 if validation fails, 404 if not found.
+ */
 export const activatePortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -179,6 +232,12 @@ export const activatePortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Pauses an active claim portal, temporarily disabling participant claims without losing configuration.
+ * @route   POST /api/claim-portals/:portalId/pause
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal }`, 400 on invalid transition, 404 if not found.
+ */
 export const pausePortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -192,6 +251,12 @@ export const pausePortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Resumes a paused claim portal back to active status.
+ * @route   POST /api/claim-portals/:portalId/resume
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal }`, 400 on invalid transition, 404 if not found.
+ */
 export const resumePortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -205,6 +270,12 @@ export const resumePortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Disables a claim portal, blocking any new claim attempts.
+ * @route   POST /api/claim-portals/:portalId/disable
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal }`, 400 on invalid transition, 404 if not found.
+ */
 export const disablePortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -218,6 +289,12 @@ export const disablePortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Permanently closes a claim portal, finalizing its lifecycle.
+ * @route   POST /api/claim-portals/:portalId/close
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ portal: IClaimPortal }`, 400 on invalid transition, 404 if not found.
+ */
 export const closePortal = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -231,6 +308,13 @@ export const closePortal = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Rotates portal credentials, re-generating tokens for unclaimed or all recipients.
+ * @route   POST /api/claim-portals/:portalId/credentials/rotate
+ * @access  Private (Authenticated User)
+ * @body    {Object} [body] - Rotation options with mode ('unclaimed_only' | 'all').
+ * @returns {Promise<Response>} 200 JSON with rotation results and credentialSet, 404 if not found, 500 on failure.
+ */
 export const rotateTokens = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -245,6 +329,12 @@ export const rotateTokens = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Retrieves paginated recipient claim states and audit statuses for an organizer portal.
+ * @route   GET /api/claim-portals/:portalId/recipients
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with paginated recipient claim statuses, 404 if not found, 500 on failure.
+ */
 export const getRecipients = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -263,6 +353,12 @@ export const getRecipients = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Revokes a specific recipient's claimed status, resetting their access or invalidating credentials.
+ * @route   POST /api/claim-portals/:portalId/recipients/:recipientId/revoke
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ recipientState: IClaimRecipientState }`, 404 if not found, 500 on failure.
+ */
 export const revokeRecipient = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);
@@ -277,6 +373,12 @@ export const revokeRecipient = async (c: Context) => {
   }
 };
 
+/**
+ * @desc    Retrieves real-time analytics, claim conversion rates, and hourly activity buckets for a portal.
+ * @route   GET /api/claim-portals/:portalId/analytics
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 JSON with `{ analytics: IClaimPortalAnalytics }`, 404 if not found, 500 on failure.
+ */
 export const getAnalytics = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);

@@ -2,6 +2,7 @@
  * @file tooltip-positioning.test.ts
  * @description Unit tests for Tooltip coordinate calculations, boundary clamping, auto-flipping, and target resolution.
  * @architecture Validates deterministic screen positioning logic used in template editor for suggested placeholder tokens.
+ * @agent_note Run via `npx tsx test/tooltip-positioning.test.ts`. Offline mathematical coordinate tests verifying edge clamping and flipping without browser DOM.
  */
 
 import assert from "node:assert";

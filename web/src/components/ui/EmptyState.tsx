@@ -2,6 +2,7 @@
  * @file EmptyState.tsx
  * @description Zero-data placeholder container with centered icon, message, and call-to-action button slot.
  * @architecture Reusable presentation component displayed when collections (templates, batches, drafts) are empty.
+ * @agent_note Supports dashed and solid border styling with customizable icon and call-to-action slots.
  */
 
 import * as React from "react";

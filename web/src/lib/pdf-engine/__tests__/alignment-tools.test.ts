@@ -1,8 +1,19 @@
+/**
+ * @file alignment-tools.test.ts
+ * @description Unit tests for batch field alignment and horizontal/vertical distribution algorithms.
+ * @architecture Validates edge alignment, bounding-box centering, page centering, and even spacing distribution across template fields.
+ * @agent_note Relies on Node.js assert for regression testing of coordinate transformations.
+ */
+
 import assert from "assert";
 import { applyAlignmentToFields } from "../alignment-tools";
 import type { IFieldMapping } from "@/components/templates/mapping/types";
 import type { ViewportConfig } from "../coordinate-transforms";
 
+/**
+ * @desc Executes unit tests validating applyAlignmentToFields for alignment and distribution operations.
+ * @returns {void}
+ */
 function runAlignmentTests() {
   console.log("=== RUNNING ALIGNMENT TOOLS UNIT TESTS ===\n");
 

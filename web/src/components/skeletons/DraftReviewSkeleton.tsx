@@ -2,6 +2,7 @@
  * @file DraftReviewSkeleton.tsx
  * @description Two-column loading skeleton for the draft review workspace and document preview pane.
  * @architecture Suspense boundary placeholder for the /app/batches/$batchId/review route.
+ * @agent_note Mirrors the two-column review workspace layout with gallery and preview pane.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

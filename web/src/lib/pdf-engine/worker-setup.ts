@@ -13,9 +13,10 @@ if (typeof window !== "undefined" && !pdfjsLib.GlobalWorkerOptions.workerSrc) {
 }
 
 /**
- * URL prefix for PDF.js standard font data files (Foxit/Liberation families).
- * Required by PDF.js v4 to render standard 14 fonts in re-serialized PDFs.
- * Files are copied from pdfjs-dist/standard_fonts/ to public/standard_fonts/.
+ * @desc URL prefix for PDF.js standard font data files (Foxit/Liberation families).
+ *       Required by PDF.js v4 to render standard 14 fonts in re-serialized PDFs.
+ *       Files are copied from pdfjs-dist/standard_fonts/ to public/standard_fonts/.
+ * @type {string}
  */
 export const STANDARD_FONT_DATA_URL = "/standard_fonts/";
 

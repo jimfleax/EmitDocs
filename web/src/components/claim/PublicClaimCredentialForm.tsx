@@ -1,6 +1,8 @@
 /**
  * @file PublicClaimCredentialForm.tsx
  * @description Participant claim form supporting single token or dual primary+secondary credential inputs with Turnstile integration.
+ * @architecture Public claim interface form collecting tokens and participant identifiers to authenticate claim requests.
+ * @agent_note Integrates Cloudflare Turnstile CAPTCHA verification when rate limiting or anti-bot checks are triggered.
  */
 
 import { useState } from "react";
@@ -24,6 +26,18 @@ export interface PublicClaimCredentialFormProps {
   isLoading?: boolean;
 }
 
+/**
+ * @component PublicClaimCredentialForm
+ * @description Form supporting single token or dual primary+secondary credential inputs with Turnstile integration.
+ * @param {PublicClaimCredentialFormProps} props - Component properties.
+ * @param {"generated_token" | "imported_credential"} props.credentialMode - Credential verification mode.
+ * @param {string} [props.primaryFieldLabel] - Label for primary credential input.
+ * @param {string} [props.secondaryFieldLabel] - Label for secondary credential input.
+ * @param {boolean} [props.requiresTurnstile=false] - Whether bot challenge verification is required.
+ * @param {string} [props.turnstileSiteKey] - Cloudflare Turnstile public site key.
+ * @param {(creds: { primaryCredential: string; secondaryCredential?: string; turnstileToken?: string }) => Promise<void>} props.onSubmit - Submission callback.
+ * @param {boolean} [props.isLoading=false] - Submission loading state.
+ */
 export function PublicClaimCredentialForm({
   credentialMode,
   primaryFieldLabel,

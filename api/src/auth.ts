@@ -19,6 +19,7 @@ import 'dotenv/config';
 const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
 
 /**
+ * @desc Central Better-Auth authentication handler instance.
  * @type {ReturnType<typeof betterAuth>}
  * @description Central Better-Auth authentication handler instance.
  */

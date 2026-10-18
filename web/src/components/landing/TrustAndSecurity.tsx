@@ -2,6 +2,7 @@
  * @file TrustAndSecurity.tsx
  * @description Enterprise security, data privacy, and zero-model-training compliance overview.
  * @architecture Highlights GDPR/CCPA readiness, log sanitization, and automated retention mechanics.
+ * @agent_note Details technical guarantees including strict short-lived TTLs, AES-256 storage, and zero model training.
  */
 
 import {
@@ -16,6 +17,10 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "@tanstack/react-router";
 
+/**
+ * @component TrustAndSecurity
+ * @description Showcase section summarizing privacy commitments, encryption safeguards, and compliance standards.
+ */
 export function TrustAndSecurity() {
   const securityPillars = [
     {

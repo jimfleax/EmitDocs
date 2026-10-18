@@ -42,6 +42,22 @@ interface FieldOverlayLayerProps {
  * @component FieldOverlayLayer
  * @description Canvas layer hosting interactive field boxes, resize handles, magnetic snapping lines, and toolbars.
  * @param {FieldOverlayLayerProps} props - Component properties.
+ * @param {ViewportConfig} props.viewport - Coordinate mapping viewport parameters.
+ * @param {IFieldMapping[]} props.fieldMappings - Array of all field mappings.
+ * @param {number} props.activePageIndex - Currently visible page index (0-indexed).
+ * @param {string | null} props.selectedFieldId - ID of currently selected field mapping.
+ * @param {(id: string | null) => void} props.onSelectField - Field selection callback.
+ * @param {(field: IFieldMapping) => void} props.onUpdateField - Field mutation callback.
+ * @param {(field: IFieldMapping) => void} [props.onDuplicateField] - Field duplication callback.
+ * @param {(id: string) => void} [props.onDeleteField] - Field deletion callback.
+ * @param {DetectedToken[]} props.detectedTokens - Auto-discovered token candidates.
+ * @param {(token: DetectedToken) => void} props.onConfirmToken - Token confirmation callback.
+ * @param {boolean} props.isDrawing - Whether marquee drawing tool is active.
+ * @param {boolean} [props.isSnapEnabled=true] - Magnetic snap toggle flag.
+ * @param {number} [props.snapThresholdPx=8] - Distance threshold in pixels for magnetic snap.
+ * @state {AlignmentGuide[]} activeGuides - Active magnetic snapping guidelines rendered on canvas.
+ * @state {Object | null} dragState - Active drag or 8-point resize handle interaction state.
+ * @api Parent callbacks: onSelectField, onUpdateField, onDuplicateField, onDeleteField, onConfirmToken.
  * @returns {JSX.Element} Interactive DOM overlay layer for PDF page fields.
  */
 export const FieldOverlayLayer: React.FC<FieldOverlayLayerProps> = ({

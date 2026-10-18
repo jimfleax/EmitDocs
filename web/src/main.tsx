@@ -18,6 +18,10 @@ import "./index.css";
 // Register Service Worker for PWA functionality
 registerServiceWorker();
 
+/**
+ * @constant router
+ * @description Root TanStack Router instance configured with the generated route tree and default error/not-found boundaries.
+ */
 const router = createRouter({
   routeTree,
   trailingSlash: "preserve",
@@ -39,6 +43,8 @@ declare module "@tanstack/react-router" {
 /**
  * @component InnerApp
  * @description Context bridge mounting RouterProvider once initial authentication hydration is resolved.
+ * @state Subscribes to auth state via useAuth() to track pending session resolution.
+ * @api Injects authenticated session context into TanStack Router.
  * @returns {JSX.Element} RouterProvider with active auth context, or full-screen loading spinner.
  */
 // @ts-ignore

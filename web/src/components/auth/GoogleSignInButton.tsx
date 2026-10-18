@@ -2,6 +2,7 @@
  * @file GoogleSignInButton.tsx
  * @description Google OAuth single sign-on trigger button with loading feedback.
  * @architecture Dispatches Better Auth social authentication flow with configurable callback redirects.
+ * @agent_note Initiates client-side OAuth flow with customizable success and failure callback URLs.
  */
 
 import { useState } from "react";

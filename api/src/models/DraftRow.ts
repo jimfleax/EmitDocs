@@ -80,6 +80,9 @@ export interface IDraftRow extends Omit<Document, 'errors'> {
   updatedAt: Date;
 }
 
+/**
+ * @desc Sub-schema for row field validation errors.
+ */
 const RowFieldErrorSchema = new Schema<IRowFieldError>(
   {
     field: { type: String, required: true },
@@ -89,6 +92,9 @@ const RowFieldErrorSchema = new Schema<IRowFieldError>(
   { _id: false }
 );
 
+/**
+ * @desc Sub-schema for non-blocking row field warnings.
+ */
 const RowFieldWarningSchema = new Schema<IRowFieldWarning>(
   {
     field: { type: String, required: true },
@@ -99,6 +105,9 @@ const RowFieldWarningSchema = new Schema<IRowFieldWarning>(
   { _id: false }
 );
 
+/**
+ * @desc Mongoose schema for DraftRow records.
+ */
 const DraftRowSchema = new Schema<IDraftRow>(
   {
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
@@ -127,6 +136,7 @@ DraftRowSchema.index({ batchId: 1, revision: 1, isDuplicate: 1 });
 
 /**
  * @module DraftRow
+ * @desc Mongoose schema and model for DraftRow
  * @description Compiled Mongoose model for DraftRow documents.
  */
 export const DraftRow = mongoose.models.DraftRow || mongoose.model<IDraftRow>('DraftRow', DraftRowSchema);

@@ -2,6 +2,7 @@
  * @file VolumeSplitCard.tsx
  * @description Card representing a partitioned batch archive volume for multi-part downloads (PRD-CORE-08).
  * @architecture Displays volume boundaries (1,000 docs / 1GB), estimated size, and triggers streaming packaging.
+ * @agent_note Rendered within StreamingZipControls for each calculated volume partition.
  */
 
 import {
@@ -24,6 +25,18 @@ export interface VolumeSplitCardProps {
   disabled?: boolean;
 }
 
+/**
+ * @component VolumeSplitCard
+ * @description Tile presenting partition boundaries, document counts, estimated byte size, and single-volume download trigger.
+ * @param {VolumeSplitCardProps} props - Component properties.
+ * @param {BatchVolumeInfo} props.volume - Partition metadata containing index, filename, document range, and estimated size.
+ * @param {boolean} props.isCurrentZipping - Whether this specific volume is currently being packaged.
+ * @param {boolean} props.isAnyZipping - Whether any archive volume is currently being packaged.
+ * @param {number} [props.currentPercent=0] - Progress percentage for this volume.
+ * @param {(volume: BatchVolumeInfo) => void} props.onDownload - Trigger download callback for this volume.
+ * @param {boolean} [props.disabled=false] - Whether action button is disabled.
+ * @returns {JSX.Element} Interactive volume card with status indicators and download button.
+ */
 export function VolumeSplitCard({
   volume,
   isCurrentZipping,

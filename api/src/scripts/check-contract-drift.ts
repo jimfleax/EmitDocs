@@ -16,6 +16,13 @@ import { honoApp } from '../index.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/**
+ * @interface DriftCheckResult
+ * @description Structure returned by checkContractDrift detailing drift verification status and discrepancies.
+ * @property {boolean} hasDrift - True if differences are detected between committed spec and live routes.
+ * @property {string} message - Human-readable summary of the drift check outcome.
+ * @property {string[]} [diffSummary] - Specific list of missing or extraneous endpoints/paths.
+ */
 export interface DriftCheckResult {
   hasDrift: boolean;
   message: string;
@@ -23,10 +30,10 @@ export interface DriftCheckResult {
 }
 
 /**
- * Checks for contract drift between in-memory specification and committed openapi.json.
+ * @desc Checks for contract drift between in-memory specification and committed openapi.json.
  *
  * @param {string} [specPath] - Path to committed OpenAPI JSON file.
- * @returns {DriftCheckResult}
+ * @returns {DriftCheckResult} Drift status, message, and array of identified differences.
  */
 export function checkContractDrift(specPath?: string): DriftCheckResult {
   const filePath = specPath || path.resolve(__dirname, '../../openapi.json');

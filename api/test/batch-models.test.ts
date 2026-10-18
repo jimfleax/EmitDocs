@@ -1,9 +1,20 @@
+/**
+ * @file batch-models.test.ts
+ * @description Validates Mongoose schema rules, defaults, required properties, and index definitions for Batch, BatchImport, and DraftRow models.
+ * @architecture Model invariant test suite verifying synchronous schema validation and index specifications without requiring a live MongoDB server.
+ * @agent_note Runs offline using validateSync(); does not require MONGODB_URI or network connections.
+ */
+
 import assert from 'node:assert';
 import mongoose from 'mongoose';
 import { Batch } from '../src/models/Batch.js';
 import { BatchImport } from '../src/models/BatchImport.js';
 import { DraftRow } from '../src/models/DraftRow.js';
 
+/**
+ * @desc Main test runner validating Mongoose model invariants and indexes for batch domain collections.
+ * @returns Promise resolving when all schema validation and index checks pass.
+ */
 async function runTests() {
   console.log('🧪 Starting Batch domain models unit test suite...');
 

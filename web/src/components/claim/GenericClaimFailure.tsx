@@ -1,6 +1,8 @@
 /**
  * @file GenericClaimFailure.tsx
  * @description Enumeration-resistant generic error message with support Request ID.
+ * @architecture Public claim interface error boundary component preventing timing and credential enumeration attacks.
+ * @agent_note Displays generic error messaging and support correlation request ID without disclosing whether a token exists.
  */
 
 import { WarningCircle, ArrowClockwise } from "@phosphor-icons/react";
@@ -12,6 +14,14 @@ export interface GenericClaimFailureProps {
   onRetry?: () => void;
 }
 
+/**
+ * @component GenericClaimFailure
+ * @description Displays a safe, non-enumerating error message with optional retry action and support request ID.
+ * @param {GenericClaimFailureProps} props - Component properties.
+ * @param {string} [props.requestId] - Backend correlation request ID.
+ * @param {string} [props.message] - User-facing error message override.
+ * @param {() => void} [props.onRetry] - Callback invoked when retry button is clicked.
+ */
 export function GenericClaimFailure({
   requestId,
   message,

@@ -8,6 +8,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PdfMappingWorkspace } from "@/components/templates/mapping/PdfMappingWorkspace";
 
+/**
+ * @constant Route
+ * @description Route definition for the visual field mapping studio at "/app/templates/$templateId/versions/$versionId".
+ */
 export const Route = createFileRoute(
   "/_protected/app/templates/$templateId_/versions/$versionId",
 )({
@@ -17,6 +21,8 @@ export const Route = createFileRoute(
 /**
  * @component TemplateVersionMappingRoute
  * @description Route component mounting the interactive PdfMappingWorkspace studio.
+ * @state Extracts route parameters `templateId` and `versionId` via Route.useParams().
+ * @api Fetches template version layout and saves field mappings in PdfMappingWorkspace.
  * @returns {JSX.Element} Full-screen visual mapping studio.
  */
 function TemplateVersionMappingRoute() {

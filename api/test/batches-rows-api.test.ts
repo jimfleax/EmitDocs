@@ -1,3 +1,10 @@
+/**
+ * @file batches-rows-api.test.ts
+ * @description Tests batch row query APIs including status filtering, pagination, sorting, search, and warning aggregations.
+ * @architecture Controller integration test suite verifying getDraftRows API endpoint behavior across valid, invalid, and duplicate row sets.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_test database with isolated mock owners.
+ */
+
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,6 +24,11 @@ import { Template } from '../src/models/Template.js';
 import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import { getDraftRows } from '../src/controllers/batches.controller.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for testing draft rows query requests.
+ * @param options - Context options including user identity, path parameters, and query parameters.
+ * @returns Mock context object with param/query readers, JSON responder, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {} }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -35,6 +47,10 @@ function createMockContext({ user, params = {}, query = {} }: any) {
   };
 }
 
+/**
+ * @desc Main test runner executing draft row query API tests covering pagination, filtering, and search.
+ * @returns Promise resolving when all row query assertions pass.
+ */
 async function runTests() {
   console.log('🧪 Starting Slice 1: Backend Row API Enhancements Test Suite...');
 

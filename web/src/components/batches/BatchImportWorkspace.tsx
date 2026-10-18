@@ -50,6 +50,20 @@ function formatFileSize(bytes?: number): string {
  * @description Ingestion studio facilitating file parsing, column-to-field matching, chunked upload, and error summaries.
  * @param {BatchImportWorkspaceProps} props - Component properties.
  * @param {string} props.batchId - Target batch ID for importing data.
+ * @state {1 | 2 | 3 | 4} currentStep - Wizard step: 1 (Upload), 2 (Mapping), 3 (Chunked Ingestion), 4 (Results/Review).
+ * @state {any} batch - Current batch record loaded from backend.
+ * @state {any} template - Associated template entity.
+ * @state {any} templateVersion - Locked template version and required field mappings.
+ * @state {boolean} isLoadingBatch - Loading indicator during batch preflight fetch.
+ * @state {string | null} apiError - Error message from server requests.
+ * @state {ArrayBuffer | null} fileBuffer - Raw array buffer of uploaded spreadsheet.
+ * @state {ParsedSpreadsheetResult | null} parsedResult - Client-parsed worksheet rows and column headers.
+ * @state {string | null} activeImportId - In-progress import session identifier.
+ * @state {Object} uploadProgress - Multi-stage chunk upload telemetry (current chunk, total chunks, rows).
+ * @api {GET} /api/batches/:batchId - Loads batch record and associated template details.
+ * @api {POST} /api/batches/:batchId/imports - Initializes a new ingestion session.
+ * @api {POST} /api/batches/:batchId/imports/:importId/chunks - Uploads 500-row chunks for ingestion and validation.
+ * @api {POST} /api/batches/:batchId/imports/:importId/finalize - Finalizes import revision and updates validation tallies.
  * @returns {JSX.Element} Multi-step import workspace with breadcrumb stepper and stage views.
  */
 export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {

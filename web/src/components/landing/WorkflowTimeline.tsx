@@ -2,6 +2,7 @@
  * @file WorkflowTimeline.tsx
  * @description 3-step streamlined visual progression showing the EmitDocs issuance journey with technical benchmarks.
  * @architecture High-contrast technical layout using step cards, connector beams, and benchmark metrics.
+ * @agent_note Displays interactive step progression with tabbed preview states and benchmark statistics.
  */
 
 import { useState } from "react";
@@ -14,6 +15,10 @@ import {
   Sparkle,
 } from "@phosphor-icons/react";
 
+/**
+ * @component WorkflowTimeline
+ * @description Step-by-step interactive workflow presentation with benchmark metrics and visual preview cards.
+ */
 export function WorkflowTimeline() {
   const [activeStep, setActiveStep] = useState<number>(1);
 
@@ -94,6 +99,7 @@ export function WorkflowTimeline() {
               <div
                 key={step.number}
                 onClick={() => setActiveStep(index + 1)}
+                onMouseEnter={() => setActiveStep(index + 1)}
                 className={`rounded-3xl p-6 sm:p-8 border transition-all duration-300 cursor-pointer flex flex-col justify-between ${
                   isCurrent
                     ? "bg-white border-blue-500/80 shadow-[0_15px_30px_-10px_rgba(37,99,235,0.15)] ring-2 ring-blue-500/20"
@@ -156,68 +162,78 @@ export function WorkflowTimeline() {
         {/* ======================================================== */}
         {/* Technical Performance Benchmarks Banner                   */}
         {/* ======================================================== */}
-        <div className="rounded-3xl bg-slate-900 border border-slate-800 p-8 sm:p-10 shadow-xl text-white">
-          <div className="max-w-3xl mb-8 space-y-2">
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-400">
+        <div className="relative rounded-3xl lg:rounded-[32px] bg-[rgb(16_60_133)] border border-white/20 p-8 sm:p-10 shadow-[0_25px_60px_-15px_rgba(16,60,133,0.4)] text-white overflow-hidden">
+          {/* Ambient Radial Glow Flares */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-400/25 blur-3xl"
+          />
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-indigo-400/25 blur-3xl"
+          />
+
+          <div className="relative z-10 max-w-3xl mb-8 space-y-2">
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-200">
               Verified Technical Benchmarks
             </span>
             <h3 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
               Production Performance Under Pressure
             </h3>
-            <p className="text-sm text-slate-400 leading-relaxed">
+            <p className="text-sm text-blue-100/80 leading-relaxed">
               Tested rigorously against large datasets and complex multi-page layouts.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 pt-6 border-t border-slate-800">
+          <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-8 pt-6 border-t border-white/15">
             {/* Stat 1 */}
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold text-blue-400 font-mono tracking-tight">
+              <div className="text-3xl sm:text-4xl font-extrabold text-blue-200 font-mono tracking-tight">
                 5,000
               </div>
-              <p className="text-xs font-semibold text-slate-300">
+              <p className="text-xs font-semibold text-white">
                 Max Recipient Batch Size
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-blue-100/70">
                 Chunked streaming with zero memory spikes
               </p>
             </div>
 
             {/* Stat 2 */}
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold text-emerald-400 font-mono tracking-tight">
+              <div className="text-3xl sm:text-4xl font-extrabold text-emerald-300 font-mono tracking-tight">
                 100%
               </div>
-              <p className="text-xs font-semibold text-slate-300">
+              <p className="text-xs font-semibold text-white">
                 Engine Preview Parity
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-blue-100/70">
                 Identical pipeline for draft and final output
               </p>
             </div>
 
             {/* Stat 3 */}
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold text-amber-400 font-mono tracking-tight">
+              <div className="text-3xl sm:text-4xl font-extrabold text-amber-300 font-mono tracking-tight">
                 0 Bytes
               </div>
-              <p className="text-xs font-semibold text-slate-300">
+              <p className="text-xs font-semibold text-white">
                 Model Training / PII Leak
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-blue-100/70">
                 Production logs sanitized of recipient rows
               </p>
             </div>
 
             {/* Stat 4 */}
             <div className="space-y-1">
-              <div className="text-3xl sm:text-4xl font-extrabold text-purple-400 font-mono tracking-tight">
+              <div className="text-3xl sm:text-4xl font-extrabold text-purple-300 font-mono tracking-tight">
                 30 Days
               </div>
-              <p className="text-xs font-semibold text-slate-300">
+              <p className="text-xs font-semibold text-white">
                 Auto-Purge Cloud Retention
               </p>
-              <p className="text-[11px] text-slate-500">
+              <p className="text-[11px] text-blue-100/70">
                 Instant link revocation &amp; physical cloud shred
               </p>
             </div>

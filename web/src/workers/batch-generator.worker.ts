@@ -2,6 +2,7 @@
  * @file batch-generator.worker.ts
  * @description Dedicated Web Worker for off-main-thread deterministic PDF batch generation (PRD-CORE-07).
  * @architecture Sequential generation loop yielding macrotask between items, zero-copy transferable buffers, zero persistent buffer retention in worker heap.
+ * @agent_note Delegates all message processing to BatchGeneratorHandler; executes in dedicated worker context.
  */
 
 import {

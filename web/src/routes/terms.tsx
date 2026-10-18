@@ -8,7 +8,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
+import { CONTACT_EMAIL, CONTACT_MAILTO } from "@/lib/contact";
 
+/**
+ * @constant Route
+ * @description Public route declaration for "/terms" mounting the TermsPage legal document.
+ */
 export const Route = createFileRoute("/terms")({
   component: TermsPage,
 });
@@ -37,6 +42,8 @@ const SECTIONS = [
 /**
  * @component TermsPage
  * @description Terms of Service legal document layout covering platform agreements, liability, and acceptable use.
+ * @state Static legal document with table-of-contents navigation.
+ * @api No direct backend API interaction; static terms content.
  * @returns {JSX.Element} Structured legal agreement page.
  */
 export function TermsPage() {
@@ -109,10 +116,10 @@ export function TermsPage() {
           secure, HttpOnly session cookies to authenticate your requests. You
           agree to notify EmitDocs immediately at{" "}
           <a
-            href="mailto:security@emitdocs.com"
+            href={CONTACT_MAILTO.security}
             className="text-blue-600 hover:underline font-mono"
           >
-            security@emitdocs.com
+            {CONTACT_EMAIL}
           </a>{" "}
           if you suspect any unauthorized use of your session or breach of
           security. EmitDocs cannot and will not be liable for any loss or
@@ -346,10 +353,10 @@ export function TermsPage() {
           extended, verified platform outages. Billing inquiries should be
           directed to{" "}
           <a
-            href="mailto:billing@emitdocs.com"
+            href={CONTACT_MAILTO.billing}
             className="text-blue-600 hover:underline font-mono"
           >
-            billing@emitdocs.com
+            {CONTACT_EMAIL}
           </a>
           .
         </p>
@@ -456,10 +463,10 @@ export function TermsPage() {
           formal claim, you and EmitDocs agree to attempt to resolve any dispute
           amicably. Written notice must be sent to{" "}
           <a
-            href="mailto:legal@emitdocs.com"
+            href={CONTACT_MAILTO.legal}
             className="text-blue-600 hover:underline font-mono"
           >
-            legal@emitdocs.com
+            {CONTACT_EMAIL}
           </a>
           . Both parties agree to negotiate in good faith for at least thirty
           (30) days.
@@ -504,10 +511,10 @@ export function TermsPage() {
           <div>
             Email:{" "}
             <a
-              href="mailto:legal@emitdocs.com"
+              href={CONTACT_MAILTO.legal}
               className="text-blue-600 hover:underline font-mono"
             >
-              legal@emitdocs.com
+              {CONTACT_EMAIL}
             </a>
           </div>
         </div>

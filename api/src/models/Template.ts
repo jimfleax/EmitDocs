@@ -28,6 +28,9 @@ export interface ITemplate extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Mongoose schema for Template records.
+ */
 const TemplateSchema = new Schema(
   {
     ownerId: { type: String, required: true, index: true },
@@ -40,6 +43,7 @@ const TemplateSchema = new Schema(
 
 /**
  * @module Template
+ * @desc Mongoose schema and model for Template
  * @description Compiled Mongoose model for Template documents.
  */
 export const Template = mongoose.models.Template || mongoose.model<ITemplate>('Template', TemplateSchema);

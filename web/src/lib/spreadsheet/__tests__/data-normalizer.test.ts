@@ -1,3 +1,10 @@
+/**
+ * @file data-normalizer.test.ts
+ * @description Unit tests for date parsing, currency/number normalization, and un-cached formula detection.
+ * @architecture Validates unambiguous/ambiguous dates (DD/MM vs MM/DD), European vs US decimal notation, and formula cache missing tokens.
+ * @agent_note Node.js assert based test suite executing directly against data-normalizer module.
+ */
+
 import assert from "node:assert";
 import {
   normalizeDateValue,
@@ -5,6 +12,10 @@ import {
   normalizeTextValue,
 } from "../data-normalizer.js";
 
+/**
+ * @desc Runs test cases validating string, date, and number normalizers against edge-case spreadsheet inputs.
+ * @returns {Promise<void>}
+ */
 async function runTests() {
   console.log("🧪 Starting data-normalizer unit test suite...");
 

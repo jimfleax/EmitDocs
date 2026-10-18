@@ -19,26 +19,30 @@ export interface CredentialStrengthResult {
 }
 
 /**
- * Generates an array of cryptographically secure pseudo-random tokens.
- * Uses 32 random bytes encoded in base64url format (~43 characters, 256 bits of entropy).
- *
- * @param {number} count - Number of tokens to generate.
+ * @desc    Generates an array of cryptographically secure pseudo-random tokens.
+ *          Uses 32 random bytes encoded in base64url format (~43 characters, 256 bits of entropy).
+ *          Every token is guaranteed to begin with an alphanumeric character ([A-Za-z0-9])
+ *          to prevent spreadsheet formula injection while preserving token security and URL safety.
+ * @param   {number} count - Number of tokens to generate.
  * @returns {string[]} Array of secure URL-safe base64 tokens.
  */
 export function generateSecureTokens(count: number): string[] {
   if (count <= 0) return [];
   const tokens: string[] = [];
   for (let i = 0; i < count; i++) {
-    tokens.push(crypto.randomBytes(32).toString("base64url"));
+    let token: string;
+    do {
+      token = crypto.randomBytes(32).toString("base64url");
+    } while (!/^[A-Za-z0-9]/.test(token));
+    tokens.push(token);
   }
   return tokens;
 }
 
 /**
- * Canonicalizes a raw credential string by trimming outer whitespace
- * while strictly preserving leading zeros and case sensitivity.
- *
- * @param {string} val - Raw input credential.
+ * @desc    Canonicalizes a raw credential string by trimming outer whitespace
+ *          while strictly preserving leading zeros and case sensitivity.
+ * @param   {string} val - Raw input credential.
  * @returns {string} Trimmed, case-preserved canonical string.
  */
 export function canonicalizeCredential(val: string): string {
@@ -46,12 +50,11 @@ export function canonicalizeCredential(val: string): string {
 }
 
 /**
- * Combines primary and secondary credentials into a length-prefixed, unambiguous canonical string:
- * `${primary.length}:${primary}:${secondary.length}:${secondary}`.
- * This guarantees no boundary collision or delimiter injection between fields.
- *
- * @param {string} primary - Primary credential field value.
- * @param {string} secondary - Secondary credential field value.
+ * @desc    Combines primary and secondary credentials into a length-prefixed, unambiguous canonical string:
+ *          `${primary.length}:${primary}:${secondary.length}:${secondary}`.
+ *          This guarantees no boundary collision or delimiter injection between fields.
+ * @param   {string} primary - Primary credential field value.
+ * @param   {string} secondary - Secondary credential field value.
  * @returns {string} Unambiguous length-prefixed canonical pair string.
  */
 export function canonicalizePair(primary: string, secondary: string): string {
@@ -61,14 +64,13 @@ export function canonicalizePair(primary: string, secondary: string): string {
 }
 
 /**
- * Computes a keyed HMAC-SHA-256 verifier for a canonical credential string.
- * Formats payload as `${portalId}:${setRevision}:${canonicalCredential}`.
- * Raw credentials are never stored in databases; only this deterministic HMAC verifier is saved.
- *
- * @param {string} secretKey - Server-side secret key (CLAIM_PORTAL_HMAC_SECRET).
- * @param {string} portalId - ID of the claim portal.
- * @param {number} setRevision - Active revision number of the credential set.
- * @param {string} canonicalCredential - Canonicalized single or paired credential.
+ * @desc    Computes a keyed HMAC-SHA-256 verifier for a canonical credential string.
+ *          Formats payload as `${portalId}:${setRevision}:${canonicalCredential}`.
+ *          Raw credentials are never stored in databases; only this deterministic HMAC verifier is saved.
+ * @param   {string} secretKey - Server-side secret key (CLAIM_PORTAL_HMAC_SECRET).
+ * @param   {string} portalId - ID of the claim portal.
+ * @param   {number} setRevision - Active revision number of the credential set.
+ * @param   {string} canonicalCredential - Canonicalized single or paired credential.
  * @returns {string} 64-character lowercase hex digest of the HMAC.
  */
 export function computeCredentialVerifier(
@@ -82,10 +84,9 @@ export function computeCredentialVerifier(
 }
 
 /**
- * Performs a constant-time comparison between two strings to mitigate timing attack side-channels.
- *
- * @param {string} a - First string.
- * @param {string} b - Second string.
+ * @desc    Performs a constant-time comparison between two strings to mitigate timing attack side-channels.
+ * @param   {string} a - First string.
+ * @param   {string} b - Second string.
  * @returns {boolean} True if strings are identical, false otherwise.
  */
 export function timingSafeEqualStrings(a: string, b: string): boolean {
@@ -116,15 +117,14 @@ function isSequential(str: string): boolean {
 }
 
 /**
- * Evaluates the cryptographic strength and uniqueness of imported credentials.
- * Requirements:
- * - Minimum length >= 12 characters.
- * - Rejects pure numeric sequences (requires secondary factor).
- * - Rejects repeated character patterns.
- * - Rejects sequential character sequences.
- * - Detects duplicate collisions across records (blocks portal activation).
- *
- * @param {string[]} values - Array of raw or canonical imported credential values.
+ * @desc    Evaluates the cryptographic strength and uniqueness of imported credentials.
+ *          Requirements:
+ *          - Minimum length >= 12 characters.
+ *          - Rejects pure numeric sequences (requires secondary factor).
+ *          - Rejects repeated character patterns.
+ *          - Rejects sequential character sequences.
+ *          - Detects duplicate collisions across records (blocks portal activation).
+ * @param   {string[]} values - Array of raw or canonical imported credential values.
  * @returns {CredentialStrengthResult} Strength status, explanation if weak, and detected collision list.
  */
 export function evaluateImportedCredentialStrength(values: string[]): CredentialStrengthResult {

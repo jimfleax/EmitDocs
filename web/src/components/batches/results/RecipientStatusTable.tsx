@@ -1,6 +1,8 @@
 /**
  * @file RecipientStatusTable.tsx
  * @description Paginated, searchable listing of approved recipients with generation status and row actions (PRD-CORE-07).
+ * @architecture Data table in ResultsWorkspace enabling inspection of generated PDFs, on-demand single rendering, and error tracking.
+ * @agent_note Supports client-side name search filtering, server pagination callbacks, and per-recipient canvas preview triggers.
  */
 
 import { useState, useMemo } from "react";
@@ -40,6 +42,23 @@ export interface RecipientStatusTableProps {
   isLoading?: boolean;
 }
 
+/**
+ * @component RecipientStatusTable
+ * @description Table displaying approved recipients, individual generation status badges, byte sizes, and preview/download actions.
+ * @param {RecipientStatusTableProps} props - Component properties.
+ * @param {Array<Object>} props.recipients - List of recipient records for the current page.
+ * @param {Record<string, { byteLength: number; generatedAt: number }>} props.generatedMap - Cache of generated document metadata indexed by recipient key.
+ * @param {Record<string, EngineWarning[]>} props.warningsMap - PDF layout warnings indexed by recipient key.
+ * @param {Record<string, string>} [props.errorsMap] - PDF generation errors indexed by recipient key.
+ * @param {Function} props.onGenerateSingle - On-demand generator function for individual recipient preview/download.
+ * @param {number} props.totalCount - Total recipient count across all pages.
+ * @param {number} props.page - Current 1-based page number.
+ * @param {number} props.limit - Page row limit.
+ * @param {(newPage: number) => void} props.onPageChange - Pagination navigation handler.
+ * @param {boolean} [props.isLoading=false] - Whether recipient rows are currently being loaded.
+ * @state {string} searchTerm - Client-side filter query for recipient names and identifiers.
+ * @returns {JSX.Element} Paginated recipient table with search bar and action buttons.
+ */
 export function RecipientStatusTable({
   recipients,
   generatedMap,

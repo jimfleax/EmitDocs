@@ -3,6 +3,7 @@
  * @description Sanitizes recipient metadata to construct safe, clean document filenames inside ZIP archives (PRD-CORE-08).
  * @architecture Enforces Zip Slip immunity, Windows reserved device name neutrality, 120-character clamp,
  *               and collision-safe recipientKey suffixes.
+ * @agent_note Neutralizes illegal path sequences and Windows device names (CON, PRN, etc.) to guarantee safe filesystem writes.
  */
 
 const KNOWN_NAME_KEYS = [
@@ -26,14 +27,11 @@ const KNOWN_NAME_KEYS = [
 const WINDOWS_RESERVED_PATTERN = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$/i;
 
 /**
- * Sanitizes a raw name string:
- * - Normalizes Unicode to NFC.
- * - Strips directory traversal sequences (`..`, `../`, `..\\`).
- * - Replaces directory separators (`/`, `\`) and illegal OS chars (`< > : " | ? *`) and control codes with `_`.
- * - Collapses consecutive spaces/underscores.
- * - Trims leading/trailing dots, spaces, underscores.
- * - Neutralizes Windows reserved device names (`CON`, `PRN`, etc.).
- * - Clamps output length to `maxLength` (default: 120).
+ * @desc    Sanitizes a raw name string by normalizing Unicode, stripping directory traversal sequences,
+ *          replacing illegal filesystem/control characters, neutralizing Windows device names, and clamping length.
+ * @param   {string} rawName - Raw string input to sanitize.
+ * @param   {number} [maxLength=120] - Maximum allowed length in characters.
+ * @returns {string} Sanitized filesystem-safe name string.
  */
 export function sanitizeFilenameBase(rawName: string, maxLength = 120): string {
   if (!rawName || typeof rawName !== "string") {
@@ -77,12 +75,12 @@ export function sanitizeFilenameBase(rawName: string, maxLength = 120): string {
 }
 
 /**
- * Auto-detects primary recipient name from effectiveData and constructs
- * a collision-free, path-safe filename in the format: `[Sanitized_Name]_[recipientKey].pdf`.
- *
- * @param effectiveData Dictionary of recipient field key-values.
- * @param recipientKey Unique identifier for the recipient row.
- * @param fallbackDocName Optional fallback base document name.
+ * @desc    Auto-detects primary recipient name from effectiveData and constructs
+ *          a collision-free, path-safe filename in the format: `[Sanitized_Name]_[recipientKey].pdf`.
+ * @param   {Record<string, unknown> | null | undefined} effectiveData - Dictionary of recipient field key-values.
+ * @param   {string} recipientKey - Unique identifier for the recipient row.
+ * @param   {string} [fallbackDocName="document"] - Fallback base document name if no name property is detected.
+ * @returns {string} Path-safe sanitized PDF filename.
  */
 export function sanitizeRecipientFilename(
   effectiveData: Record<string, unknown> | null | undefined,

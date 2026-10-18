@@ -1,7 +1,8 @@
 /**
  * @file claim-portal-lifecycle.test.ts
  * @description Acceptance and unit verification for Slice 2: Organizer Portal Management & Credential Setup.
- * @requirements AC-001, AC-002, AC-003, AC-004, AC-005, AC-007, AC-021, AC-022
+ * @architecture Service layer integration test suite verifying ClaimPortalLifecycle state transitions, credential generation, and activation gating against MongoDB.
+ * @agent_note Run via `npx tsx test/claim-portal-lifecycle.test.ts`. Requires MONGODB_URI in api/.env; runs against isolated database emitdocs_slice2_test.
  */
 
 import dotenv from 'dotenv';
@@ -32,6 +33,10 @@ import {
   WeakCredentialError,
 } from '../api/src/services/claim-portal-lifecycle.js';
 
+/**
+ * @desc Main test runner verifying portal lifecycle states, credential generation, single-use exports, and security barriers.
+ * @returns Promise resolving when all portal lifecycle assertions pass.
+ */
 async function run() {
   console.log('--- Starting Slice 2 Claim Portal Lifecycle Tests ---');
 

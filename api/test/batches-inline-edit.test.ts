@@ -1,3 +1,10 @@
+/**
+ * @file batches-inline-edit.test.ts
+ * @description Tests inline editing and cell override functionality for draft rows in a batch, including revalidation against schema rules.
+ * @architecture Controller integration test suite verifying patchDraftRow API endpoint, row state transitions, and authorization boundaries.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_test database with multi-tenant mock users.
+ */
+
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +25,11 @@ import { Template } from '../src/models/Template.js';
 import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import { patchDraftRow } from '../src/controllers/batches.controller.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for testing draft row PATCH requests.
+ * @param options - Context parameters including user, params, query, and request body.
+ * @returns Mock context with request body resolver, JSON responder, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {}, body }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -38,6 +50,10 @@ function createMockContext({ user, params = {}, query = {}, body }: any) {
   };
 }
 
+/**
+ * @desc Main test runner executing inline row override and revalidation test cases.
+ * @returns Promise resolving when all inline edit assertions pass.
+ */
 async function runTests() {
   console.log('🧪 Starting Slice 2: Backend Inline Row Override & Revalidation Test Suite...');
 

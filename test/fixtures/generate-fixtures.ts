@@ -14,6 +14,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const requireModule = createRequire(import.meta.url);
 
+/**
+ * @desc Helper to resolve pdf-lib module from local or web workspace node_modules.
+ * @returns {any} Loaded pdf-lib module export.
+ */
 function getPdfLib() {
   try {
     return requireModule('pdf-lib');
@@ -26,7 +30,8 @@ function getPdfLib() {
 const { PDFDocument, StandardFonts, degrees } = getPdfLib();
 
 /**
- * Helper to resolve XLSX from local node_modules or web workspace
+ * @desc Helper to resolve xlsx module from local or web workspace node_modules.
+ * @returns {any} Loaded xlsx module export.
  */
 function getXLSX() {
   try {

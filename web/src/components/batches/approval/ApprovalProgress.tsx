@@ -1,6 +1,8 @@
 /**
  * @file ApprovalProgress.tsx
  * @description Animated progress indicator when an approved snapshot is building and copying recipients.
+ * @architecture Modal/overlay progress indicator embedded into ApprovalWorkspace during snapshot sealing lifecycle.
+ * @agent_note Visualizes multi-stage batch sealing pipeline (copying records, canonical hashing, finalizing).
  */
 
 import { CircleNotch, Database, Hash, Check } from "@phosphor-icons/react";
@@ -9,6 +11,13 @@ interface ApprovalProgressProps {
   step: "staging" | "hashing" | "finalizing" | "complete";
 }
 
+/**
+ * @component ApprovalProgress
+ * @description Renders step-by-step spinner and milestone breadcrumb during immutable snapshot creation.
+ * @param {ApprovalProgressProps} props - Component properties.
+ * @param {"staging" | "hashing" | "finalizing" | "complete"} props.step - Active batch sealing stage.
+ * @returns {JSX.Element} Progress card with step indicators and animated icons.
+ */
 export function ApprovalProgress({ step }: ApprovalProgressProps) {
   const steps = [
     { id: "staging", label: "Copying Recipient Records", icon: Database },

@@ -1,6 +1,8 @@
 /**
  * @file RetentionPresetSelector.tsx
  * @description Radio preset picker allowing user to choose retention period (24h, 7d, 30d) before document cleanup.
+ * @architecture Form control component embedded into ApprovalWorkspace for configuring automated data retention schedules.
+ * @agent_note Configures data lifecycle retention hours to enforce Zero PII Leakage guarantees post-generation.
  */
 
 import { Clock, ShieldCheck } from "@phosphor-icons/react";
@@ -18,6 +20,16 @@ interface RetentionPresetSelectorProps {
   disabled?: boolean;
 }
 
+/**
+ * @component RetentionPresetSelector
+ * @description Preset selection tiles for selecting automated document and recipient cleanup retention windows.
+ * @param {RetentionPresetSelectorProps} props - Component properties.
+ * @param {RetentionPreset[]} props.presets - Array of retention interval options.
+ * @param {number} props.selectedHours - Currently chosen retention duration in hours.
+ * @param {(hours: number) => void} props.onChange - Callback fired when a new retention preset is picked.
+ * @param {boolean} [props.disabled=false] - Whether retention selection is disabled during submission.
+ * @returns {JSX.Element} Grid of clickable retention option cards.
+ */
 export function RetentionPresetSelector({
   presets,
   selectedHours,

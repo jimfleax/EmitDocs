@@ -1,6 +1,8 @@
 /**
  * @file ClaimPortalStatusHeader.tsx
  * @description Portal status header bar with status badge, public URL, copy button, and batch link.
+ * @architecture Top header component in ClaimPortalWorkspace providing global portal context, active lifecycle badge, and direct URL copy.
+ * @agent_note Renders status badge with appropriate color theme and provides one-click public URL copying with toast feedback.
  */
 
 import { useState } from "react";
@@ -27,6 +29,19 @@ export interface ClaimPortalStatusHeaderProps {
   batchName: string;
 }
 
+/**
+ * @component ClaimPortalStatusHeader
+ * @description Header bar displaying claim portal name, parent batch navigation link, status indicator, and shareable public URL.
+ * @param {ClaimPortalStatusHeaderProps} props - Component properties.
+ * @param {Object} props.portal - Portal metadata and status.
+ * @param {string} props.portal.publicSlug - Public URL slug.
+ * @param {ClaimPortalStatus} props.portal.status - Active portal lifecycle status.
+ * @param {string} props.portal.label - Portal display title.
+ * @param {string | Date} [props.portal.expiresAt] - Portal expiration timestamp.
+ * @param {string} props.batchName - Parent batch name for breadcrumb reference.
+ * @state {boolean} copied - Temporary state providing copy-to-clipboard button feedback.
+ * @returns {JSX.Element} Top-level portal status header banner.
+ */
 export function ClaimPortalStatusHeader({
   portal,
   batchName,

@@ -30,6 +30,16 @@ interface PreviewDocumentPaneProps {
  * @component PreviewDocumentPane
  * @description Renders live preview canvas by overlaying sample values into PDF template and detecting layout overflow.
  * @param {PreviewDocumentPaneProps} props - Component properties.
+ * @param {Uint8Array | null} props.sourcePdfBytes - Raw source PDF binary data.
+ * @param {IFieldMapping[]} props.fieldMappings - Array of configured field mappings.
+ * @param {Record<string, string>} props.sampleData - Mock or user-provided sample record values.
+ * @param {number} props.activePageIndex - Currently displayed page index (0-indexed).
+ * @param {number} props.scale - Display zoom scale factor.
+ * @param {number} [props.rotation=0] - Page rotation in degrees.
+ * @param {(warnings: EngineWarning[]) => void} props.onWarningsGenerated - Callback receiving layout or font engine warnings.
+ * @state {boolean} generating - Live PDF rendering and sample overlay compilation state.
+ * @state {string | null} renderError - Error banner message if preview generation fails.
+ * @api Parent callback: onWarningsGenerated.
  * @returns {JSX.Element} Canvas preview container with generation loading indicators and error banners.
  */
 export const PreviewDocumentPane: React.FC<PreviewDocumentPaneProps> = ({

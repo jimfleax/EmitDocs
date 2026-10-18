@@ -1,6 +1,17 @@
+/**
+ * @file row-validator.test.ts
+ * @description Unit tests for row-level schema validation and error reporting.
+ * @architecture Tests required field enforcement, unmapped field errors, type coercion failures, and effectiveData transformation.
+ * @agent_note Executes as a standalone Node test suite using node:assert.
+ */
+
 import assert from "node:assert";
 import { validateDraftRow } from "../row-validator.js";
 
+/**
+ * @desc Executes test cases validating row schema rules, error codes, and field normalization.
+ * @returns {Promise<void>}
+ */
 async function runTests() {
   console.log("🧪 Starting row-validator unit test suite...");
 

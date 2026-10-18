@@ -1,10 +1,8 @@
 /**
  * @file templates.controller.ts
  * @description HTTP controller endpoints handling PDF template management and version lifecycles.
- * @architecture Thin HTTP layer translating Hono Context requests into calls to `TemplateLifecycle`.
- *               Handles authentication validation, extracts JSON bodies via `getJsonBody`, maps typed domain
- *               errors to HTTP status codes (400, 404, 409, 502), and handles binary asset streaming.
- * @agent_note All routes mounted here require user authentication enforced by `requireAuth` middleware.
+ * @architecture Thin HTTP layer translating Hono Context requests into calls to TemplateLifecycle service routines.
+ * @agent_note All routes mounted here require user authentication enforced by requireAuth middleware.
  */
 
 import { Context } from 'hono';
@@ -173,12 +171,15 @@ export const deleteTemplate = async (c: Context) => {
 
   const id = c.req.param('id');
 
-  let confirmCascade = c.req.query('confirmCascade') === 'true' || c.req.query('cascade') === 'true';
+  let confirmCascade =
+    c.req.query('confirmCascade') === 'true' ||
+    c.req.query('cascade') === 'true' ||
+    c.req.query('force') === 'true';
   const contentType = c.req.header('content-type') || '';
   if (!confirmCascade && contentType.includes('application/json')) {
     try {
       const body = await getJsonBody(c);
-      if (body && (body.confirmCascade === true || body.cascade === true)) {
+      if (body && (body.confirmCascade === true || body.cascade === true || body.force === true)) {
         confirmCascade = true;
       }
     } catch {

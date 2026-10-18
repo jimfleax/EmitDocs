@@ -95,7 +95,7 @@ export interface UseEditorHistoryReturn {
  * @description Manages undo, redo, and snapshot history states for template field mappings.
  * @param {IFieldMapping[]} [initialMappings=[]] - Default initial field mappings array.
  * @returns {UseEditorHistoryReturn} Mapping state, undo/redo triggers, and history manipulators.
- * @state Manages past, present, and future mapping snapshot arrays.
+ * @sideeffects Synchronizes active present state with internal stack references and provides immutable state updates.
  */
 export function useEditorHistory(
   initialMappings: IFieldMapping[] = [],

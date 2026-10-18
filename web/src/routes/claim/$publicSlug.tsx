@@ -1,8 +1,8 @@
 /**
  * @file $publicSlug.tsx
- * @description Public participant claim portal route (/claim/:publicSlug).
- *              Fetches the template, overlays recipient credentials client-side using
- *              EmitDocs' deterministic engine, and provides instant high-resolution download.
+ * @description Public participant claim portal route for credential verification, real-time PDF preview, and secure download.
+ * @architecture Standalone public route resolving dynamic publicSlug parameter with turnstile protection and deterministic rendering.
+ * @agent_note Fetches template and render payload client-side to synthesize customized PDF certificates via Web Worker/pdf-lib.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -18,10 +18,21 @@ import { generatePdfWithOverlay } from "@/lib/pdf-engine/pdf-preview-engine";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "@/components/ui/toast";
 
+/**
+ * @constant Route
+ * @description Public route definition for participant claim portals at "/claim/$publicSlug".
+ */
 export const Route = createFileRoute("/claim/$publicSlug")({
   component: ParticipantClaimRoute,
 });
 
+/**
+ * @component ParticipantClaimRoute
+ * @description Public claim portal interface with credential entry form, live PDF preview, and download triggers.
+ * @state Manages portal metadata, Turnstile state, recipient credentials, synthesis progress, and generated PDF blob URLs.
+ * @api Interacts with `/api/public/claim-portals/:slug/verify`, `/render-payload`, and `/template-file`.
+ * @returns {JSX.Element} Participant claim portal layout.
+ */
 function ParticipantClaimRoute() {
   const { publicSlug } = Route.useParams();
 
@@ -92,11 +103,23 @@ function ParticipantClaimRoute() {
     } catch (err: any) {
       console.warn("Client synthesis error, falling back to server download URL:", err);
       // Fallback: fetch server download URL
-      const dlRes = await fetch(`/api/public/claim-portals/${publicSlug}/download-url`, { method: "POST" });
-      if (dlRes.ok) {
+      try {
+        const dlRes = await fetch(`/api/public/claim-portals/${publicSlug}/download-url`, { method: "POST" });
+        if (!dlRes.ok) {
+          throw new Error("Failed to retrieve download URL");
+        }
         const dlData = await dlRes.json();
+        if (!dlData?.downloadUrl) {
+          throw new Error("Invalid download URL response");
+        }
         setServerDownloadUrl(dlData.downloadUrl);
         setCertificateFilename(dlData.filename);
+      } catch (fallbackErr: any) {
+        console.error("Fallback download URL error:", fallbackErr);
+        toast.error(
+          "Certificate Preparation Failed",
+          "Unable to prepare your certificate for download. Please try again."
+        );
       }
     } finally {
       setIsSynthesizing(false);

@@ -47,7 +47,11 @@ interface CharRun {
   itemIndex: number;
 }
 
-// Proportional character width estimation table when canvas context is unavailable
+/**
+ * @desc Estimates proportional character advance weight when canvas measurement context is unavailable.
+ * @param {string} char - Single character to estimate.
+ * @returns {number} Estimated relative advance multiplier.
+ */
 function getEstimatedCharWeight(char: string): number {
   if (/[ijlI1.,:;!'|`\s]/.test(char)) return 0.28;
   if (/[{}[\]()_-]/.test(char)) return 0.35;
@@ -59,6 +63,10 @@ function getEstimatedCharWeight(char: string): number {
 }
 
 let measureCanvasCtx: CanvasRenderingContext2D | null = null;
+/**
+ * @desc Lazily instantiates and returns a reusable 2D canvas rendering context for precise text measurement.
+ * @returns {CanvasRenderingContext2D | null} Canvas 2D context or null if running outside DOM environment.
+ */
 function getCanvasContext(): CanvasRenderingContext2D | null {
   if (measureCanvasCtx) return measureCanvasCtx;
   if (typeof document !== "undefined") {
@@ -72,6 +80,14 @@ function getCanvasContext(): CanvasRenderingContext2D | null {
   return measureCanvasCtx;
 }
 
+/**
+ * @desc Computes pixel/point advances for individual characters within a string segment.
+ * @param {string} str - Text string segment to measure.
+ * @param {number} totalWidth - Total width of the text run reported by PDF.js.
+ * @param {number} fontSize - Font size in points.
+ * @param {string} fontFamily - Font family name.
+ * @returns {number[]} Array of advance widths corresponding to each character in the string.
+ */
 function computeCharAdvances(
   str: string,
   totalWidth: number,

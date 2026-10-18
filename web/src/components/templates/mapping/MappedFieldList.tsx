@@ -24,6 +24,14 @@ interface MappedFieldListProps {
  * @component MappedFieldList
  * @description Interactive inventory list of mapped template fields with selection indicators and deletion buttons.
  * @param {MappedFieldListProps} props - Component properties.
+ * @param {IFieldMapping[]} props.fields - All mapped fields across the template.
+ * @param {number} props.activePageIndex - Zero-indexed active PDF page.
+ * @param {string | null} props.selectedFieldId - ID of singular selected field.
+ * @param {string[]} [props.selectedFieldIds] - Array of multi-selected field IDs.
+ * @param {(id: string | null, isMulti?: boolean) => void} props.onSelectField - Field selection callback.
+ * @param {(id: string) => void} props.onDeleteField - Field deletion callback.
+ * @state Stateless; filters fields by activePageIndex and tracks selection.
+ * @api Parent callbacks: onSelectField, onDeleteField.
  * @returns {JSX.Element | null} Field list drawer element or null if no fields are present.
  */
 export const MappedFieldList: React.FC<MappedFieldListProps> = ({

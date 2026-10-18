@@ -1,3 +1,10 @@
+/**
+ * @file format-engine.test.ts
+ * @description Unit tests for field value formatting including dates, currencies, decimals, and case transforms.
+ * @architecture Validates text transform pipeline, ISO date conversion patterns, and Intl.NumberFormat localized variations.
+ * @agent_note Node.js assert based test runner; verifies edge cases such as token placeholders and invalid date inputs.
+ */
+
 import assert from "assert";
 import {
   formatFieldValue,
@@ -6,6 +13,10 @@ import {
   applyTextTransform,
 } from "../format-engine";
 
+/**
+ * @desc Executes unit tests validating text transformations, date patterns, and numeric/currency formatting.
+ * @returns {void}
+ */
 function runFormatEngineTests() {
   console.log("=== RUNNING FORMAT ENGINE UNIT TESTS ===\n");
 

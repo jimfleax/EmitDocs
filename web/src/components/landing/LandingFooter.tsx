@@ -1,22 +1,35 @@
 /**
  * @file LandingFooter.tsx
- * @description Comprehensive brand footer for the EmitDocs platform.
- * @architecture Multi-column navigation with real links to legal docs, app features, and operational status.
+ * @description Comprehensive brand footer for the EmitDocs platform with creator branding.
+ * @architecture Consolidated single navigation column with dedicated Jim Fleax developer profile.
+ * @agent_note Displays brand copyright, consolidated navigation links, and creator socials/portfolio.
  */
 
 import { Link } from "@tanstack/react-router";
-import { ArrowUpRight } from "@phosphor-icons/react";
+import {
+  ArrowUpRight,
+  GithubLogo,
+  LinkedinLogo,
+  XLogo,
+  EnvelopeSimple,
+  Globe,
+} from "@phosphor-icons/react";
+import { CONTACT_MAILTO } from "@/lib/contact";
 
 const CURRENT_YEAR = new Date().getFullYear();
 
+/**
+ * @component LandingFooter
+ * @description Consolidated website footer containing single-column navigation links and creator branding card.
+ */
 export function LandingFooter() {
   return (
     <footer className="bg-white border-t border-slate-200/90 pt-16 pb-12 text-slate-600 text-xs sm:text-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        {/* Main 4-Column Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
-          {/* Brand Column (Span 2) */}
-          <div className="lg:col-span-2 space-y-4">
+        {/* Main 3-Section Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* Brand Column (Span 5) */}
+          <div className="lg:col-span-5 space-y-4">
             <Link to="/" className="inline-flex items-center gap-2.5 group">
               <div className="p-1.5 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex-none group-hover:scale-105 transition-transform">
                 <img
@@ -43,107 +56,121 @@ export function LandingFooter() {
             </div>
           </div>
 
-          {/* Column 2: Platform */}
-          <div className="space-y-3">
+          {/* Consolidated Navigation Column (Span 3) */}
+          <div className="lg:col-span-3 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Platform
+              Platform Navigation
             </h4>
-            <ul className="space-y-2 text-xs">
+            <ul className="space-y-2.5 text-xs font-medium">
               <li>
                 <a href="#features" className="hover:text-blue-600 transition-colors">
-                  Visual PDF Studio
-                </a>
-              </li>
-              <li>
-                <a href="#features" className="hover:text-blue-600 transition-colors">
-                  Batch Intake Engine
+                  Platform Features
                 </a>
               </li>
               <li>
                 <a href="#workflow" className="hover:text-blue-600 transition-colors">
-                  Draft Review Gallery
+                  How It Works
                 </a>
               </li>
               <li>
-                <a href="#workflow" className="hover:text-blue-600 transition-colors">
-                  Streaming ZIP Archive
+                <a href="#trust" className="hover:text-blue-600 transition-colors">
+                  Architecture &amp; Trust
                 </a>
               </li>
               <li>
-                <Link to="/sign-in" className="hover:text-blue-600 transition-colors">
-                  Google Single Sign-On
+                <Link to="/privacy" className="hover:text-blue-600 transition-colors">
+                  Privacy Policy (Zero Model Training)
                 </Link>
               </li>
-            </ul>
-          </div>
-
-          {/* Column 3: Architecture & Security */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Architecture
-            </h4>
-            <ul className="space-y-2 text-xs">
-              <li>
-                <a href="#features" className="hover:text-blue-600 transition-colors">
-                  Sub-Pixel Coordinates
-                </a>
-              </li>
-              <li>
-                <a href="#features" className="hover:text-blue-600 transition-colors">
-                  Fit-then-flag Algorithm
-                </a>
-              </li>
-              <li>
-                <a href="#features" className="hover:text-blue-600 transition-colors">
-                  Cryptographic Snapshots
-                </a>
-              </li>
-              <li>
-                <a href="#trust" className="hover:text-blue-600 transition-colors">
-                  Sanitized Production Logs
-                </a>
-              </li>
-              <li>
-                <a href="#trust" className="hover:text-blue-600 transition-colors">
-                  Automated Cloud Retention
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Column 4: Legal & Governance */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900">
-              Trust &amp; Legal
-            </h4>
-            <ul className="space-y-2 text-xs">
               <li>
                 <Link to="/terms" className="hover:text-blue-600 transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-blue-600 transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link to="/privacy" className="hover:text-blue-600 transition-colors flex items-center gap-1">
-                  <span>Zero AI Model Training</span>
-                  <ArrowUpRight size={11} />
-                </Link>
-              </li>
-              <li>
-                <a href="mailto:security@emitdocs.com" className="hover:text-blue-600 transition-colors">
-                  Security Disclosures
-                </a>
-              </li>
-              <li>
-                <a href="mailto:privacy@emitdocs.com" className="hover:text-blue-600 transition-colors">
-                  Contact Privacy Officer
+                <a
+                  href={CONTACT_MAILTO.security}
+                  className="hover:text-blue-600 transition-colors"
+                >
+                  Security &amp; Compliance Disclosures
                 </a>
               </li>
             </ul>
+          </div>
+
+          {/* Creator & Developer Branding Section (Span 4) */}
+          <div className="lg:col-span-4">
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 shadow-2xs space-y-3.5">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/branding/jimfleax.png"
+                  alt="Reetabrata Bhandari (Jim Fleax)"
+                  className="w-12 h-12 rounded-xl border border-slate-200/90 shadow-2xs object-cover flex-none"
+                />
+                <div className="min-w-0">
+                  <h4 className="font-bold text-sm text-slate-900 leading-tight">
+                    Reetabrata Bhandari
+                  </h4>
+                  <span className="text-[11px] font-mono text-blue-600 font-medium block mt-0.5">
+                    Jim Fleax · Full-Stack Developer
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Creator of EmitDocs. Focused on building high-precision document engines, responsive web systems, and production web applications.
+              </p>
+
+              <div className="pt-1 flex flex-wrap items-center gap-2">
+                <a
+                  href="https://jimfleax.in"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition-colors"
+                >
+                  <Globe size={14} weight="bold" />
+                  <span>jimfleax.in</span>
+                  <ArrowUpRight size={12} weight="bold" />
+                </a>
+
+                <div className="flex items-center gap-1.5 text-slate-600">
+                  <a
+                    href="https://github.com/jimfleax"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="GitHub Profile"
+                    className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  >
+                    <GithubLogo size={16} weight="bold" />
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/jimfleax"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="LinkedIn Profile"
+                    className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                  >
+                    <LinkedinLogo size={16} weight="bold" />
+                  </a>
+                  <a
+                    href="https://x.com/jimfleax"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="X (Twitter) Profile"
+                    className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 hover:text-slate-900 transition-colors"
+                  >
+                    <XLogo size={16} weight="bold" />
+                  </a>
+                  <a
+                    href={CONTACT_MAILTO.creator}
+                    aria-label="Email Jim Fleax"
+                    className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 hover:text-rose-600 transition-colors"
+                  >
+                    <EnvelopeSimple size={16} weight="bold" />
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -160,11 +187,15 @@ export function LandingFooter() {
               Privacy
             </Link>
             <a
-              href="mailto:support@emitdocs.com"
+              href={CONTACT_MAILTO.support}
               className="hover:text-slate-600 transition-colors"
             >
               Support
             </a>
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-500">
+              Crafted by <a href="https://jimfleax.in" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 font-medium">Jim Fleax</a>
+            </span>
           </div>
         </div>
       </div>

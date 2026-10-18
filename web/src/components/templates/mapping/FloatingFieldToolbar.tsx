@@ -28,6 +28,8 @@ interface FloatingFieldToolbarProps {
  * @param {(updated: IFieldMapping) => void} props.onUpdateField - Field update mutation callback.
  * @param {(field: IFieldMapping) => void} props.onDuplicateField - Field clone callback.
  * @param {(id: string) => void} props.onDeleteField - Field delete callback.
+ * @state Stateless floating micro-toolbar; calculates whether to render above or below field box based on DOM position.
+ * @api Parent callbacks: onUpdateField, onDuplicateField, onDeleteField.
  * @returns {JSX.Element} Floating micro-toolbar.
  */
 export const FloatingFieldToolbar: React.FC<FloatingFieldToolbarProps> = ({

@@ -1,7 +1,18 @@
+/**
+ * @file spreadsheet-parser.test.ts
+ * @description Unit tests for in-memory CSV text and XLSX workbook parsing.
+ * @architecture Validates CSV quote escaping, multiline cell values, multi-sheet XLSX selection, and formula cache missing detection.
+ * @agent_note Tests PapaParse and SheetJS integrations using synthetic in-memory fixtures.
+ */
+
 import assert from "node:assert";
 import * as XLSX from "xlsx";
 import { parseCsvString, parseXlsxBuffer } from "../spreadsheet-parser.js";
 
+/**
+ * @desc Executes test cases validating CSV parser and XLSX buffer parser against formatted spreadsheets.
+ * @returns {Promise<void>}
+ */
 async function runTests() {
   console.log("🧪 Starting spreadsheet-parser unit test suite...");
 

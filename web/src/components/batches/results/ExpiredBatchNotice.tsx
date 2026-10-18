@@ -1,6 +1,8 @@
 /**
  * @file ExpiredBatchNotice.tsx
  * @description Notice banner displayed when batch retention deadline has passed and recipient PII has been pruned (PRD-CORE-09).
+ * @architecture Warning alert rendered within ResultsWorkspace when retention schedule has expired and recipient details are pruned.
+ * @agent_note Informs users that recipient records and PII were deleted according to data minimization policy, preserving only aggregate counts.
  */
 
 import { WarningCircle, ShieldCheck, Clock } from "@phosphor-icons/react";
@@ -11,6 +13,14 @@ export interface ExpiredBatchNoticeProps {
   totalRecipients?: number;
 }
 
+/**
+ * @component ExpiredBatchNotice
+ * @description Renders a warning alert notifying users that a batch's retention period has lapsed and PII was purged.
+ * @param {ExpiredBatchNoticeProps} props - Component properties.
+ * @param {string | Date | null} [props.expiresAt] - Retention expiration timestamp.
+ * @param {number} [props.totalRecipients] - Total number of processed recipients preserved in aggregate metadata.
+ * @returns {JSX.Element} Alert banner with retention details and zero-PII assurance.
+ */
 export function ExpiredBatchNotice({
   expiresAt,
   totalRecipients,

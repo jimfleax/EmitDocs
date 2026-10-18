@@ -1,6 +1,8 @@
 /**
  * @file TemplateVersionSummary.tsx
  * @description Card summarizing locked template version, mapping hash, and import revision for batch approval.
+ * @architecture Inspection card rendered within ApprovalWorkspace verifying mapping integrity and template version locks.
+ * @agent_note Displays template version, import revision, and truncated SHA-256 canonical mapping hash.
  */
 
 import { FilePdf, Hash, GitBranch } from "@phosphor-icons/react";
@@ -17,6 +19,19 @@ interface TemplateVersionSummaryProps {
   importRevision: number;
 }
 
+/**
+ * @component TemplateVersionSummary
+ * @description Summary panel displaying immutable template versioning, mapping checksums, and revision numbers.
+ * @param {TemplateVersionSummaryProps} props - Component properties.
+ * @param {string} [props.templateName] - Human-readable name of the bound template.
+ * @param {Object} props.templateVersion - Bound template version details.
+ * @param {string} props.templateVersion.id - Unique ID of the template version.
+ * @param {number} props.templateVersion.version - Numeric template version number.
+ * @param {string} props.templateVersion.mappingHash - SHA-256 hash of the canonical field mappings.
+ * @param {string} [props.templateVersion.sourceObjectKey] - Storage key of the template source asset.
+ * @param {number} props.importRevision - Ingestion revision count for the current batch.
+ * @returns {JSX.Element} Card detailing template and mapping verification data.
+ */
 export function TemplateVersionSummary({
   templateName,
   templateVersion,

@@ -1,6 +1,8 @@
 /**
  * @file ApprovalWorkspace.tsx
  * @description Master approval workspace for inspecting preflight metrics and freezing immutable snapshots (PRD-CORE-06).
+ * @architecture Feature container orchestrating preflight validation verification and immutable snapshot sealing before generation.
+ * @agent_note Fetches preflight telemetry from /api/batches/:id/approval-preflight, enforces version locking, and triggers /api/batches/:id/approve with idempotency keys.
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -51,6 +53,22 @@ interface PreflightData {
   retentionPresets: Array<{ hours: number; label: string }>;
 }
 
+/**
+ * @component ApprovalWorkspace
+ * @description Main approval workspace presenting preflight checks, retention selector, immutability hashes, and snapshot seal action.
+ * @param {ApprovalWorkspaceProps} props - Component properties.
+ * @param {string} props.batchId - Batch unique identifier to approve.
+ * @state {boolean} isLoading - Loading indicator during initial preflight data fetch.
+ * @state {boolean} isApproving - In-flight state during POST snapshot approval.
+ * @state {string | null} error - Error message from preflight checks or approval failures.
+ * @state {PreflightData | null} preflight - Preflight validation and version summary response.
+ * @state {number} selectedRetention - Selected data retention period in hours (default 168 / 7 days).
+ * @state {any | null} approvedSnapshot - Sealed immutable snapshot payload if already approved.
+ * @api {GET} /api/batches/:batchId/approval-preflight - Retrieves batch preflight statistics and schema compatibility.
+ * @api {GET} /api/batches/:batchId/snapshot - Checks for existing active snapshot.
+ * @api {POST} /api/batches/:batchId/approve - Freezes batch, template version, and recipient rows into an immutable snapshot.
+ * @returns {JSX.Element} Approval workspace UI wrapped in PageShell.
+ */
 export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
   const navigate = useNavigate();
 

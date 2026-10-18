@@ -1,6 +1,8 @@
 /**
  * @file RecipientClaimStatusTable.tsx
  * @description Searchable, paginated table of snapshot recipients with status and revoke action.
+ * @architecture Data table component in ClaimPortalWorkspace recipients tab tracking individual recipient claim statuses.
+ * @agent_note Displays claim timestamps, supports server-side search and status filters, and provides individual revocation modal.
  */
 
 import { useState } from "react";
@@ -43,6 +45,26 @@ export interface RecipientClaimStatusTableProps {
   isLoading?: boolean;
 }
 
+/**
+ * @component RecipientClaimStatusTable
+ * @description Table displaying snapshot recipients, claim timestamps, status badges, and per-recipient credential revocation actions.
+ * @param {RecipientClaimStatusTableProps} props - Component properties.
+ * @param {string} props.portalId - Unique portal ID.
+ * @param {RecipientClaimStatusRow[]} props.recipients - Current page of recipient rows.
+ * @param {number} props.totalCount - Total recipient count matching active query.
+ * @param {number} props.page - Current 1-based page number.
+ * @param {number} props.limit - Rows per page.
+ * @param {string} props.search - Active search filter string.
+ * @param {string} props.statusFilter - Active status category filter.
+ * @param {(page: number) => void} props.onPageChange - Page navigation handler.
+ * @param {(search: string) => void} props.onSearchChange - Search input change handler.
+ * @param {(status: string) => void} props.onStatusFilterChange - Status dropdown filter handler.
+ * @param {(recipientId: string) => Promise<void>} props.onRevokeRecipient - Handler to revoke a specific recipient's claim access.
+ * @param {boolean} [props.isLoading=false] - Loading indicator for table data.
+ * @state {RecipientClaimStatusRow | null} revokeTarget - Recipient targeted for access revocation.
+ * @state {boolean} isRevoking - In-flight state during revocation mutation.
+ * @returns {JSX.Element} Paginated recipients management table with filters and revoke confirmation dialog.
+ */
 export function RecipientClaimStatusTable({
   recipients,
   totalCount,

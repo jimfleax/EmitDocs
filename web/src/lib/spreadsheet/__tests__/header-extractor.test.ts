@@ -1,6 +1,17 @@
+/**
+ * @file header-extractor.test.ts
+ * @description Unit tests for spreadsheet header row identification, empty row skipping, and column disambiguation.
+ * @architecture Validates automatic blank header naming (Column_A, Column_B), duplicate header preservation (_2, _3), and whitespace trimming.
+ * @agent_note Ensures 1-to-1 parity with spreadsheet column counts across diverse grid layouts.
+ */
+
 import assert from "node:assert";
 import { extractHeadersAndRows } from "../header-extractor.js";
 
+/**
+ * @desc Executes test cases verifying grid header extraction, blank column naming, and duplicate disambiguation.
+ * @returns {Promise<void>}
+ */
 async function runTests() {
   console.log("🧪 Starting header-extractor unit test suite...");
 

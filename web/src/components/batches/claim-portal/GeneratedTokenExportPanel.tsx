@@ -1,6 +1,8 @@
 /**
  * @file GeneratedTokenExportPanel.tsx
  * @description Single-use token generation, CSV download blob trigger, and mandatory export acknowledgment lock.
+ * @architecture Token export workspace card in ClaimPortalWorkspace managing CSPRNG token distribution safety locks.
+ * @agent_note Generates client-side CSV downloads containing unhashed tokens and enforces mandatory user acknowledgment before enabling activation.
  */
 
 import { useState } from "react";
@@ -21,6 +23,23 @@ export interface GeneratedTokenExportPanelProps {
   disabled?: boolean;
 }
 
+/**
+ * @component GeneratedTokenExportPanel
+ * @description Workflow panel triggering CSPRNG token generation, client-side CSV export, and mandatory acknowledgment confirmation.
+ * @param {GeneratedTokenExportPanelProps} props - Component properties.
+ * @param {string} props.portalId - Claim portal identifier.
+ * @param {number} props.revision - Active credential set revision number.
+ * @param {"preparing" | "awaiting_export_ack" | "ready" | "revoked" | "expired"} props.status - Current credential set lifecycle status.
+ * @param {Function} props.onGenerate - Async function returning recipient keys and raw tokens for CSV generation.
+ * @param {(revision: number) => Promise<void>} props.onAcknowledge - Handler acknowledging CSV download to unlock portal.
+ * @param {() => void} [props.onRotatePrompt] - Callback opening token rotation confirmation dialog.
+ * @param {boolean} [props.disabled=false] - Whether actions are disabled.
+ * @state {boolean} isGenerating - Spinner state during token creation.
+ * @state {boolean} isAcknowledging - Spinner state during export acknowledgment submission.
+ * @state {boolean} confirmedDownloaded - Whether CSV was triggered to unlock acknowledgment button.
+ * @state {string | null} downloadBlobUrl - Object URL of generated CSV blob.
+ * @returns {JSX.Element} Token generation and export card with security locks.
+ */
 export function GeneratedTokenExportPanel({
   revision,
   status,

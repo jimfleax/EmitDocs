@@ -28,12 +28,14 @@ if (!MONGODB_URI) {
 const client = new MongoClient(MONGODB_URI);
 
 /**
+ * @desc Connected MongoDB database instance targeted at DB_NAME or default 'emitdocs'.
  * @type {import('mongodb').Db}
  * @description Connected MongoDB database instance targeted at DB_NAME or default 'emitdocs'.
  */
 export const db = client.db(process.env.DB_NAME || 'emitdocs');
 
 /**
+ * @desc Root native MongoDB client instance connected to MONGODB_URI.
  * @type {MongoClient}
  * @description Root native MongoDB client instance connected to MONGODB_URI.
  */

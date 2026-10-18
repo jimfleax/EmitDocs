@@ -1,10 +1,12 @@
 /**
  * @file transactions.ts
  * @description MongoDB transaction and session error handling utilities.
+ * @architecture Inspects MongoDB error codes and diagnostic messages to detect standalone deployments lacking replica set transaction support.
+ * @agent_note Enables graceful fallback to non-transactional operations during local development or non-replica setups.
  */
 
 /**
- * Helper function determining if an error indicates that MongoDB transactions or sessions
+ * @desc Helper function determining if an error indicates that MongoDB transactions or sessions
  * are unsupported by the active deployment (e.g. standalone Mongo instances).
  *
  * @param {any} err - Caught error object from database operation or session initialization.

@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * @description Accesses the current authentication context containing session, user, and pending state.
  * @returns {AuthContextType} Active session, current user, and pending loading status.
  * @throws {Error} If called outside of an AuthProvider hierarchy.
+ * @sideeffects Subscribes to AuthContext updates from AuthProvider without external network side-effects.
  */
 export function useAuth() {
   const context = useContext(AuthContext);

@@ -34,6 +34,10 @@ import { toast } from "@/components/ui/toast";
 import { PwaInstallCard } from "@/components/pwa";
 import { getBatchDestinationRoute } from "@/lib/batch-navigation";
 
+/**
+ * @constant Route
+ * @description Primary dashboard index route for authenticated users at "/app/".
+ */
 export const Route = createFileRoute("/_protected/app/")({
   component: AppIndexRoute,
 });
@@ -200,7 +204,9 @@ function formatDateTime(): string {
 
 /**
  * @component AppIndexRoute
- * @description Dashboard home view featuring greeting, issuance metrics, recent batches, and quick action cards.
+ * @description Dashboard home view featuring greeting, issuance metrics, recent batches, activity bar chart, and quick action cards.
+ * @state Local states for batches, templates, 30-day activity timeline, storage stats, delete modal target, and loading indicators.
+ * @api Fetches `/api/batches`, `/api/templates`, `/api/batches/activity`, and `/api/storage/overview`; deletes batches via `DELETE /api/batches/:id`.
  * @returns {JSX.Element} Dashboard overview screen.
  */
 function AppIndexRoute() {

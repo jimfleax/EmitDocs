@@ -1,6 +1,8 @@
 /**
  * @file claim-portal-review-fixes.test.ts
- * @description Dedicated verification test suite for review comment fixes in claim-portal-lifecycle.
+ * @description Dedicated verification test suite for review comment fixes in claim portal lifecycle and credential services.
+ * @architecture Service layer integration test suite verifying atomic state transitions, HMAC production secret validation, and batch eligibility invariants.
+ * @agent_note Run via `npx tsx test/claim-portal-review-fixes.test.ts`. Requires MONGODB_URI in api/.env; runs against isolated database emitdocs_review_portal_test.
  */
 
 import dotenv from 'dotenv';
@@ -27,6 +29,10 @@ import {
 } from '../api/src/services/claim-portal-lifecycle.js';
 import { CLAIM_PORTAL_HMAC_SECRET } from '../api/src/services/participant-claim.js';
 
+/**
+ * @desc Main test runner verifying claim portal review fixes, error handling, and state integrity.
+ * @returns Promise resolving when all review fix test cases succeed.
+ */
 async function runTests() {
   console.log('🧪 Starting Claim Portal Review Fixes Test Suite...\n');
 

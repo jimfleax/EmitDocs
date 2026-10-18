@@ -2,6 +2,7 @@
  * @file BatchListSkeleton.tsx
  * @description Loading placeholder for the batches overview list and search filter bar.
  * @architecture Used during Suspense loading on the /app/batches route.
+ * @agent_note Simulates list items and search filters during Suspense loading on the /app/batches route.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

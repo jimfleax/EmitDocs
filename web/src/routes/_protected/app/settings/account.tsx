@@ -1,6 +1,8 @@
 /**
  * @file account.tsx
  * @description User account settings & Danger Zone for permanent account deletion (PRD-CORE-09).
+ * @architecture Authenticated settings page mounted inside AppShell with PageShell layout.
+ * @agent_note Displays user profile details, retention links, and triggers account deletion dialog.
  */
 
 import { useState } from "react";
@@ -11,10 +13,21 @@ import { Button } from "@/components/ui/button";
 import { DeleteAccountDialog } from "@/components/settings/DeleteAccountDialog";
 import { authClient } from "@/lib/auth-client";
 
+/**
+ * @constant Route
+ * @description Route definition for account settings at "/app/settings/account".
+ */
 export const Route = createFileRoute("/_protected/app/settings/account")({
   component: AccountSettingsPage,
 });
 
+/**
+ * @component AccountSettingsPage
+ * @description Settings page displaying user identity, retention policy entry point, and account deletion trigger.
+ * @state Manages dialog open state for the Danger Zone account deletion modal.
+ * @api Reads active user profile from authClient.useSession(); deletes account via DeleteAccountDialog.
+ * @returns {JSX.Element} Account settings interface.
+ */
 function AccountSettingsPage() {
   const { data: session } = authClient.useSession();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);

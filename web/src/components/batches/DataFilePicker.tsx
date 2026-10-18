@@ -30,6 +30,12 @@ interface DataFilePickerProps {
  * @component DataFilePicker
  * @description Drag-and-drop spreadsheet uploader with real-time browser-side parsing and format validation.
  * @param {DataFilePickerProps} props - Component properties.
+ * @param {Function} props.onParsed - Callback invoked with parsed spreadsheet rows and metadata.
+ * @param {boolean} [props.isLoading=false] - Loading indicator state.
+ * @param {string} [props.loadingText] - Optional loading status label.
+ * @state {boolean} isDragging - Drag-over active indicator.
+ * @state {string | null} parsingError - File reading or parsing error message.
+ * @state {boolean} isProcessing - Parsing in-progress indicator.
  * @returns {JSX.Element} Dropzone container with parsing status indicators.
  */
 export function DataFilePicker({

@@ -2,6 +2,7 @@
  * @file batch-generator.handler.ts
  * @description Core message handler and state machine for deterministic PDF batch generation (PRD-CORE-07).
  * @architecture Shared execution logic used by both the Web Worker and Node.js acceptance tests.
+ * @agent_note Implements asynchronous generation loop with non-blocking macrotasks and streaming ZIP pipeline.
  */
 
 import {
@@ -170,6 +171,11 @@ export type WorkerOutboundMessage =
       };
     };
 
+/**
+ * @desc Converts record values of mixed types into a string-keyed string-valued dictionary for PDF rendering.
+ * @param {Record<string, any>} effectiveData - Raw field value map.
+ * @returns {Record<string, string>} Stringified data map.
+ */
 export function toDataRecord(effectiveData: Record<string, any>): Record<string, string> {
   const result: Record<string, string> = {};
   if (effectiveData && typeof effectiveData === "object") {
@@ -180,6 +186,10 @@ export function toDataRecord(effectiveData: Record<string, any>): Record<string,
   return result;
 }
 
+/**
+ * @class BatchGeneratorHandler
+ * @desc State machine and message handler processing inbound PDF generation commands and emitting outbound events.
+ */
 export class BatchGeneratorHandler {
   private cachedBasePdfBytes: Uint8Array | null = null;
   private cachedFieldMappings: FieldMappingConfig[] = [];

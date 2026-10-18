@@ -40,6 +40,9 @@ export interface IApprovedSnapshotDoc extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Mongoose schema for ApprovedSnapshot records.
+ */
 const ApprovedSnapshotSchema = new Schema<IApprovedSnapshotDoc>(
   {
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
@@ -69,6 +72,7 @@ ApprovedSnapshotSchema.index({ ownerId: 1, status: 1 });
 
 /**
  * @module ApprovedSnapshot
+ * @desc Mongoose schema and model for ApprovedSnapshot
  * @description Compiled Mongoose model for ApprovedSnapshot documents.
  */
 export const ApprovedSnapshot =

@@ -40,6 +40,10 @@ import {
 import { BatchGeneratorHandler } from "../web/src/workers/batch-generator.handler.js";
 import type { FieldMappingConfig } from "../web/src/lib/pdf-engine/pdf-preview-engine.js";
 
+/**
+ * @desc Executes PRD-CORE-08 Acceptance Matrix AC1 through AC6 covering streaming ZIP generation, volume partitioning, and Zip Slip prevention.
+ * @returns {Promise<void>} Resolves when all acceptance criteria tests pass successfully.
+ */
 async function runAcceptanceCriteriaMatrix() {
   console.log("===========================================================");
   console.log("  PRD-CORE-08 ACCEPTANCE CRITERIA MATRIX (AC1 - AC6)");

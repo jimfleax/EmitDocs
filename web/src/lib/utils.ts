@@ -2,6 +2,7 @@
  * @file utils.ts
  * @description Core UI and React DOM utility functions for styling and text extraction.
  * @architecture Shared utility layer used across all UI components, selects, and toast systems.
+ * @agent_note Provides cn() for Tailwind CSS class merging and getReactNodeText() for deep textual extraction from arbitrary React children trees.
  */
 
 import * as React from "react";

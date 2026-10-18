@@ -1,3 +1,10 @@
+/**
+ * @file batches-reimport-diff.test.ts
+ * @description Tests re-import diff engine and three-way reconciliation between original imports, user overrides, and incoming spreadsheet rows.
+ * @architecture Controller and service integration test suite verifying getReimportDiff and reconcileReimport endpoints with Mongoose transactions.
+ * @agent_note Requires MONGODB_URI in environment; exercises live database operations against emitdocs_test database with isolated mock owners.
+ */
+
 import dotenv from 'dotenv';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -18,6 +25,11 @@ import { Template } from '../src/models/Template.js';
 import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import { getReimportDiff, reconcileReimport } from '../src/controllers/batches.controller.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for testing reimport diff and reconciliation requests.
+ * @param options - Options including user identity, params, query parameters, and incoming body.
+ * @returns Mock context object with param/query readers, JSON responder, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {}, body }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -38,6 +50,10 @@ function createMockContext({ user, params = {}, query = {}, body }: any) {
   };
 }
 
+/**
+ * @desc Main test runner executing re-import diff generation and conflict resolution test suites.
+ * @returns Promise resolving when all reimport diff and reconciliation tests pass.
+ */
 async function runTests() {
   console.log('🧪 Starting Slice 3: Backend Re-import Diff Engine & Reconciliation Test Suite...');
 

@@ -2,6 +2,7 @@
  * @file index.ts
  * @description Barrel exports for all loading skeleton components.
  * @architecture Central export point for loading placeholder components across templates, batches, and editors.
+ * @agent_note Exposes all feature-specific skeleton components for consistent Suspense fallbacks.
  */
 
 export { DefaultPageSkeleton } from "./DefaultPageSkeleton";

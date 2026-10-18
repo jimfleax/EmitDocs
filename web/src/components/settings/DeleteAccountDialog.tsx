@@ -1,6 +1,8 @@
 /**
  * @file DeleteAccountDialog.tsx
  * @description Destructive confirmation modal for permanent account deletion and data purging (PRD-CORE-09).
+ * @architecture Settings modal integrated with account management API to enforce explicit "DELETE" confirmation.
+ * @agent_note Requires typing "DELETE" in uppercase before enabling the destructive deletion API call.
  */
 
 import { useState } from "react";
@@ -24,6 +26,11 @@ export interface DeleteAccountDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * @component DeleteAccountDialog
+ * @description Displays a confirmation modal requiring explicit typing of "DELETE" before permanently purging account data.
+ * @param {DeleteAccountDialogProps} props - Component properties.
+ */
 export function DeleteAccountDialog({
   open,
   onOpenChange,

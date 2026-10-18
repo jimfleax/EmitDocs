@@ -1,6 +1,8 @@
 /**
  * @file ClaimPortalLifecycleControls.tsx
  * @description Action buttons for Activate, Pause, Resume, Disable, and Close lifecycle operations.
+ * @architecture Action toolbar embedded in ClaimPortalWorkspace to execute portal state machine transitions.
+ * @agent_note Enforces activation guardrails, handles exclusion acknowledgments, and prompts confirmation dialogs on portal close.
  */
 
 import { useState } from "react";
@@ -32,6 +34,26 @@ export interface ClaimPortalLifecycleControlsProps {
   isLoading?: boolean;
 }
 
+/**
+ * @component ClaimPortalLifecycleControls
+ * @description Lifecycle control buttons triggering portal state changes (Activate, Pause, Resume, Disable, Close) with guardrail modals.
+ * @param {ClaimPortalLifecycleControlsProps} props - Component properties.
+ * @param {ClaimPortalStatus} props.status - Current portal lifecycle status.
+ * @param {boolean} props.isReady - Readiness flag indicating whether preflight criteria are met.
+ * @param {boolean} props.hasBlockers - Whether active configuration blockers prevent activation.
+ * @param {number} [props.missingOutputCount=0] - Number of recipients missing generated PDFs.
+ * @param {string[]} [props.fatalBlockers=[]] - Array of error messages blocking activation.
+ * @param {(ackExclusions?: boolean) => Promise<void>} props.onActivate - Callback to activate claim portal.
+ * @param {() => Promise<void>} props.onPause - Callback to pause portal.
+ * @param {() => Promise<void>} props.onResume - Callback to resume portal.
+ * @param {() => Promise<void>} props.onDisable - Callback to disable portal.
+ * @param {() => Promise<void>} props.onClose - Callback to close portal permanently.
+ * @param {boolean} [props.isLoading=false] - Whether any lifecycle mutation is in progress.
+ * @state {boolean} closeConfirmOpen - Visibility of permanent closure confirmation dialog.
+ * @state {boolean} ackExclusionsModalOpen - Visibility of missing output acknowledgment dialog.
+ * @state {string | null} actionInProgress - Identifier of active transition action for loading states.
+ * @returns {JSX.Element} Lifecycle actions toolbar with confirmation dialogs.
+ */
 export function ClaimPortalLifecycleControls({
   status,
   isReady: _isReady,

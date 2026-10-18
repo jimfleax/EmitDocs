@@ -16,6 +16,15 @@ const FALLOFF_STEPS = 8;
 const SPRING = 320;
 const DAMPING = 22;
 
+/**
+ * @function approach
+ * @description Exponentially interpolates a scalar value toward a target value over elapsed time.
+ * @param {number} current - Current value.
+ * @param {number} target - Target destination value.
+ * @param {number} dt - Delta time in seconds.
+ * @param {number} seconds - Exponential decay time constant.
+ * @returns {number} New interpolated value.
+ */
 const approach = (
   current: number,
   target: number,
@@ -23,6 +32,12 @@ const approach = (
   seconds: number,
 ): number => current + (target - current) * (1 - Math.exp(-dt / seconds));
 
+/**
+ * @function hexToRgb
+ * @description Parses hex color string into 3-tuple RGB numbers.
+ * @param {string} [hex] - Hexadecimal color string.
+ * @returns {[number, number, number]} RGB color values (0-255).
+ */
 const hexToRgb = (hex?: string): [number, number, number] => {
   let h = String(hex || "").replace("#", "");
   if (h.length === 3) h = h.replace(/./g, (c) => c + c);
@@ -32,11 +47,24 @@ const hexToRgb = (hex?: string): [number, number, number] => {
     : [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 };
 
+/**
+ * @function rgba
+ * @description Constructs an RGBA CSS string from a hex color and alpha opacity.
+ * @param {string | undefined} hex - Hex color string.
+ * @param {number} alpha - Alpha value between 0.0 and 1.0.
+ * @returns {string} Formatted rgba(...) string.
+ */
 const rgba = (hex: string | undefined, alpha: number): string => {
   const [r, g, b] = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
+/**
+ * @function noise
+ * @description Fast integer hash function returning a pseudo-random floating point number in [0, 1).
+ * @param {...number} values - Seed values to hash.
+ * @returns {number} Normalized float between 0.0 and 1.0.
+ */
 const noise = (...values: number[]): number => {
   let h = 2166136261;
   for (const value of values) {
@@ -48,6 +76,12 @@ const noise = (...values: number[]): number => {
   return (h >>> 0) / 4294967296;
 };
 
+/**
+ * @function signed
+ * @description Formats a number with explicit positive '+' or negative '−' sign symbol.
+ * @param {number} value - Numeric value to format.
+ * @returns {string} Formatted signed string.
+ */
 const signed = (value: number): string =>
   value > 0 ? `+${value}` : value < 0 ? `−${-value}` : "0";
 
@@ -170,6 +204,7 @@ interface SelectionFrame {
 /**
  * @component TechText
  * @description Interactive canvas wordmark rendering vector outlines, particle specks, and selection frames.
+ * @param {TechTextProps} props - Component properties.
  */
 export const TechText: FC<TechTextProps> = ({
   text = "React Bits",

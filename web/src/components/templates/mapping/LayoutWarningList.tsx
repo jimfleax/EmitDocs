@@ -20,6 +20,8 @@ interface LayoutWarningListProps {
  * @param {LayoutWarningListProps} props - Component properties.
  * @param {EngineWarning[]} props.warnings - Engine warnings emitted during PDF preview generation.
  * @param {(fieldKey: string) => void} [props.onSelectField] - Selection callback to jump to the affected field.
+ * @state Stateless; maps over EngineWarning items.
+ * @api Parent callback: onSelectField.
  * @returns {JSX.Element} Warning list panel or success confirmation badge.
  */
 export const LayoutWarningList: React.FC<LayoutWarningListProps> = ({

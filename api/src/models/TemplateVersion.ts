@@ -97,6 +97,9 @@ export interface ITemplateVersion extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Sub-schema for individual dynamic field mapping definitions.
+ */
 const FieldMappingSchema = new Schema<IFieldMapping>(
   {
     id: { type: String, required: true },
@@ -134,6 +137,9 @@ const FieldMappingSchema = new Schema<IFieldMapping>(
   { _id: false }
 );
 
+/**
+ * @desc Mongoose schema for TemplateVersion records.
+ */
 const TemplateVersionSchema = new Schema<ITemplateVersion>(
   {
     templateId: { type: Schema.Types.ObjectId, ref: 'Template', required: true, index: true },
@@ -154,6 +160,7 @@ TemplateVersionSchema.index({ templateId: 1, version: 1 }, { unique: true });
 
 /**
  * @module TemplateVersion
+ * @desc Mongoose schema and model for TemplateVersion
  * @description Compiled Mongoose model for TemplateVersion documents.
  */
 export const TemplateVersion =

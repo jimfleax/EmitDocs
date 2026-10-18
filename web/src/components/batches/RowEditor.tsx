@@ -48,6 +48,15 @@ export interface RowEditorProps {
  * @component RowEditor
  * @description Detailed inspection and editing form for an individual recipient row and its mapped field values.
  * @param {RowEditorProps} props - Component properties.
+ * @param {string} props.batchId - Target batch ID.
+ * @param {number} props.batchRevision - Optimistic concurrency revision number of the batch.
+ * @param {DraftRowItem} props.row - Active draft row data being inspected.
+ * @param {IFieldMapping[]} props.fieldMappings - Template field mappings.
+ * @param {Record<string, string>} [props.columnMap={}] - Active column mapping table.
+ * @param {Function} props.onRowUpdated - Callback invoked when a field override is persisted.
+ * @param {Function} [props.onRefreshBatch] - Optional callback to refresh parent batch data.
+ * @state {string | null} concurrencyConflict - Concurrency error message when optimistic lock fails.
+ * @api {PATCH} /api/batches/:batchId/rows/:rowId - Saves field override with optimistic revision checking.
  * @returns {JSX.Element} Row editor panel with validation messages and editable cells.
  */
 export function RowEditor({

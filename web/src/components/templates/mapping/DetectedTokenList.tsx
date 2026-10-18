@@ -29,6 +29,8 @@ interface DetectedTokenListProps {
  * @param {number} props.activePageIndex - Currently visible page index (0-indexed).
  * @param {(token: DetectedToken, isMulti?: boolean) => void} props.onConfirmToken - Callback to convert token to a field.
  * @param {(token: DetectedToken) => void} props.onDismissToken - Callback to ignore or dismiss token candidate.
+ * @state Stateless; filters discovered tokens by activePageIndex against existing fieldMappings.
+ * @api Parent callbacks: onConfirmToken, onDismissToken.
  * @returns {JSX.Element} Token list panel or empty notice.
  */
 export const DetectedTokenList: React.FC<DetectedTokenListProps> = ({

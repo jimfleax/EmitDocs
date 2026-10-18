@@ -61,6 +61,15 @@ interface MemoizedPdfCanvasProps {
 /**
  * @component MemoizedPdfCanvas
  * @description Renders rasterized PDF page onto HTML5 canvas with HiDPI backing store and debounced zoom scaling.
+ * @param {MemoizedPdfCanvasProps} props - Component properties.
+ * @param {any} props.doc - PDF.js document proxy.
+ * @param {number} props.activePageIndex - Zero-indexed page to render.
+ * @param {number} props.rotation - Rotation degree for the page canvas.
+ * @param {Function} [props.onPageLoaded] - Callback invoked when page dimensions and count resolve.
+ * @param {Function} [props.onTokensDiscovered] - Callback receiving detected text tokens.
+ * @state Canvas render task tracking ref, debounced zoom timer ref, and rendered scale cache.
+ * @api Interacts with PDF.js worker API to render canvas and extract text content.
+ * @returns {JSX.Element} Canvas element rendering rasterized page.
  */
 const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
   ({ doc, activePageIndex, rotation, onPageLoaded, onTokensDiscovered }) => {
@@ -267,9 +276,13 @@ const MemoizedPdfCanvas = React.memo<MemoizedPdfCanvasProps>(
 );
 
 /**
- * @component PdfPageNode
+ * @component PdfPageNodeComponent
  * @description Background canvas node rendering rendered PDF vector graphics, rotation, and auto-discovered tokens.
  * @param {NodeProps<PdfPageNodeType>} props - React Flow custom node properties.
+ * @state {any} doc - Loaded PDF.js document instance.
+ * @state {boolean} loading - Loading indicator flag for PDF document parsing.
+ * @state {string | null} error - Error message if document loading or page rendering fails.
+ * @api Node callbacks: onConfirmToken, onPageLoaded, onTokensDiscovered, onPageClick.
  * @returns {JSX.Element} Canvas container with PDF page render and token highlight boxes.
  */
 const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({
@@ -413,6 +426,12 @@ const PdfPageNodeComponent: React.FC<NodeProps<PdfPageNodeType>> = ({
   );
 };
 
+/**
+ * @component PdfPageNode
+ * @description Performance-memoized React Flow node export for PdfPageNodeComponent with custom property equality checking.
+ * @param {NodeProps<PdfPageNodeType>} props - React Flow custom node properties.
+ * @returns {JSX.Element} Memoized background canvas page node.
+ */
 export const PdfPageNode = React.memo(
   PdfPageNodeComponent,
   (prev, next) =>

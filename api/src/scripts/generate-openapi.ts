@@ -16,7 +16,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 /**
- * Builds the canonical in-memory OpenAPI 3.1 specification for EmitDocs API.
+ * @desc Builds the canonical in-memory OpenAPI 3.1 specification for EmitDocs API.
+ * @returns {Record<string, any>} In-memory OpenAPI 3.1 specification document.
  */
 export function buildOpenApiSpec() {
   return {
@@ -1332,12 +1333,26 @@ export function buildOpenApiSpec() {
                     type: 'object',
                     properties: {
                       isReady: { type: 'boolean' },
+                      eligibleCount: { type: 'integer' },
+                      excludedCount: { type: 'integer' },
+                      duplicateCount: { type: 'integer' },
                       missingOutputCount: { type: 'integer' },
-                      missingOutputs: { type: 'array', items: { type: 'object' } },
-                      unmappedFields: { type: 'array', items: { type: 'string' } },
                       blockers: { type: 'array', items: { type: 'string' } },
+                      credentialSetStatus: { type: 'string' },
+                      primaryFieldKey: { type: 'string' },
+                      secondaryFieldKey: { type: 'string' },
+                      strengthReport: { type: 'object' },
+                      duplicateCollisions: { type: 'array', items: { type: 'object' } },
                     },
-                    required: ['isReady', 'missingOutputCount', 'missingOutputs', 'unmappedFields', 'blockers'],
+                    required: [
+                      'isReady',
+                      'eligibleCount',
+                      'excludedCount',
+                      'duplicateCount',
+                      'missingOutputCount',
+                      'blockers',
+                      'credentialSetStatus',
+                    ],
                   },
                 },
               },
@@ -1574,15 +1589,32 @@ export function buildOpenApiSpec() {
                   schema: {
                     type: 'object',
                     properties: {
-                      uniqueClaimedCount: { type: 'integer' },
-                      eligibleRecipientCount: { type: 'integer' },
-                      claimRatePercent: { type: 'number' },
-                      timeline: {
-                        type: 'array',
-                        items: { type: 'object' },
+                      analytics: {
+                        type: 'object',
+                        properties: {
+                          portalId: { type: 'string' },
+                          label: { type: 'string' },
+                          status: { type: 'string' },
+                          totalEligible: { type: 'integer' },
+                          claimedCount: { type: 'integer' },
+                          unclaimedCount: { type: 'integer' },
+                          revokedCount: { type: 'integer' },
+                          excludedCount: { type: 'integer' },
+                          claimRatePercent: { type: 'number' },
+                          expiresAt: { type: 'string', format: 'date-time' },
+                        },
                       },
+                      portalId: { type: 'string' },
+                      label: { type: 'string' },
+                      status: { type: 'string' },
+                      totalEligible: { type: 'integer' },
+                      claimedCount: { type: 'integer' },
+                      unclaimedCount: { type: 'integer' },
+                      revokedCount: { type: 'integer' },
+                      excludedCount: { type: 'integer' },
+                      claimRatePercent: { type: 'number' },
+                      expiresAt: { type: 'string', format: 'date-time' },
                     },
-                    required: ['uniqueClaimedCount', 'eligibleRecipientCount', 'claimRatePercent', 'timeline'],
                   },
                 },
               },
@@ -1978,10 +2010,10 @@ export function buildOpenApiSpec() {
 }
 
 /**
- * Writes canonical OpenAPI specification to disk.
+ * @desc Writes canonical OpenAPI specification to disk.
  *
  * @param {string} [targetPath] - Optional override file path. Defaults to api/openapi.json.
- * @returns {{ spec: object, filePath: string }}
+ * @returns {{ spec: object, filePath: string }} Generated spec object and absolute output file path.
  */
 export function writeOpenApiSpec(targetPath?: string) {
   const spec = buildOpenApiSpec();

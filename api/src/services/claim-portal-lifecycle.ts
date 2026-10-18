@@ -3,6 +3,7 @@
  * @description Organizer portal lifecycle, token generation, and credential configuration (PRD-CORE-11 Slice 2).
  * @architecture Enforces zero raw credential persistence, CSPRNG token generation, length-prefixed HMAC verifiers,
  *               fail-closed state machine transitions, and atomic concurrency version control.
+ * @agent_note Implements optimistic concurrency versioning on portal updates. Raw credentials are never stored in database; only HMAC verifiers are persisted.
  */
 
 import crypto from 'node:crypto';
@@ -97,7 +98,16 @@ export class WeakCredentialError extends Error {
 
 export class ClaimPortalLifecycle {
   /**
-   * Creates a draft claim portal for an approved batch.
+   * @desc    Creates a draft claim portal for an approved batch with a generated public slug.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} batchId - Target batch ID to create portal for.
+   * @param   {Object} input - Creation payload containing label and optional instructions.
+   * @param   {string} input.label - Display label for the portal.
+   * @param   {string} [input.instructions] - Optional Markdown instructions for claimants.
+   * @returns {Promise<IClaimPortal>} Newly created draft portal document.
+   * @throws  {BatchNotEligibleError} If input is invalid, batch is not approved/ready, or has no approved snapshot.
+   * @throws  {PortalNotFoundError} If the batch does not exist or access is denied.
+   * @throws  {PortalConflictError} If a portal already exists for this batch.
    */
   static async createPortalDraft(
     ownerId: string,
@@ -155,7 +165,17 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Updates portal metadata with optimistic concurrency check.
+   * @desc    Updates portal metadata (label, instructions) under optimistic concurrency control.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {Object} input - Metadata payload with optional expectedVersion for CAS lock.
+   * @param   {string} [input.label] - New display label.
+   * @param   {string} [input.instructions] - New instructions text.
+   * @param   {number} [input.expectedVersion] - Expected portal version number for CAS check.
+   * @returns {Promise<IClaimPortal>} Updated portal document.
+   * @throws  {BatchNotEligibleError} If input payload or label format is invalid.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {PortalConflictError} If the expected version does not match current version.
    */
   static async updatePortalConfig(
     ownerId: string,
@@ -195,7 +215,13 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Generates CSPRNG tokens, computes HMAC verifiers, and prepares one-time export tokens.
+   * @desc    Generates CSPRNG tokens, computes HMAC verifiers, and prepares one-time export tokens.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<{ revision: number; exportTokens: Array<{ recipientKey: string; name: string; email: string; token: string }> }>} Generated token set revision and export rows.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If the portal is closed or expired.
+   * @throws  {ExportAlreadyAcknowledgedError} If tokens for this revision were already generated.
    */
   static async generateTokenSet(
     ownerId: string,
@@ -243,25 +269,25 @@ export class ClaimPortalLifecycle {
 
     await ClaimCredential.deleteMany({ portalId: portal._id, credentialSetRevision: revision });
 
-    const credDocs = recipients
-      .filter((r) => !revokedRecipientIds.has(r._id.toString()))
-      .map((r) => {
-        const i = recipients.indexOf(r);
-        const token = tokens[i];
-        const verifier = computeCredentialVerifier(CLAIM_PORTAL_HMAC_SECRET, portal._id.toString(), revision, token);
-        return {
-          ownerId,
-          portalId: portal._id,
-          credentialSetId: credSet._id,
-          credentialSetRevision: revision,
-          recipientId: r._id,
-          credentialVerifier: verifier,
-          credentialKind: 'single' as const,
-          verifierKeyVersion: 1,
-          strengthClass: 'generated' as const,
-          status: 'active' as const,
-        };
-      });
+    const activeRecipients = recipients
+      .map((r, i) => ({ recipient: r, token: tokens[i] }))
+      .filter(({ recipient }) => !revokedRecipientIds.has(recipient._id.toString()));
+
+    const credDocs = activeRecipients.map(({ recipient: r, token }) => {
+      const verifier = computeCredentialVerifier(CLAIM_PORTAL_HMAC_SECRET, portal._id.toString(), revision, token);
+      return {
+        ownerId,
+        portalId: portal._id,
+        credentialSetId: credSet._id,
+        credentialSetRevision: revision,
+        recipientId: r._id,
+        credentialVerifier: verifier,
+        credentialKind: 'single' as const,
+        verifierKeyVersion: 1,
+        strengthClass: 'generated' as const,
+        status: 'active' as const,
+      };
+    });
 
     if (credDocs.length > 0) {
       await ClaimCredential.insertMany(credDocs, { ordered: false });
@@ -286,11 +312,11 @@ export class ClaimPortalLifecycle {
       await ClaimRecipientState.bulkWrite(recipientOps, { ordered: false });
     }
 
-    portal.eligibleRecipientCount = recipients.length;
+    portal.eligibleRecipientCount = activeRecipients.length;
     portal.credentialMode = 'generated_token';
     await portal.save();
 
-    const exportTokens = recipients.map((r, i) => {
+    const exportTokens = activeRecipients.map(({ recipient: r, token }) => {
       const data = r.effectiveData || {};
       const name = data.name || data.fullName || data.recipientName || '';
       const email = data.email || data.emailAddress || '';
@@ -298,7 +324,7 @@ export class ClaimPortalLifecycle {
         recipientKey: r.recipientKey,
         name,
         email,
-        token: tokens[i],
+        token,
       };
     });
 
@@ -306,7 +332,13 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Confirms organizer downloaded the CSV export and transitions credential set to ready.
+   * @desc    Confirms organizer downloaded the CSV export and transitions credential set to ready.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {number} revision - Credential set revision number being acknowledged.
+   * @returns {Promise<IClaimCredentialSet>} Updated credential set document in ready state.
+   * @throws  {PortalNotFoundError} If the portal or credential set revision is not found.
+   * @throws  {InvalidStateTransitionError} If credential set is not awaiting export acknowledgment.
    */
   static async acknowledgeTokenExport(
     ownerId: string,
@@ -342,7 +374,17 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Configures imported credentials from snapshot recipient columns with strength checks.
+   * @desc    Configures imported credentials from snapshot recipient columns with strength checks.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {Object} input - Primary and optional secondary field keys.
+   * @param   {string} input.primaryFieldKey - Primary spreadsheet column key for authentication.
+   * @param   {string} [input.secondaryFieldKey] - Optional secondary spreadsheet column key for 2FA.
+   * @returns {Promise<IClaimCredentialSet>} Configured credential set document.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If portal is closed or expired.
+   * @throws  {PortalConflictError} If no valid recipients exist or duplicate credential collisions occur.
+   * @throws  {WeakCredentialError} If primary credential fails entropy or collision strength tests.
    */
   static async configureImportedCredentials(
     ownerId: string,
@@ -478,7 +520,11 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Preflight review of portal readiness, missing outputs, exclusions, and blockers.
+   * @desc    Preflight review of portal readiness, missing outputs, exclusions, and blockers.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<{ eligibleCount: number; excludedCount: number; duplicateCount: number; missingOutputCount: number; isReady: boolean; blockers: string[]; credentialSetStatus?: string; primaryFieldKey?: string; secondaryFieldKey?: string; strengthReport?: any; duplicateCollisions?: any[] }>} Preflight readiness metrics and blockers.
+   * @throws  {PortalNotFoundError} If the portal is not found.
    */
   static async getPortalPreflight(
     ownerId: string,
@@ -604,7 +650,15 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Activates portal.
+   * @desc    Activates a claim portal after validating preflight prerequisites and blockers.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {number} [expectedVersion] - Expected portal version for CAS check.
+   * @param   {boolean} [ackExclusions=false] - Whether to acknowledge missing output exclusions.
+   * @returns {Promise<IClaimPortal>} Activated claim portal document.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If portal is closed/expired or blockers exist.
+   * @throws  {PortalConflictError} If CAS version check fails.
    */
   static async activatePortal(
     ownerId: string,
@@ -653,7 +707,12 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Pauses active portal.
+   * @desc    Pauses an active portal, preventing participant claim submissions.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<IClaimPortal>} Paused claim portal document.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If portal is not currently active.
    */
   static async pausePortal(ownerId: string, portalId: string): Promise<IClaimPortal> {
     const portal = await ClaimPortal.findOne({ _id: portalId, ownerId });
@@ -671,7 +730,12 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Resumes paused portal.
+   * @desc    Resumes a paused portal back to active state after verifying prerequisites.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<IClaimPortal>} Resumed active claim portal document.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If portal is not paused, expired, or blockers exist.
    */
   static async resumePortal(ownerId: string, portalId: string): Promise<IClaimPortal> {
     const portal = await ClaimPortal.findOne({ _id: portalId, ownerId });
@@ -708,7 +772,12 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Disables portal.
+   * @desc    Disables a portal temporarily, locking claimant access.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<IClaimPortal>} Disabled claim portal document.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If the portal is already closed.
    */
   static async disablePortal(ownerId: string, portalId: string): Promise<IClaimPortal> {
     const portal = await ClaimPortal.findOne({ _id: portalId, ownerId });
@@ -725,7 +794,11 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Closes portal permanently and revokes all credentials and active sessions.
+   * @desc    Closes portal permanently and revokes all credentials and active sessions.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<IClaimPortal>} Closed claim portal document.
+   * @throws  {PortalNotFoundError} If the portal is not found.
    */
   static async closePortal(ownerId: string, portalId: string): Promise<IClaimPortal> {
     const portal = await ClaimPortal.findOne({ _id: portalId, ownerId });
@@ -750,7 +823,13 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Rotates credentials or switches credential mode.
+   * @desc    Rotates credentials, revoking current credentials and sessions, and initializing a new revision.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {ClaimCredentialMode} [mode] - Optional new credential mode.
+   * @returns {Promise<{ portal: IClaimPortal; credentialSet: IClaimCredentialSet; revision: number }>} Updated portal, new preparing credential set, and new revision number.
+   * @throws  {PortalNotFoundError} If the portal is not found.
+   * @throws  {InvalidStateTransitionError} If portal is closed.
    */
   static async rotateCredentials(
     ownerId: string,
@@ -803,7 +882,15 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Paginated recipient claim states with filtering.
+   * @desc    Retrieves paginated recipient claim states with optional status filtering.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {Object} query - Pagination and filter options.
+   * @param   {number} [query.page=1] - 1-based page index.
+   * @param   {number} [query.limit=20] - Page size limit (max 100).
+   * @param   {string} [query.status] - Optional recipient state filter.
+   * @returns {Promise<{ items: any[]; total: number; page: number; limit: number; totalPages: number }>} Paginated recipient states.
+   * @throws  {PortalNotFoundError} If the portal is not found.
    */
   static async getPortalRecipients(
     ownerId: string,
@@ -842,7 +929,12 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Revokes individual recipient claim.
+   * @desc    Revokes an individual recipient's claim capability and terminates their active sessions.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @param   {string} recipientId - Target recipient document ID.
+   * @returns {Promise<any>} Updated recipient claim state document.
+   * @throws  {PortalNotFoundError} If the portal or recipient is not found.
    */
   static async revokeRecipientClaim(
     ownerId: string,
@@ -873,7 +965,11 @@ export class ClaimPortalLifecycle {
   }
 
   /**
-   * Aggregates real-time claim metrics and analytics.
+   * @desc    Aggregates real-time claim metrics and analytics for a portal.
+   * @param   {string} ownerId - ID of the portal owner.
+   * @param   {string} portalId - Target portal ID.
+   * @returns {Promise<{ portalId: any; label: string; status: string; totalEligible: number; claimedCount: number; unclaimedCount: number; revokedCount: number; excludedCount: number; claimRatePercent: number; expiresAt: Date }>} Real-time portal metrics.
+   * @throws  {PortalNotFoundError} If the portal is not found.
    */
   static async getPortalAnalytics(
     ownerId: string,

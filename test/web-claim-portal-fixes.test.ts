@@ -1,6 +1,8 @@
 /**
  * @file web-claim-portal-fixes.test.ts
  * @description Unit tests validating review comment fixes across web claim portal components.
+ * @architecture Web component and utility unit test suite verifying CSV cell escaping, CredentialModeSelector accessibility, lifecycle button controls, and GenericClaimFailure message display.
+ * @agent_note Run via `npx tsx test/web-claim-portal-fixes.test.ts`. Uses react-dom/server to inspect component render outputs without browser DOM.
  */
 
 import assert from "node:assert";

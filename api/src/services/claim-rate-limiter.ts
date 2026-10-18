@@ -4,11 +4,17 @@
  * @architecture Pseudonymizes client IPs with HMAC-SHA-256 and rotating salt.
  *               Uses atomic findOneAndUpdate with $inc and $setOnInsert to prevent race conditions.
  *               Enforces adaptive Cloudflare Turnstile triggers when failed attempts exceed thresholds.
+ * @agent_note IPs are pseudonymized using HMAC-SHA-256 with a rotating salt before persistence. Uses atomic MongoDB sliding-window keys with TTL expiration.
  */
 
 import crypto from 'node:crypto';
 import { ClaimRateLimit } from '../models/ClaimRateLimit.js';
 
+/**
+ * @desc    Retrieves or generates the salt used for IP pseudonymization in rate limiting.
+ * @returns {string} Salt string.
+ * @throws  {Error} If CLAIM_RATE_LIMIT_SALT is unset in production environment.
+ */
 export function getClaimRateLimitSalt(): string {
   const salt = process.env.CLAIM_RATE_LIMIT_SALT;
   if (process.env.NODE_ENV === 'production') {
@@ -25,9 +31,8 @@ export function getClaimRateLimitSalt(): string {
 export const ROTATING_SALT = getClaimRateLimitSalt();
 
 /**
- * Pseudonymizes client IP address to prevent storing plaintext PII while allowing windowed throttling.
- *
- * @param {string} ip - Raw client IP.
+ * @desc    Pseudonymizes client IP address to prevent storing plaintext PII while allowing windowed throttling.
+ * @param   {string} ip - Raw client IP.
  * @returns {string} 16-character hex digest of HMAC-SHA-256.
  */
 export function pseudonymizeIp(ip: string): string {
@@ -42,13 +47,12 @@ export interface RateLimitResult {
 }
 
 /**
- * Atomically checks and increments rate limit for a portal and pseudonymized IP within a sliding window.
- *
- * @param {string} portalId - Target claim portal ID.
- * @param {string} ip - Client IP.
- * @param {number} [limit=30] - Max requests permitted in the window.
- * @param {number} [windowSec=60] - Window duration in seconds.
- * @returns {Promise<RateLimitResult>}
+ * @desc    Atomically checks and increments rate limit for a portal and pseudonymized IP within a sliding window.
+ * @param   {string} portalId - Target claim portal ID.
+ * @param   {string} ip - Client IP.
+ * @param   {number} [limit=30] - Max requests permitted in the window.
+ * @param   {number} [windowSec=60] - Window duration in seconds.
+ * @returns {Promise<RateLimitResult>} Rate limit check outcome with allowed flag, remaining count, and retryAfter seconds.
  */
 export async function checkAndIncrementRateLimit(
   portalId: string,
@@ -78,12 +82,10 @@ export async function checkAndIncrementRateLimit(
 }
 
 /**
- * Records a failed credential verification attempt.
- * If failed attempts within a 5-minute window reach 5 or more, requires Turnstile verification.
- *
- * @param {string} portalId - Target claim portal ID.
- * @param {string} ip - Client IP.
- * @returns {Promise<{ requiresTurnstile: boolean; failedAttempts: number }>}
+ * @desc    Records a failed credential verification attempt and determines if Cloudflare Turnstile bot defense is required.
+ * @param   {string} portalId - Target claim portal ID.
+ * @param   {string} ip - Client IP.
+ * @returns {Promise<{ requiresTurnstile: boolean; failedAttempts: number }>} Turnstile challenge requirement and total failed attempts.
  */
 export async function recordFailedAttempt(
   portalId: string,
@@ -109,11 +111,10 @@ export async function recordFailedAttempt(
 }
 
 /**
- * Checks whether client has exceeded failed attempt threshold without incrementing.
- *
- * @param {string} portalId - Target claim portal ID.
- * @param {string} ip - Client IP.
- * @returns {Promise<boolean>} True if Turnstile challenge is mandatory.
+ * @desc    Checks whether a client has exceeded the failed attempt threshold without incrementing the counter.
+ * @param   {string} portalId - Target claim portal ID.
+ * @param   {string} ip - Client IP.
+ * @returns {Promise<boolean>} True if Turnstile challenge is mandatory, false otherwise.
  */
 export async function isTurnstileRequired(portalId: string, ip: string): Promise<boolean> {
   const hashedIp = pseudonymizeIp(ip);

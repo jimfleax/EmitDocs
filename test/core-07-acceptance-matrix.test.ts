@@ -43,7 +43,8 @@ import { BatchGeneratorHandler } from '../web/src/workers/batch-generator.handle
 
 
 /**
- * Executes PRD-CORE-07 Acceptance Matrix AC1 through AC8.
+ * @desc Executes PRD-CORE-07 Acceptance Matrix AC1 through AC8 covering Web Worker generation, pause/resume, and benchmarks.
+ * @returns {Promise<void>} Resolves when all acceptance criteria tests pass successfully.
  */
 async function runAcceptanceCriteriaMatrix() {
   console.log('===========================================================');

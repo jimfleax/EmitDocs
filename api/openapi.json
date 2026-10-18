@@ -2513,34 +2513,51 @@
                     "isReady": {
                       "type": "boolean"
                     },
-                    "missingOutputCount": {
+                    "eligibleCount": {
                       "type": "integer"
                     },
-                    "missingOutputs": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
+                    "excludedCount": {
+                      "type": "integer"
                     },
-                    "unmappedFields": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                    "duplicateCount": {
+                      "type": "integer"
+                    },
+                    "missingOutputCount": {
+                      "type": "integer"
                     },
                     "blockers": {
                       "type": "array",
                       "items": {
                         "type": "string"
                       }
+                    },
+                    "credentialSetStatus": {
+                      "type": "string"
+                    },
+                    "primaryFieldKey": {
+                      "type": "string"
+                    },
+                    "secondaryFieldKey": {
+                      "type": "string"
+                    },
+                    "strengthReport": {
+                      "type": "object"
+                    },
+                    "duplicateCollisions": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
                     }
                   },
                   "required": [
                     "isReady",
+                    "eligibleCount",
+                    "excludedCount",
+                    "duplicateCount",
                     "missingOutputCount",
-                    "missingOutputs",
-                    "unmappedFields",
-                    "blockers"
+                    "blockers",
+                    "credentialSetStatus"
                   ]
                 }
               }
@@ -3017,28 +3034,74 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "uniqueClaimedCount": {
+                    "analytics": {
+                      "type": "object",
+                      "properties": {
+                        "portalId": {
+                          "type": "string"
+                        },
+                        "label": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        },
+                        "totalEligible": {
+                          "type": "integer"
+                        },
+                        "claimedCount": {
+                          "type": "integer"
+                        },
+                        "unclaimedCount": {
+                          "type": "integer"
+                        },
+                        "revokedCount": {
+                          "type": "integer"
+                        },
+                        "excludedCount": {
+                          "type": "integer"
+                        },
+                        "claimRatePercent": {
+                          "type": "number"
+                        },
+                        "expiresAt": {
+                          "type": "string",
+                          "format": "date-time"
+                        }
+                      }
+                    },
+                    "portalId": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "totalEligible": {
                       "type": "integer"
                     },
-                    "eligibleRecipientCount": {
+                    "claimedCount": {
+                      "type": "integer"
+                    },
+                    "unclaimedCount": {
+                      "type": "integer"
+                    },
+                    "revokedCount": {
+                      "type": "integer"
+                    },
+                    "excludedCount": {
                       "type": "integer"
                     },
                     "claimRatePercent": {
                       "type": "number"
                     },
-                    "timeline": {
-                      "type": "array",
-                      "items": {
-                        "type": "object"
-                      }
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time"
                     }
-                  },
-                  "required": [
-                    "uniqueClaimedCount",
-                    "eligibleRecipientCount",
-                    "claimRatePercent",
-                    "timeline"
-                  ]
+                  }
                 }
               }
             }

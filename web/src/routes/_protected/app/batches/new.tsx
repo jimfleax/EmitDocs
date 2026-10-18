@@ -12,6 +12,10 @@ interface NewBatchSearch {
   templateId?: string;
 }
 
+/**
+ * @constant Route
+ * @description Batch creation route for configuring new batches from templates with search query validation.
+ */
 export const Route = createFileRoute("/_protected/app/batches/new")({
   validateSearch: (search: Record<string, unknown>): NewBatchSearch => {
     return {
@@ -25,6 +29,8 @@ export const Route = createFileRoute("/_protected/app/batches/new")({
 /**
  * @component NewBatchRoute
  * @description Route component rendering the NewBatchForm wizard with optional preselected template.
+ * @state Extracts optional `templateId` query param via Route.useSearch().
+ * @api Template selection and batch initialization mutations handled within NewBatchForm.
  * @returns {JSX.Element} Batch initiation form.
  */
 function NewBatchRoute() {

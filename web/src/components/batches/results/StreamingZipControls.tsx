@@ -1,8 +1,8 @@
 /**
  * @file StreamingZipControls.tsx
- * @description Compact master control component orchestrating streaming ZIP downloads, customizable archive filenames,
- *              and volume partitions (PRD-CORE-08).
+ * @description Compact master control component orchestrating streaming ZIP downloads, customizable archive filenames, and volume partitions (PRD-CORE-08).
  * @architecture Sleek, low-profile UI allowing inline file name configuration and single/multi-volume downloads.
+ * @agent_note Calculates batch volume partitions (1000 docs / 1GB thresholds) and triggers streaming ZIP packaging.
  */
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -41,6 +41,25 @@ export interface StreamingZipControlsProps {
   disabled?: boolean;
 }
 
+/**
+ * @component StreamingZipControls
+ * @description Export panel for naming archives and launching single or multi-part streaming ZIP downloads.
+ * @param {StreamingZipControlsProps} props - Component properties.
+ * @param {string} props.batchName - Raw name of the batch.
+ * @param {number} props.totalRecipients - Total recipient document count.
+ * @param {number} [props.basePdfBytesLength] - Byte length of base PDF template for size estimation.
+ * @param {number} [props.fieldCount] - Number of dynamic fields mapped.
+ * @param {number[]} [props.samplePdfSizes] - Sample generated document byte lengths for accurate volume estimation.
+ * @param {boolean} props.isZipping - Whether an archive creation process is active.
+ * @param {number} [props.currentZippingVolume] - Volume index currently being compressed.
+ * @param {number} [props.currentZipPercent=0] - Compression progress percentage of active volume.
+ * @param {(volume: BatchVolumeInfo) => void} props.onDownloadVolume - Callback triggering volume packaging and download.
+ * @param {boolean} [props.disabled=false] - Whether export controls are disabled.
+ * @state {string} customName - User-configured archive file slug.
+ * @state {boolean} isEditing - Whether inline filename editor is active.
+ * @state {string} editValue - Draft text in filename input.
+ * @returns {JSX.Element} Volume partition card deck with archive configuration toolbar.
+ */
 export function StreamingZipControls({
   batchName,
   totalRecipients,

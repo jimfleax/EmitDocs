@@ -4,6 +4,7 @@
  * @architecture Cascades deletion across all MongoDB collections (Batches, DraftRows, Imports, Snapshots,
  *               Recipients, Templates, TemplateVersions), purges authenticated Cloudinary storage folder,
  *               and revokes active Better-Auth sessions and account records.
+ * @agent_note Cascading deletions are performed within a MongoDB transaction where supported, falling back to sequential deletions on standalone instances. Cloudinary folder purges ignore not-found errors.
  */
 
 import mongoose from 'mongoose';
@@ -46,6 +47,12 @@ export interface DeleteAccountResult {
   errors?: string[];
 }
 
+/**
+ * @desc    Orchestrates full cascading deletion of a user account across MongoDB collections, Cloudinary assets, and auth sessions.
+ * @param   {string} userId - ID of the user whose account is being deleted.
+ * @returns {Promise<DeleteAccountResult>} Summary of deleted batches, templates, Cloudinary purge status, and any errors.
+ * @throws  {Error} If userId is missing or empty.
+ */
 export async function deleteUserAccount(userId: string): Promise<DeleteAccountResult> {
   if (!userId) {
     throw new Error('User ID is required for account deletion');

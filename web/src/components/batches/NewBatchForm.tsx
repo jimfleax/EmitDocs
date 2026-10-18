@@ -109,7 +109,16 @@ function BatchTemplateThumbnail({ url }: { url?: string }) {
 /**
  * @component NewBatchForm
  * @description Creation form for initiating a certificate batch from an existing template.
- * @param {NewBatchFormProps} props - Component properties.
+ * @param {NewBatchFormProps} [props={}] - Component properties.
+ * @param {string} [props.initialTemplateId] - Pre-selected template ID from route parameters.
+ * @state {Template[]} templates - List of user templates available for batch issuance.
+ * @state {string} selectedTemplateId - Currently chosen template identifier.
+ * @state {string} batchName - Name configured for the new batch.
+ * @state {boolean} isLoadingTemplates - Loading flag while retrieving template list.
+ * @state {boolean} isSubmitting - In-flight state during batch creation request.
+ * @state {string | null} error - Form error message string.
+ * @api {GET} /api/templates - Fetches available templates for selection.
+ * @api {POST} /api/batches - Creates a new batch record with locked template version.
  * @returns {JSX.Element} Interactive batch creation form.
  */
 export function NewBatchForm({ initialTemplateId }: NewBatchFormProps = {}) {

@@ -1,11 +1,19 @@
 /**
  * @file account.controller.ts
  * @description HTTP controller endpoints for account lifecycle and full profile deletion (PRD-CORE-09).
+ * @architecture Bridges Hono HTTP requests with the account-deletion cascade service, handling multi-status responses.
+ * @agent_note Requires authenticated user on Context (`c.get('user')`). Returns 207 Multi-Status if MongoDB records are removed but Cloudinary purge encountered issues.
  */
 
 import { Context } from 'hono';
 import { deleteUserAccount } from '../services/account-deletion.js';
 
+/**
+ * @desc    Permanently deletes user account, associated MongoDB records, and purges Cloudinary assets.
+ * @route   DELETE /api/account
+ * @access  Private (Authenticated User)
+ * @returns {Promise<Response>} 200 on complete success, 207 on partial purge, 401 if unauthorized, or 500 on failure.
+ */
 export const deleteAccount = async (c: Context) => {
   const user = c.get('user');
   if (!user) return c.json({ error: 'Unauthorized' }, 401);

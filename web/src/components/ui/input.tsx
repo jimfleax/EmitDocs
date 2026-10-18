@@ -2,6 +2,7 @@
  * @file input.tsx
  * @description Standardized text input field primitive with focus rings and disabled styling.
  * @architecture Base design system form control forwarding refs to native HTML input elements.
+ * @agent_note Forwards ref to underlying HTMLInputElement and handles focus borders without default browser rings.
  */
 
 import * as React from "react";

@@ -5,9 +5,15 @@
  * @agent_note Used across xyflow canvas nodes, toolbars, and inspector panels to coordinate coordinates, styling, and font configuration.
  */
 
+/**
+ * Text casing transformation mode applied during PDF rendering.
+ */
 export type TextTransformMode =
   "none" | "uppercase" | "lowercase" | "capitalize";
 
+/**
+ * Visual field mapping contract defining position, typography, styling, and format rules on a template page.
+ */
 export interface IFieldMapping {
   id: string;
   key: string;
@@ -37,6 +43,9 @@ export interface IFieldMapping {
   textTransform?: TextTransformMode;
 }
 
+/**
+ * Version model capturing persisted template page geometry, status, and field mappings.
+ */
 export interface TemplateVersionData {
   _id: string;
   templateId: string;
@@ -50,6 +59,9 @@ export interface TemplateVersionData {
   createdAt: string;
 }
 
+/**
+ * Root template entity reference.
+ */
 export interface TemplateData {
   _id: string;
   name: string;
@@ -57,3 +69,4 @@ export interface TemplateData {
   currentVersionId: string;
   createdAt: string;
 }
+

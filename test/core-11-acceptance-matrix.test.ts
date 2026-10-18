@@ -30,6 +30,7 @@
  *   - AC-026: Zero secrets or PII in public endpoint logs
  *   - AC-027: Scalability simulation for token batch generation
  *   - AC-028: Complete test matrix execution
+ * @agent_note Run via `npx tsx test/core-11-acceptance-matrix.test.ts`. Requires active MongoDB instance via MONGODB_URI in api/.env. Runs tests against isolated database emitdocs_claim_matrix_test.
  */
 
 import dotenv from 'dotenv';
@@ -89,6 +90,10 @@ import { RetentionPruner } from '../api/src/services/retention-pruner.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/emitdocs_test';
 
+/**
+ * @desc Main test runner executing the consolidated PRD-CORE-11 Acceptance Criteria Matrix across AC-001 through AC-028.
+ * @returns {Promise<void>} Resolves when all 28 acceptance criteria assertions pass.
+ */
 async function runAcceptanceMatrix() {
   console.log('===========================================================');
   console.log('  PRD-CORE-11 CONSOLIDATED ACCEPTANCE MATRIX (AC-001 - AC-028)');

@@ -36,6 +36,12 @@ interface ColumnMappingTableProps {
  * @component ColumnMappingTable
  * @description Table for binding spreadsheet columns to required/optional template fields with auto-suggest capabilities.
  * @param {ColumnMappingTableProps} props - Component properties.
+ * @param {IFieldMapping[]} props.fields - Target template field definitions.
+ * @param {string[]} props.availableHeaders - Detected spreadsheet column header strings.
+ * @param {Record<string, string>} props.columnMap - Key-value map from template field key to spreadsheet header.
+ * @param {(mapping: Record<string, string>) => void} props.onChangeMapping - Callback when column bindings change.
+ * @param {Record<string, "DD/MM/YYYY" | "MM/DD/YYYY" | "YYYY-MM-DD">} [props.dateHints={}] - Date parsing formats by field key.
+ * @param {Function} [props.onChangeDateHint] - Callback when date parsing hint changes.
  * @returns {JSX.Element} Mapping interface table with column dropdowns and date hint selectors.
  */
 export function ColumnMappingTable({

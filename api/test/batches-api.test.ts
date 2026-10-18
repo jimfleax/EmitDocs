@@ -1,3 +1,10 @@
+/**
+ * @file batches-api.test.ts
+ * @description Tests batch lifecycle API controllers including batch creation, chunk submission, mapping updates, finalization, activity logs, and deletion.
+ * @architecture Controller integration test suite validating Hono route handlers against MongoDB models (Batch, BatchImport, DraftRow).
+ * @agent_note Requires MONGODB_URI in environment; exercises live database operations in emitdocs_test database with isolated test users.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -17,6 +24,11 @@ import {
   getBatches,
 } from '../src/controllers/batches.controller.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for simulating authenticated batch controller requests.
+ * @param options - Options containing user, path params, query parameters, and request body.
+ * @returns Mock context object with param/query readers, JSON response handler, and response getter.
+ */
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -36,6 +48,10 @@ function createMockContext({ user, params = {}, query = {}, body = null }: any) 
   };
 }
 
+/**
+ * @desc Main test runner executing batch API controller and intake pipeline test cases.
+ * @returns Promise resolving when all controller tests complete successfully.
+ */
 async function runTests() {
   console.log('🧪 Starting batches-api controller and pipeline test suite...');
 

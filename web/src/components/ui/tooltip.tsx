@@ -2,6 +2,7 @@
  * @file tooltip.tsx
  * @description Lightweight hover and focus tooltip component rendered via document portal.
  * @architecture Computes anchor bounding rects on hover/focus and projects floating tooltips into document.body.
+ * @agent_note Portals into document.body with fixed positioning and automatically dismisses on scroll/resize.
  */
 
 import * as React from "react";
@@ -27,8 +28,11 @@ export interface TooltipPositionResult {
 }
 
 /**
- * Calculates screen pixel coordinates for tooltip positioning based on anchor bounding rect.
- * Exported for deterministic unit testing.
+ * @function calculateTooltipPosition
+ * @description Calculates screen pixel coordinates for tooltip positioning based on anchor bounding rect and viewport boundaries.
+ * @param {Object} rect - Anchor element bounding client rect.
+ * @param {Object} [options] - Alignment, side, and viewport constraint overrides.
+ * @returns {TooltipPositionResult} Calculated coordinates and effective placement side.
  */
 // oxlint-disable-next-line react/only-export-components
 export function calculateTooltipPosition(
@@ -106,9 +110,10 @@ export function calculateTooltipPosition(
 }
 
 /**
- * Resolves the true measurement target element.
- * If trigger is a wrapper whose dimensions collapsed to 0x0 (common with absolutely positioned children),
- * resolves to the first child element.
+ * @function resolveMeasurementTarget
+ * @description Resolves the true measurement target element, unwrapping collapsed zero-sized parent wrappers if needed.
+ * @param {HTMLElement | null} element - The initial DOM element candidate.
+ * @returns {HTMLElement | null} The measurement target element.
  */
 // oxlint-disable-next-line react/only-export-components
 export function resolveMeasurementTarget(
@@ -283,10 +288,21 @@ export interface TooltipProviderProps {
   [key: string]: unknown;
 }
 
+/**
+ * @component TooltipProvider
+ * @description Headless provider for global tooltip configuration and context pass-through.
+ * @param {TooltipProviderProps} props - Provider properties.
+ */
 const TooltipProvider: React.FC<TooltipProviderProps> = ({ children }) => (
   <>{children}</>
 );
 const TooltipRoot = Tooltip;
+
+/**
+ * @component TooltipTrigger
+ * @description Anchor trigger element for Radix-compatible tooltip declarations.
+ * @param {React.HTMLAttributes<HTMLElement> & { asChild?: boolean }} props - Trigger attributes.
+ */
 const TooltipTrigger = React.forwardRef<
   HTMLElement,
   React.HTMLAttributes<HTMLElement> & { asChild?: boolean }
@@ -295,6 +311,12 @@ const TooltipTrigger = React.forwardRef<
   return <Comp ref={ref} {...props} />;
 });
 TooltipTrigger.displayName = "TooltipTrigger";
+
+/**
+ * @component TooltipContent
+ * @description Content placeholder for Radix-compatible tooltip declarations.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Content attributes.
+ */
 const TooltipContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>

@@ -1,6 +1,8 @@
 /**
  * @file SingleRecipientAction.tsx
  * @description Compact table row actions for instant on-demand preview (<20ms) and direct browser file download (PRD-CORE-07).
+ * @architecture Action cell component rendered inside RecipientStatusTable to preview or download individual recipient outputs.
+ * @agent_note Generates PDF bytes on demand if not pre-rendered, opens SinglePdfPreviewModal, or triggers direct client download.
  */
 
 import { useState } from "react";
@@ -26,6 +28,22 @@ export interface SingleRecipientActionProps {
   disabled?: boolean;
 }
 
+/**
+ * @component SingleRecipientAction
+ * @description Row action button group triggering single recipient on-demand rendering, modal preview, and file download.
+ * @param {SingleRecipientActionProps} props - Component properties.
+ * @param {Object} props.recipient - Recipient record data.
+ * @param {string} props.recipient.recipientKey - Recipient unique identifier.
+ * @param {number} [props.recipient.sourceRowNumber] - Source spreadsheet row number.
+ * @param {Record<string, any>} props.recipient.effectiveData - Key-value field data for certificate generation.
+ * @param {Function} props.onGenerateSingle - Function to synthesize single PDF binary with engine warnings.
+ * @param {boolean} [props.disabled=false] - Whether actions are disabled.
+ * @state {boolean} isPreviewLoading - Loading spinner state for preview button.
+ * @state {boolean} isDownloadLoading - Loading spinner state for download button.
+ * @state {boolean} isModalOpen - Visibility state of the SinglePdfPreviewModal.
+ * @state {Object | null} previewResult - Generated PDF binary and warnings result object.
+ * @returns {JSX.Element} Action button pair with embedded preview modal.
+ */
 export function SingleRecipientAction({
   recipient,
   onGenerateSingle,

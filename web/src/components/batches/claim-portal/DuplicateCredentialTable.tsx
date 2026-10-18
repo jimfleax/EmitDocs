@@ -1,6 +1,8 @@
 /**
  * @file DuplicateCredentialTable.tsx
  * @description Table of duplicate credential collisions blocking portal activation.
+ * @architecture Diagnostic table component rendered in ClaimPortalWorkspace when imported credential columns contain collisions.
+ * @agent_note Identifies colliding values, duplicate frequencies, and associated recipient rows to guide data remediation.
  */
 
 import { Warning } from "@phosphor-icons/react";
@@ -15,6 +17,13 @@ export interface DuplicateCredentialTableProps {
   collisions: DuplicateCredentialItem[];
 }
 
+/**
+ * @component DuplicateCredentialTable
+ * @description Collapsible table listing duplicate credential values and affected recipient rows blocking portal activation.
+ * @param {DuplicateCredentialTableProps} props - Component properties.
+ * @param {DuplicateCredentialItem[]} props.collisions - Array of collision records with frequency counts.
+ * @returns {JSX.Element | null} Danger alert table showing colliding records, or null if none exist.
+ */
 export function DuplicateCredentialTable({ collisions }: DuplicateCredentialTableProps) {
   if (!collisions || collisions.length === 0) return null;
 

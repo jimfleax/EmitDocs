@@ -10,7 +10,12 @@ import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
 import { LegalSubprocessorTable } from "@/components/legal/LegalSubprocessorTable";
 import { LegalRetentionDiagram } from "@/components/legal/LegalRetentionDiagram";
+import { CONTACT_EMAIL, CONTACT_MAILTO } from "@/lib/contact";
 
+/**
+ * @constant Route
+ * @description Public route declaration for "/privacy" mounting the PrivacyPage legal document.
+ */
 export const Route = createFileRoute("/privacy")({
   component: PrivacyPage,
 });
@@ -35,6 +40,8 @@ const SECTIONS = [
 /**
  * @component PrivacyPage
  * @description Comprehensive Privacy Policy page with section bookmarks, retention diagrams, and subprocessor audits.
+ * @state Static legal document with scroll-based section tracking in LegalLayout.
+ * @api No direct backend API interaction; static compliance content.
  * @returns {JSX.Element} Formatted legal document layout.
  */
 export function PrivacyPage() {
@@ -455,19 +462,19 @@ export function PrivacyPage() {
           <div>
             Email:{" "}
             <a
-              href="mailto:privacy@emitdocs.com"
+              href={CONTACT_MAILTO.privacy}
               className="text-blue-600 hover:underline font-mono font-medium"
             >
-              privacy@emitdocs.com
+              {CONTACT_EMAIL}
             </a>
           </div>
           <div>
             Security Reports:{" "}
             <a
-              href="mailto:security@emitdocs.com"
+              href={CONTACT_MAILTO.security}
               className="text-blue-600 hover:underline font-mono font-medium"
             >
-              security@emitdocs.com
+              {CONTACT_EMAIL}
             </a>
           </div>
           <div className="text-xs text-slate-400 pt-2 border-t border-slate-200">

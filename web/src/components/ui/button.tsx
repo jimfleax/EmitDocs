@@ -2,6 +2,7 @@
  * @file button.tsx
  * @description Polymorphic action button component supporting variants, sizes, and Radix Slot delegation.
  * @architecture Base design system interactive primitive configured with class-variance-authority tokens.
+ * @agent_note Supports asChild for slot composition and exposes buttonVariants for custom styling.
  */
 
 import * as React from "react";

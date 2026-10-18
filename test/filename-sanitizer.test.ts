@@ -1,6 +1,8 @@
 /**
  * @file filename-sanitizer.test.ts
- * @description TDD test suite for filename sanitization and Zip Slip prevention (PRD-CORE-08).
+ * @description TDD test suite for filename sanitization, deterministic recipient naming, and Zip Slip path traversal prevention.
+ * @architecture Unit test suite validating pure string sanitization and slugification algorithms in web/src/lib/pdf-engine/filename-sanitizer.js.
+ * @agent_note Run via `npx tsx test/filename-sanitizer.test.ts`. Offline unit tests without database or network dependencies.
  */
 
 import assert from "node:assert";
@@ -9,6 +11,10 @@ import {
   sanitizeFilenameBase,
 } from "../web/src/lib/pdf-engine/filename-sanitizer.js";
 
+/**
+ * @desc Main test runner verifying filename sanitization, Zip Slip vulnerability immunity, and recipient fallback naming.
+ * @returns {void}
+ */
 function runTests() {
   console.log("=== Running Filename Sanitizer Test Suite ===");
 

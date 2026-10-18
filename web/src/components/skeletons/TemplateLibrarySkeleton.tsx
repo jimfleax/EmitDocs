@@ -2,6 +2,7 @@
  * @file TemplateLibrarySkeleton.tsx
  * @description Grid layout loading skeleton for the template library gallery.
  * @architecture Suspense boundary placeholder for the /app/templates route.
+ * @agent_note Renders responsive grid of template cards matching the /app/templates gallery.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

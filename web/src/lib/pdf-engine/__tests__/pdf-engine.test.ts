@@ -1,3 +1,10 @@
+/**
+ * @file pdf-engine.test.ts
+ * @description Comprehensive unit test suite for core PDF engine sub-systems.
+ * @architecture Validates coordinate transformation roundtrips across 0-270° rotations, token detection, typography fitting, glyph validation, and PDF overlay rendering.
+ * @agent_note Executes as an async Node.js script using pdf-lib and native assertion library.
+ */
+
 import assert from "assert";
 import { PDFDocument } from "pdf-lib";
 import { domToPdfRect, pdfToDomRect } from "../coordinate-transforms";
@@ -9,6 +16,10 @@ import {
   FieldMappingConfig,
 } from "../pdf-preview-engine";
 
+/**
+ * @desc Executes full test harness verifying transforms, token detector, font fit, glyph validation, and overlay generation.
+ * @returns {Promise<void>}
+ */
 async function runSlice2Tests() {
   console.log("=== RUNNING SLICE 2 PDF ENGINE UNIT TESTS ===\n");
 

@@ -2,6 +2,7 @@
  * @file NotFoundView.tsx
  * @description 404 Not Found error presentation component.
  * @architecture Pre-configured wrapper around ErrorView for non-existent routes, deleted templates, or missing batches.
+ * @agent_note Specializes ErrorView for missing route segments, batches, and templates.
  */
 
 import { ErrorView, type ErrorVariant } from "./ErrorView";

@@ -52,9 +52,12 @@ interface Template {
  * @param {string} props.templateId - Unique identifier of the template to display.
  * @state {Template | null} template - Loaded template entity.
  * @state {TemplateVersion[]} versions - Array of associated template versions.
+ * @state {any[]} batches - Active batches associated with this template.
  * @state {boolean} loading - Loading state while fetching details.
+ * @state {boolean} loadingBatches - Loading state for dependent batches.
  * @state {string} error - Error message if fetch fails.
  * @api {GET} /api/templates/:templateId - Retrieves template record and version details.
+ * @api {GET} /api/batches?templateId=:id - Retrieves batches associated with this template.
  * @returns {JSX.Element} Template details dashboard view.
  */
 export function TemplateDetails({ templateId }: { templateId: string }) {

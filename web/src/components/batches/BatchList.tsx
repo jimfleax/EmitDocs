@@ -76,6 +76,16 @@ type StatusFilterType = "all" | "ready_for_download" | "review" | "draft";
 /**
  * @component BatchList
  * @description Main batch inventory view with status badges, validation tallies, search, and context actions.
+ * @state {BatchItem[]} batches - List of batch records fetched from the server.
+ * @state {boolean} loading - Loading indicator while retrieving batch list.
+ * @state {string} error - Fetch error message string if request fails.
+ * @state {string} searchQuery - Search query string for filtering batches by name.
+ * @state {StatusFilterType} statusFilter - Filter tab selecting all, ready_for_download, review, or draft.
+ * @state {BatchItem | null} deleteTarget - Batch marked for deletion in confirmation modal.
+ * @state {boolean} isDeleting - Deletion mutation in-flight status.
+ * @state {number} retryCount - Incremented counter to trigger batch reload.
+ * @api {GET} /api/batches - Retrieves collection of batches for the authenticated organization.
+ * @api {DELETE} /api/batches/:id - Deletes a specific batch and its draft rows.
  * @returns {JSX.Element} Batches listing dashboard.
  */
 export function BatchList() {

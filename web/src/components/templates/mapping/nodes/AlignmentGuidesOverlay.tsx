@@ -22,6 +22,8 @@ export interface AlignmentGuidesOverlayProps {
  * @param {AlignmentGuide[]} props.guides - Active alignment guides computed by the snapping engine.
  * @param {number} props.width - Canvas overlay width in pixels.
  * @param {number} props.height - Canvas overlay height in pixels.
+ * @state Stateless; projects SVG alignment markers into React Flow ViewportPortal.
+ * @api Visual display component driven by alignment-snapper engine output.
  * @returns {JSX.Element | null} ViewportPortal containing SVG alignment lines, or null if no guides are active.
  */
 export const AlignmentGuidesOverlay: React.FC<AlignmentGuidesOverlayProps> = ({

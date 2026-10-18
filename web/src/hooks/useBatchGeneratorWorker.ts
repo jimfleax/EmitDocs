@@ -2,6 +2,7 @@
  * @file useBatchGeneratorWorker.ts
  * @description State machine hook encapsulating Web Worker PDF generation lifecycle (PRD-CORE-07).
  * @architecture Manages worker instantiation, typed handshake protocol, fallback Node/SSR execution, and live metrics.
+ * @agent_note Provides startBatch, startZipExport, and single-item generation with progress tracking, pause/resume, and cancellation.
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -124,6 +125,13 @@ export interface UseBatchGeneratorWorkerOptions {
   isExpired?: boolean;
 }
 
+/**
+ * @hook useBatchGeneratorWorker
+ * @description State machine hook managing PDF batch generation and streaming ZIP exports in a dedicated Web Worker.
+ * @param {UseBatchGeneratorWorkerOptions} [options] - Options including expiration checks.
+ * @returns {UseBatchGeneratorWorkerReturn} Worker control methods, generation progress, and generated PDF assets.
+ * @sideeffects Spawns dedicated Web Worker, subscribes to postMessage events, handles chunked streams, and falls back to main-thread processing in SSR/Node.
+ */
 export function useBatchGeneratorWorker(
   options?: UseBatchGeneratorWorkerOptions
 ): UseBatchGeneratorWorkerReturn {

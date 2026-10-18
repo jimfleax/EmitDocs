@@ -2,6 +2,7 @@
  * @file PdfMappingWorkspaceSkeleton.tsx
  * @description Full-screen loading skeleton for the PDF visual field mapping studio.
  * @architecture Displays wireframes for top toolbar, detected tokens sidebar, center document canvas, and field properties panel.
+ * @agent_note Displays wireframes for top toolbar, detected tokens sidebar, and document canvas.
  */
 
 import { Skeleton } from "@/components/ui/Skeleton";

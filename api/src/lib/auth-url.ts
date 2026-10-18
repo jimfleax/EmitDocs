@@ -3,10 +3,11 @@
  * @description Resolves canonical Better-Auth base URL from environment variables.
  * @architecture Ensures dynamic OAuth redirect URIs point to the correct domain across
  *               local development, preview, and production environments.
+ * @agent_note Strips trailing slashes and /api suffix to ensure Better-Auth resolves relative auth paths accurately.
  */
 
 /**
- * Resolves and normalizes the Better-Auth base URL.
+ * @desc Resolves and normalizes the Better-Auth base URL.
  *
  * Precedence:
  * 1. env.BETTER_AUTH_URL (trimmed)

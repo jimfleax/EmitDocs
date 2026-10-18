@@ -2,13 +2,18 @@
  * @file LandingBottomCta.tsx
  * @description High-contrast bottom call-to-action banner styled in EmitDocs's signature deep sapphire-navy canvas.
  * @architecture Deep navy container matching AppShell with ambient radial glows and Google OAuth entry point.
+ * @agent_note Displays dynamic CTA buttons depending on whether a user session is active.
  */
 
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Sparkle, ShieldCheck, CheckCircle, House } from "@phosphor-icons/react";
+import { ArrowRight, ShieldCheck, CheckCircle, House } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
+/**
+ * @component LandingBottomCta
+ * @description Bottom conversion banner inviting new users to get started or return to their dashboard.
+ */
 export function LandingBottomCta() {
   const { data: session } = authClient.useSession();
 
@@ -27,12 +32,6 @@ export function LandingBottomCta() {
           />
 
           <div className="relative z-10 max-w-3xl mx-auto text-center space-y-8">
-            {/* Top Badge */}
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-white text-xs font-semibold shadow-inner">
-              <Sparkle size={14} weight="fill" className="text-amber-300" />
-              <span>Start Issuing in Minutes</span>
-            </div>
-
             {/* Headline & Pitch */}
             <div className="space-y-4">
               <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-white leading-tight">
@@ -72,9 +71,8 @@ export function LandingBottomCta() {
                   </Button>
                   <Button
                     asChild
-                    variant="outline"
                     size="lg"
-                    className="w-full sm:w-auto h-12 px-6 rounded-2xl border-white/30 text-white hover:bg-white/10 hover:border-white/50 backdrop-blur-md font-semibold text-sm transition-all"
+                    className="w-full sm:w-auto h-12 px-7 rounded-2xl bg-white/15 hover:bg-white/25 border-2 border-white/40 hover:border-white text-white font-bold text-sm backdrop-blur-md shadow-sm transition-all active:scale-[0.98]"
                   >
                     <a href="#features">Explore Features</a>
                   </Button>

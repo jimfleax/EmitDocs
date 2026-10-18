@@ -1,6 +1,8 @@
 /**
  * @file streaming-zip.test.ts
  * @description TDD test suite for streaming ZIP packaging using client-zip with STORE mode verification (PRD-CORE-08).
+ * @architecture Web Worker and client engine unit test suite verifying zero-compression STORE mode ZIP generation and async chunk streaming.
+ * @agent_note Run via `npx tsx test/streaming-zip.test.ts`. Offline unit tests without external database or cloud dependencies.
  */
 
 import assert from "node:assert";
@@ -8,6 +10,10 @@ import { createStreamingZip, type ZipInputFile } from "../web/src/lib/pdf-engine
 import { BatchGeneratorHandler } from "../web/src/workers/batch-generator.handler.js";
 import { PDFDocument } from "pdf-lib";
 
+/**
+ * @desc Main test runner verifying streaming ZIP file structure, uncompressed STORE mode, and async file chunk generation.
+ * @returns {Promise<void>} Resolves when all streaming ZIP test cases pass.
+ */
 async function runTests() {
   console.log("=== Running Streaming ZIP Test Suite ===");
 

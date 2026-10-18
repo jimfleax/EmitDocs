@@ -1,6 +1,8 @@
 /**
  * @file GenerationControls.tsx
  * @description Generation control buttons (Start, Pause, Resume, Cancel) with state machine guardrails (PRD-CORE-07).
+ * @architecture Interactive action panel rendered in ResultsWorkspace driving the client-side Web Worker PDF generation pipeline.
+ * @agent_note Enforces valid state transitions (idle -> generating -> paused -> completed/cancelled) with confirmation dialogs.
  */
 
 import { Play, Pause, Stop, ArrowClockwise } from "@phosphor-icons/react";
@@ -17,6 +19,19 @@ export interface GenerationControlsProps {
   totalRecipients?: number;
 }
 
+/**
+ * @component GenerationControls
+ * @description Control bar offering Start, Pause, Resume, and Cancel actions for the client-side PDF generation worker.
+ * @param {GenerationControlsProps} props - Component properties.
+ * @param {WorkerStatus} props.status - Current state machine status of the generation worker.
+ * @param {() => void} props.onStart - Callback to begin batch generation.
+ * @param {() => void} props.onPause - Callback to pause generation at document boundary.
+ * @param {() => void} props.onResume - Callback to resume paused generation.
+ * @param {() => void} props.onCancel - Callback to abort generation.
+ * @param {boolean} [props.disabled=false] - Whether control actions are disabled.
+ * @param {number} [props.totalRecipients] - Total count of recipients to generate.
+ * @returns {JSX.Element} Control button bar with status indicator.
+ */
 export function GenerationControls({
   status,
   onStart,

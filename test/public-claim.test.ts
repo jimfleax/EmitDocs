@@ -12,6 +12,7 @@
  *   - AC-017: Logical expiry strictly enforced
  *   - AC-018: Serverless atomic rate limiter in MongoDB
  *   - AC-019: Cloudflare Turnstile token validation and failure trigger
+ * @agent_note Run via `npx tsx test/public-claim.test.ts`. Requires active MongoDB instance via MONGODB_URI in api/.env. Tests run against isolated emitdocs_claim_test database.
  */
 
 import assert from 'node:assert';
@@ -56,6 +57,10 @@ import { verifyTurnstileToken } from '../api/src/services/turnstile.js';
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/emitdocs_test';
 
+/**
+ * @desc Main test runner verifying participant claim flows, session tokens, rate limits, and Turnstile integrations.
+ * @returns {Promise<void>} Resolves when all public claim assertions succeed.
+ */
 async function runTests() {
   console.log('Connecting to MongoDB at:', MONGODB_URI);
   await mongoose.connect(MONGODB_URI, { dbName: 'emitdocs_public_claim_test' });

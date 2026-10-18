@@ -8,6 +8,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { DraftReviewWorkspace } from "@/components/batches/DraftReviewWorkspace";
 
+/**
+ * @constant Route
+ * @description Route definition for the batch draft review studio at "/app/batches/$batchId/review".
+ */
 export const Route = createFileRoute(
   "/_protected/app/batches/$batchId_/review",
 )({
@@ -17,6 +21,8 @@ export const Route = createFileRoute(
 /**
  * @component BatchReviewRoute
  * @description Route component mounting the master-detail DraftReviewWorkspace review studio.
+ * @state Extracts route parameter `batchId` via Route.useParams().
+ * @api Fetches recipient records and persists row edits via DraftReviewWorkspace.
  * @returns {JSX.Element} Draft review workspace view.
  */
 function BatchReviewRoute() {

@@ -29,6 +29,8 @@ interface ShortcutGroup {
  * @param {KeyboardShortcutsModalProps} props - Component properties.
  * @param {boolean} props.isOpen - Whether the modal dialog is visible.
  * @param {() => void} props.onClose - Dismiss callback triggered on backdrop click, close button, or Escape.
+ * @state Stateless; attaches global keydown listener for Escape key dismiss.
+ * @api Parent callback: onClose.
  * @returns {JSX.Element | null} Rendered accessible dialog or null when closed.
  */
 export function KeyboardShortcutsModal({

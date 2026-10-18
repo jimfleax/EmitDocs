@@ -1,6 +1,8 @@
 /**
  * @file wave2-pilot-readiness.test.ts
- * @description Unit and integration tests verifying PRD-CORE-10 Wave 2 (Slice 2 & Slice 3).
+ * @description Unit and integration tests verifying PRD-CORE-10 Wave 2 (Slice 2 & Slice 3) pilot readiness requirements.
+ * @architecture Middleware, configuration guard, and service integration test suite validating production guardrails, request ID tracing, and PII scrubbing.
+ * @agent_note Requires MONGODB_URI in environment for integration tests; runs mock Hono app pipelines in memory.
  */
 
 import 'dotenv/config';
@@ -26,6 +28,10 @@ import {
 } from '../src/services/email-dispatch.js';
 import { signUploadParams } from '../src/services/template-lifecycle.js';
 
+/**
+ * @desc Main test runner verifying PRD-CORE-10 Wave 2 pilot readiness requirements across production guards, safe logger, and resource limits.
+ * @returns Promise resolving when all pilot readiness assertions pass.
+ */
 async function runTests() {
   console.log('===========================================================');
   console.log('  RUNNING PRD-CORE-10 WAVE 2 VERIFICATION TEST SUITE       ');

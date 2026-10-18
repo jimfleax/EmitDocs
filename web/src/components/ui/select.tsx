@@ -218,6 +218,11 @@ const Select = ({
 
 export interface SelectTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {}
 
+/**
+ * @component SelectTrigger
+ * @description Button element that toggles open/close state of the select dropdown and displays current value.
+ * @param {SelectTriggerProps} props - Trigger button properties.
+ */
 const SelectTrigger = React.forwardRef<HTMLButtonElement, SelectTriggerProps>(
   ({ className, children, onClick, ...props }, ref) => {
     const context = React.useContext(SelectContext);
@@ -267,6 +272,11 @@ export interface SelectValueProps extends React.HTMLAttributes<HTMLSpanElement> 
   getLabel?: (value: string) => React.ReactNode;
 }
 
+/**
+ * @component SelectValue
+ * @description Displays the selected label text or fallback placeholder within SelectTrigger.
+ * @param {SelectValueProps} props - Value display properties.
+ */
 const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(
   ({ className, placeholder, children, getLabel, ...props }, ref) => {
     const context = React.useContext(SelectContext);
@@ -314,6 +324,11 @@ export interface SelectContentProps extends React.HTMLAttributes<HTMLDivElement>
   position?: "popper" | "item-aligned";
 }
 
+/**
+ * @component SelectContent
+ * @description Floating portal dropdown panel displaying the selectable options with viewport collision repositioning.
+ * @param {SelectContentProps} props - Dropdown panel properties.
+ */
 const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
   ({ className, children, ...props }, ref) => {
     const context = React.useContext(SelectContext);
@@ -423,6 +438,11 @@ export interface SelectItemProps extends React.HTMLAttributes<HTMLDivElement> {
   disabled?: boolean;
 }
 
+/**
+ * @component SelectItem
+ * @description Selectable option element inside SelectContent that updates selected state on click.
+ * @param {SelectItemProps} props - Item properties including value and optional custom label.
+ */
 const SelectItem = React.forwardRef<HTMLDivElement, SelectItemProps>(
   (
     {
@@ -483,6 +503,11 @@ const SelectItem = React.forwardRef<HTMLDivElement, SelectItemProps>(
 );
 SelectItem.displayName = "SelectItem";
 
+/**
+ * @component SelectGroup
+ * @description Visual container grouping related select items.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Container attributes.
+ */
 const SelectGroup = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -491,6 +516,11 @@ const SelectGroup = React.forwardRef<
 ));
 SelectGroup.displayName = "SelectGroup";
 
+/**
+ * @component SelectLabel
+ * @description Section header label within a SelectGroup.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Label element attributes.
+ */
 const SelectLabel = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -506,6 +536,11 @@ const SelectLabel = React.forwardRef<
 ));
 SelectLabel.displayName = "SelectLabel";
 
+/**
+ * @component SelectSeparator
+ * @description Horizontal divider line separating items or groups within SelectContent.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Separator element attributes.
+ */
 const SelectSeparator = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -518,6 +553,11 @@ const SelectSeparator = React.forwardRef<
 ));
 SelectSeparator.displayName = "SelectSeparator";
 
+/**
+ * @component SelectScrollUpButton
+ * @description Indicator button shown when dropdown options overflow upward.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Button attributes.
+ */
 const SelectScrollUpButton = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -535,6 +575,11 @@ const SelectScrollUpButton = React.forwardRef<
 ));
 SelectScrollUpButton.displayName = "SelectScrollUpButton";
 
+/**
+ * @component SelectScrollDownButton
+ * @description Indicator button shown when dropdown options overflow downward.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Button attributes.
+ */
 const SelectScrollDownButton = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>

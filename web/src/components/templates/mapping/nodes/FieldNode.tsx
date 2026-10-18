@@ -45,9 +45,14 @@ export interface FieldNodeData {
 export type FieldNodeType = Node<FieldNodeData, "field">;
 
 /**
- * @component FieldNode
+ * @component FieldNodeComponent
  * @description Interactive visual canvas node for configuring field position, dimensions, masking, and sample rendering.
  * @param {NodeProps<FieldNodeType>} props - React Flow custom node properties.
+ * @param {string} props.id - Unique React Flow node identifier corresponding to the field ID.
+ * @param {FieldNodeData} props.data - Node payload holding field definition, viewport transforms, and event handlers.
+ * @param {boolean} [props.selected] - Selection status in React Flow canvas.
+ * @state Stateless canvas node; handles resizing (NodeResizer) and dragging callbacks with magnetic snapping.
+ * @api Node callbacks: onUpdateField, onDuplicateField, onDeleteField, setActiveGuides.
  * @returns {JSX.Element} Draggable, resizable field box with floating action toolbar.
  */
 const FieldNodeComponent: React.FC<NodeProps<FieldNodeType>> = ({
@@ -347,6 +352,12 @@ const FieldNodeComponent: React.FC<NodeProps<FieldNodeType>> = ({
   );
 };
 
+/**
+ * @component FieldNode
+ * @description Performance-memoized React Flow node export for FieldNodeComponent with custom property equality checking.
+ * @param {NodeProps<FieldNodeType>} props - React Flow custom node properties.
+ * @returns {JSX.Element} Memoized interactive canvas field node.
+ */
 export const FieldNode = React.memo(
   FieldNodeComponent,
   (prev, next) =>

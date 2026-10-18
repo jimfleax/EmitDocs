@@ -44,6 +44,7 @@ interface TemplateCreateResponse {
 /**
  * @component PdfUploadDropzone
  * @description Provides drag-and-drop zone, file validation, Cloudinary direct upload with progress tracking, and template initialization.
+ * @param {Object} [props] - Component properties (accepts no external props).
  * @state {File | null} file - Currently selected PDF file.
  * @state {string} name - User-defined template name (defaults to sanitized file name).
  * @state {boolean} isUploading - Whether upload and creation are in flight.

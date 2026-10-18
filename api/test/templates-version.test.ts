@@ -1,8 +1,19 @@
+/**
+ * @file templates-version.test.ts
+ * @description Tests TemplateVersion Mongoose schema validations, field mapping schemas, and mapping hash calculations.
+ * @architecture Model invariant test suite validating schema constraints, coordinates, and enum values using validateSync().
+ * @agent_note Runs offline with in-memory schema validation; does not require MONGODB_URI or external network connections.
+ */
+
 import assert from 'assert';
 import mongoose from 'mongoose';
 import { TemplateVersion, IFieldMapping } from '../src/models/TemplateVersion';
 import { computeMappingHash } from '../src/controllers/templates.controller';
 
+/**
+ * @desc Main test runner verifying TemplateVersion schema validations and field mapping constraints.
+ * @returns Promise resolving when all schema validation tests pass.
+ */
 async function runTests() {
   console.log('--- RUNNING SLICE 1 TEMPLATE VERSION TESTS ---');
 

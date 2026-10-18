@@ -69,6 +69,9 @@ export interface IBatchImport extends Document {
   updatedAt: Date;
 }
 
+/**
+ * @desc Mongoose schema for BatchImport records.
+ */
 const BatchImportSchema = new Schema<IBatchImport>(
   {
     batchId: { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
@@ -106,6 +109,7 @@ BatchImportSchema.index({ ownerId: 1, createdAt: -1 });
 
 /**
  * @module BatchImport
+ * @desc Mongoose schema and model for BatchImport
  * @description Compiled Mongoose model for BatchImport documents.
  */
 export const BatchImport =

@@ -1,6 +1,8 @@
 /**
  * @file pwa-features.test.ts
  * @description Verification test suite for PWA assets, webmanifest integrity, iOS meta tags, and Service Worker structure.
+ * @architecture Static asset and client bundle verification test suite validating progressive web app manifest properties, icons, and worker registration files.
+ * @agent_note Run via `npx tsx test/pwa-features.test.ts`. Filesystem integrity verification without requiring external services.
  */
 
 import assert from "node:assert";

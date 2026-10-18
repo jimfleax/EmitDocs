@@ -8,6 +8,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { TermsPage } from "./terms";
 
+/**
+ * @constant Route
+ * @description Route alias configuration mapping "/terms-of-service" directly to TermsPage.
+ */
 export const Route = createFileRoute("/terms-of-service")({
   component: TermsPage,
 });

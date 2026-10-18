@@ -8,6 +8,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PrivacyPage } from "./privacy";
 
+/**
+ * @constant Route
+ * @description Route alias configuration mapping "/privacy-policy" directly to PrivacyPage.
+ */
 export const Route = createFileRoute("/privacy-policy")({
   component: PrivacyPage,
 });

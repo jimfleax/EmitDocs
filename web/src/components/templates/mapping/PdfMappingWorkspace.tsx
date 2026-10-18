@@ -104,6 +104,26 @@ function getNodeDomRect(
   };
 }
 
+/**
+ * @component PdfMappingWorkspaceInner
+ * @description Internal workspace implementation orchestrating React Flow canvas, field nodes, snapping, and CAS version saves.
+ * @param {PdfMappingWorkspaceProps} props - Component properties.
+ * @param {string} props.templateId - ID of parent template.
+ * @param {string} props.versionId - Specific template version ID to map.
+ * @state {TemplateData | null} template - Loaded parent template metadata.
+ * @state {TemplateVersionData | null} version - Loaded template version details.
+ * @state {Uint8Array | null} sourcePdfBytes - Raw source PDF binary data.
+ * @state {IFieldMapping[]} fieldMappings - Field mappings tracked with undo/redo history.
+ * @state {string[]} selectedFieldIds - Array of multi-selected field IDs.
+ * @state {number} activePageIndex - Currently visible PDF page index.
+ * @state {"mapping" | "preview"} viewMode - Active visual mode (mapping canvas vs preview).
+ * @state {boolean} isSaving - In-flight persistence flag.
+ * @state {EngineWarning[]} warnings - Layout warnings detected during live preview.
+ * @api {GET} /api/templates/:templateId - Fetches template record.
+ * @api {GET} /api/templates/:templateId/versions/:versionId - Fetches version details and mapping configuration.
+ * @api {PUT} /api/templates/:templateId/versions/:versionId/mapping - Persists field mappings with optimistic locking hash.
+ * @returns {JSX.Element} Interactive visual mapping studio.
+ */
 const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
   templateId,
   versionId,
@@ -1257,6 +1277,8 @@ const PdfMappingWorkspaceInner: React.FC<PdfMappingWorkspaceProps> = ({
  * @param {PdfMappingWorkspaceProps} props - Component properties.
  * @param {string} props.templateId - ID of parent template.
  * @param {string} props.versionId - Specific template version ID to map.
+ * @state Wraps child components within ReactFlowProvider canvas context.
+ * @api Forwards props to internal workspace and coordinates with template version APIs.
  * @returns {JSX.Element} Fully configured React Flow workspace.
  */
 export const PdfMappingWorkspace: React.FC<PdfMappingWorkspaceProps> = (

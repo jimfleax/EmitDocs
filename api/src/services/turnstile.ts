@@ -4,6 +4,7 @@
  * @architecture Validates single-use Turnstile tokens server-side.
  *               Provides mock bypass in test/dev environments for test token 'TEST_PASS_TOKEN'
  *               or when TURNSTILE_SECRET_KEY is omitted.
+ * @agent_note Supports bypass in non-production environments when token equals TEST_PASS_TOKEN or secret key is unconfigured. Never throws; returns failure with errorCodes instead.
  */
 
 export interface TurnstileVerifyResult {
@@ -12,11 +13,10 @@ export interface TurnstileVerifyResult {
 }
 
 /**
- * Verifies a Cloudflare Turnstile response token.
- *
- * @param {string} token - Client-submitted Turnstile token.
- * @param {string} [remoteIp] - Optional client IP address.
- * @returns {Promise<TurnstileVerifyResult>}
+ * @desc    Verifies a Cloudflare Turnstile bot verification token with Cloudflare siteverify API.
+ * @param   {string} token - Client-submitted Turnstile token.
+ * @param   {string} [remoteIp] - Optional client IP address for enhanced security check.
+ * @returns {Promise<TurnstileVerifyResult>} Verification outcome indicating success or error codes.
  */
 export async function verifyTurnstileToken(
   token: string,
@@ -25,7 +25,7 @@ export async function verifyTurnstileToken(
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
   const isBypassAllowed =
     process.env.NODE_ENV === 'test' ||
-    process.env.TURNSTILE_ALLOW_BYPASS === 'true';
+    (process.env.NODE_ENV !== 'production' && process.env.TURNSTILE_ALLOW_BYPASS === 'true');
 
   // Test bypass
   if (isBypassAllowed && (token === 'TEST_PASS_TOKEN' || !secretKey)) {

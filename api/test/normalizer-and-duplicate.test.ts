@@ -1,3 +1,10 @@
+/**
+ * @file normalizer-and-duplicate.test.ts
+ * @description Tests spreadsheet data normalization, number parsing, duplicate row detection, and TemplateVersion lineHeight default behavior.
+ * @architecture Service and model unit test suite verifying pure data transformation and validation functions.
+ * @agent_note Runs offline with in-memory fixtures; does not require MONGODB_URI or external network connections.
+ */
+
 import assert from 'node:assert';
 import mongoose from 'mongoose';
 import { TemplateVersion } from '../src/models/TemplateVersion.js';
@@ -5,6 +12,10 @@ import { BatchImport } from '../src/models/BatchImport.js';
 import { normalizeNumberValue } from '../src/services/spreadsheet/data-normalizer.js';
 import { detectDuplicatesAcrossRows, RowWarning } from '../src/services/spreadsheet/duplicate-detector.js';
 
+/**
+ * @desc Main test runner verifying spreadsheet number normalization, duplicate row detection, and lineHeight invariants.
+ * @returns Promise resolving when all unit assertions pass.
+ */
 async function runTests() {
   console.log('🧪 Starting Backend Engineer Unit & Verification Test Suite...\n');
 

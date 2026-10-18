@@ -2,6 +2,7 @@
  * @file Spinner.tsx
  * @description Circular spinning indicator icon for buttons and inline asynchronous operations.
  * @architecture Micro-loading indicator primitive wrapping Phosphor CircleNotch icon.
+ * @agent_note Configured with role="status" and aria-label="Loading" for assistive technologies.
  */
 
 import * as React from "react";

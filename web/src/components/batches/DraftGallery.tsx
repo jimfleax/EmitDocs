@@ -36,6 +36,18 @@ export interface DraftGalleryProps {
  * @component DraftGallery
  * @description Sidebar listing of draft recipient records with issue count badges, search, and pagination.
  * @param {DraftGalleryProps} props - Component properties.
+ * @param {string} props.batchId - Target batch ID.
+ * @param {string | null} props.selectedRowId - Currently highlighted row identifier.
+ * @param {(row: DraftRowItem) => void} props.onSelectRow - Row selection callback.
+ * @param {number} props.refreshTrigger - Trigger counter to refetch gallery records.
+ * @state {string} searchQuery - Search input filter query.
+ * @state {string} debouncedQuery - Debounced search string for server query.
+ * @state {FilterFacet} activeFilter - Active issue filter facet (all, valid, invalid, duplicates, warnings, overrides).
+ * @state {number} page - Current 1-based page index.
+ * @state {DraftRowItem[]} rows - Paginated draft recipient row items.
+ * @state {FilterCounts} counts - Ingestion summary counts categorized by issue type.
+ * @state {boolean} isLoading - Loading state during rows query.
+ * @api {GET} /api/batches/:batchId/rows - Retrieves paginated draft rows with search query and status filters.
  * @returns {JSX.Element} Interactive draft gallery listing.
  */
 export function DraftGallery({

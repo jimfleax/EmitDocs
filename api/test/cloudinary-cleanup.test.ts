@@ -1,3 +1,10 @@
+/**
+ * @file cloudinary-cleanup.test.ts
+ * @description Tests Cloudinary asset reference detection, extension normalization, and bulk cleanup of unreferenced remote files.
+ * @architecture Service layer integration and unit test suite verifying isAssetReferenced logic, database key gathering, and Cloudinary API deletion batches.
+ * @agent_note Requires MONGODB_URI in environment; exercises live database operations against emitdocs_test database with isolated test owners.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -16,6 +23,10 @@ import {
 } from '../src/services/cloudinary-cleanup.js';
 import { deleteTemplate } from '../src/services/template-lifecycle.js';
 
+/**
+ * @desc Main test runner verifying Cloudinary reference matching, database key extraction, and remote asset cleanup.
+ * @returns Promise resolving when all cleanup test suites pass.
+ */
 async function runTests() {
   console.log('🧪 Starting Cloudinary Cleanup Service test suite...\n');
 

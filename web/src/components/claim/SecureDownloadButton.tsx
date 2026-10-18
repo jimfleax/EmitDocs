@@ -1,6 +1,8 @@
 /**
  * @file SecureDownloadButton.tsx
  * @description Downloads authorized PDF via object URL or signed URL.
+ * @architecture Public claim interface action button that triggers client-side PDF downloads or stream fetches.
+ * @agent_note Manages loading spinner state during PDF download and provides toast error feedback.
  */
 
 import { useState } from "react";
@@ -16,6 +18,15 @@ export interface SecureDownloadButtonProps {
   disabled?: boolean;
 }
 
+/**
+ * @component SecureDownloadButton
+ * @description Action button triggering authorized certificate download with loading spinner state.
+ * @param {SecureDownloadButtonProps} props - Component properties.
+ * @param {() => Promise<void>} props.onDownload - Async handler initiating download.
+ * @param {string} [props.filename] - Suggested download filename.
+ * @param {boolean} [props.isLoading=false] - External loading state.
+ * @param {boolean} [props.disabled=false] - Whether button is disabled.
+ */
 export function SecureDownloadButton({
   onDownload,
   isLoading = false,

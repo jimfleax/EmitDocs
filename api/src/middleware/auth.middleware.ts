@@ -1,21 +1,18 @@
 /**
  * @file auth.middleware.ts
  * @description Session authentication middleware verifying Better-Auth session tokens with quarantined test-auth bypass.
- * @architecture Intercepts incoming Hono requests on protected routes, queries Better-Auth's session API
- *               using raw request headers/cookies, and sets the verified user object on the Hono Context (`c.set('user')`).
- *               In non-production environments with `ENABLE_TEST_AUTH === 'true'`, supports mock users via `x-test-auth-user`.
- * @agent_note Downstream route handlers and controllers can retrieve the authenticated user via `c.get('user')`.
- *             Test auth header is strictly rejected with 401 in production runtime.
+ * @architecture Intercepts incoming Hono requests on protected routes, queries Better-Auth's session API, and sets verified user context.
+ * @agent_note Downstream route handlers and controllers retrieve the authenticated user via c.get('user'). Test auth header is strictly rejected in production runtime.
  */
 
 import { Context, Next } from 'hono';
 import { auth } from '../auth.js';
 
 /**
- * @desc Verifies incoming session credentials via Better-Auth and enforces authentication on protected routes.
- * @route Middleware on protected routes
- * @access Private
- * @mutates c.set('user', session.user)
+ * @desc    Verifies incoming session credentials via Better-Auth and enforces authentication on protected routes.
+ * @param   {Context} c - Hono context
+ * @param   {Next} next - Next middleware handler
+ * @mutates Sets c.set('user', session.user) on successful authentication.
  * @returns {Promise<Response | void>} 401 Unauthorized JSON response if unauthenticated, or calls next().
  */
 export const requireAuth = async (c: Context, next: Next) => {

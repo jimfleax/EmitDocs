@@ -4,6 +4,7 @@
  * @architecture Enforces logical expiry when now() >= expiresAt, updates Batch.status to 'expired',
  *               and prunes DraftRow and ApprovedRecipient PII collections while preserving
  *               aggregate Batch audit metrics with zero Cloudinary sweeps.
+ * @agent_note Prunes ephemeral draft rows and recipient PII while preserving the top-level Batch audit record. Never deletes Cloudinary assets during retention pruning.
  */
 
 import mongoose from 'mongoose';
@@ -23,8 +24,10 @@ export interface PruneAllResult {
 }
 
 /**
- * Checks whether a batch has exceeded its expiration deadline and transitions it to 'expired'.
- * Prunes associated DraftRow records and ApprovedRecipient records while retaining the Batch audit record.
+ * @desc    Checks whether a batch has exceeded its expiration deadline and transitions it to 'expired', pruning recipient PII.
+ * @param   {string | mongoose.Types.ObjectId} batchId - Batch document ID.
+ * @param   {string} [ownerId] - Optional owner filter.
+ * @returns {Promise<{ expired: boolean; batch: IBatch | null }>} Expiry status and updated batch document.
  */
 export async function expireBatchIfDue(
   batchId: string | mongoose.Types.ObjectId,
@@ -74,8 +77,8 @@ export async function expireBatchIfDue(
 }
 
 /**
- * Scans all active unexpired batches across the system where now() >= expiresAt.
- * Transitions their status to 'expired' and cleans up recipient PII.
+ * @desc    Scans all active unexpired batches across the system where now() >= expiresAt, transitions them to 'expired', and prunes PII.
+ * @returns {Promise<PruneAllResult>} Aggregated counts of checked, expired, and pruned records.
  */
 export async function pruneAllExpiredBatches(): Promise<PruneAllResult> {
   const now = new Date();

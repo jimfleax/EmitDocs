@@ -1,3 +1,10 @@
+/**
+ * @file review-fixes.test.ts
+ * @description Validates codebase review fixes including account deletion cascading, batch approval edge cases, environment guards, and OpenAPI drift detection.
+ * @architecture Controller and service integration test suite verifying critical security and lifecycle fixes against MongoDB and Hono middleware.
+ * @agent_note Requires MONGODB_URI in environment; runs against emitdocs_review_fixes_test database with mocked Cloudinary and BetterAuth context.
+ */
+
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
@@ -17,6 +24,11 @@ import { requireAuth } from '../src/middleware/auth.middleware.js';
 import { buildOpenApiSpec } from '../src/scripts/generate-openapi.js';
 import { checkContractDrift } from '../src/scripts/check-contract-drift.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for testing review-fixes routes and controllers.
+ * @param options - Options object with user, params, query, and request body.
+ * @returns Mock context object with param/query readers, JSON responder, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -36,6 +48,10 @@ function createMockContext({ user, params = {}, query = {}, body = null }: any) 
   };
 }
 
+/**
+ * @desc Main test runner executing PR review fix regression suites across account deletion, batch approval, and contracts.
+ * @returns Promise resolving when all review fix regression assertions pass.
+ */
 async function runReviewFixesTests() {
   console.log('🧪 Starting Review Fixes Verification Test Suite...\n');
 

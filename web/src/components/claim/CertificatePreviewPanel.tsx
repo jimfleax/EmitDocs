@@ -1,6 +1,8 @@
 /**
  * @file CertificatePreviewPanel.tsx
  * @description High-fidelity PDF viewer using HTML5 canvas supersampling and PDF.js.
+ * @architecture Public claim interface subcomponent rendering high-resolution canvas preview of synthesized PDF certificates.
+ * @agent_note Uses PDF.js getViewport with devicePixelRatio scaling to avoid blurriness on Retina displays.
  */
 
 import { useState, useEffect, useRef } from "react";
@@ -14,6 +16,14 @@ export interface CertificatePreviewPanelProps {
   recipientName?: string;
 }
 
+/**
+ * @component CertificatePreviewPanel
+ * @description Renders a live canvas preview of the verified recipient PDF document with full-screen popout support.
+ * @param {CertificatePreviewPanelProps} props - Component properties.
+ * @param {string} [props.pdfUrl] - Object URL or remote link to PDF document.
+ * @param {Uint8Array} [props.pdfBytes] - Raw binary buffer of generated PDF.
+ * @param {string} [props.recipientName] - Recipient name for display metadata.
+ */
 export function CertificatePreviewPanel({
   pdfUrl,
   pdfBytes,

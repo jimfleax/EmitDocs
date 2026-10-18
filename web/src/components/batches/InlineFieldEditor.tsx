@@ -34,6 +34,21 @@ export interface InlineFieldEditorProps {
  * @component InlineFieldEditor
  * @description Field editor row supporting live edit mode, override status badges, and reset to original value.
  * @param {InlineFieldEditorProps} props - Component properties.
+ * @param {string} props.fieldKey - Unique key of the mapped field.
+ * @param {string} props.label - Display label for the field.
+ * @param {string} [props.type="text"] - Field data type (text, number, date).
+ * @param {boolean} [props.required=false] - Whether the field is mandatory.
+ * @param {any} props.value - Current effective cell value.
+ * @param {any} [props.originalValue] - Original raw value from spreadsheet ingestion.
+ * @param {boolean} props.isOverridden - Whether this field has been manually modified.
+ * @param {string} [props.errorMessage] - Validation error message if cell fails checks.
+ * @param {Function} props.onSave - Async callback saving field edit.
+ * @param {Function} props.onRevert - Async callback reverting field to original value.
+ * @param {boolean} [props.disabled=false] - Whether editing is disabled.
+ * @state {boolean} isEditing - Whether inline edit mode is active.
+ * @state {string} draftValue - Unsaved text input value during edit mode.
+ * @state {boolean} isSaving - In-flight state during save operation.
+ * @state {boolean} isReverting - In-flight state during revert operation.
  * @returns {JSX.Element} Editable field row with inline action controls.
  */
 export function InlineFieldEditor({

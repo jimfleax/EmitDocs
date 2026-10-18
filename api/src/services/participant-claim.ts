@@ -4,6 +4,7 @@
  * @architecture Provides safe, unauthenticated portal metadata without exposing participant PII or IDs.
  *               Authenticates participant credentials using constant-time keyed HMAC verifiers.
  *               Enforces anti-enumeration defenses, atomic claim counters, and scoped 15-min sessions.
+ * @agent_note Participant authentication errors return identical generic messages to prevent user enumeration. Issues 15-minute CSPRNG session tokens stored only as SHA-256 hashes.
  */
 
 import crypto from 'node:crypto';
@@ -106,10 +107,10 @@ export interface AuthenticateClaimResult {
 }
 
 /**
- * Returns safe public portal metadata without exposing recipient lists, emails, or internal IDs (AC-010).
- *
- * @param {string} publicSlug - Public alphanumeric portal slug.
- * @returns {Promise<PublicPortalMetadata>}
+ * @desc    Returns safe public portal metadata without exposing recipient lists, emails, or internal IDs (AC-010).
+ * @param   {string} publicSlug - Public alphanumeric portal slug.
+ * @returns {Promise<PublicPortalMetadata>} Sanitized portal metadata for public display.
+ * @throws  {ClaimPortalNotFoundError} If the portal is not found.
  */
 export async function getPublicPortalMetadata(publicSlug: string): Promise<PublicPortalMetadata> {
   const portal = await ClaimPortal.findOne({ publicSlug }).lean<IClaimPortal>();
@@ -139,12 +140,15 @@ export async function getPublicPortalMetadata(publicSlug: string): Promise<Publi
 }
 
 /**
- * Authenticates participant claim against keyed HMAC verifiers and issues a scoped session (AC-012, AC-014, AC-015).
- *
- * @param {string} publicSlug - Portal public slug.
- * @param {AuthenticateClaimInput} input - Participant input credentials.
- * @param {string} ip - Client IP.
- * @returns {Promise<AuthenticateClaimResult>}
+ * @desc    Authenticates participant claim against keyed HMAC verifiers and issues a scoped 15-minute session (AC-012, AC-014, AC-015).
+ * @param   {string} publicSlug - Portal public slug.
+ * @param   {AuthenticateClaimInput} input - Participant input credentials and optional Turnstile token.
+ * @param   {string} ip - Client IP for rate limiting and bot defense tracking.
+ * @returns {Promise<AuthenticateClaimResult>} Session token, recipient name, snapshot/recipient IDs, and expiration date.
+ * @throws  {ClaimPortalNotFoundError} If portal does not exist.
+ * @throws  {ClaimRateLimitExceededError} If IP exceeds sliding-window rate limit.
+ * @throws  {ClaimTurnstileRequiredError} If Turnstile challenge is required but missing or invalid.
+ * @throws  {ClaimNotAvailableError} If credentials fail verification or claim is revoked/unavailable.
  */
 export async function authenticateClaim(
   publicSlug: string,

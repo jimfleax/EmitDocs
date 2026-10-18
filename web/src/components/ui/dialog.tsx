@@ -2,6 +2,7 @@
  * @file dialog.tsx
  * @description Standard shadcn/ui Dialog component backed by Radix UI Dialog primitives.
  * @architecture Portaled modal overlay guaranteeing fixed viewport centering across all container transforms.
+ * @agent_note Relies on Radix DialogPortal and backdrop blur overlay with keyboard dismiss (Escape) support.
  */
 
 import * as React from "react";
@@ -14,6 +15,11 @@ const DialogTrigger = DialogPrimitive.Trigger;
 const DialogPortal = DialogPrimitive.Portal;
 const DialogClose = DialogPrimitive.Close;
 
+/**
+ * @component DialogOverlay
+ * @description Translucent backdrop overlay that blurs underlying page contents when dialog is open.
+ * @param {React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>} props - Overlay element properties.
+ */
 const DialogOverlay = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Overlay>
@@ -34,6 +40,11 @@ export interface DialogContentProps
   hideCloseButton?: boolean;
 }
 
+/**
+ * @component DialogContent
+ * @description Centered modal window content container with optional close button.
+ * @param {DialogContentProps} props - Dialog content properties.
+ */
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   DialogContentProps
@@ -60,6 +71,11 @@ const DialogContent = React.forwardRef<
 ));
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
+/**
+ * @component DialogHeader
+ * @description Header block for dialog containing title and description.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Container attributes.
+ */
 const DialogHeader = ({
   className,
   ...props
@@ -74,6 +90,11 @@ const DialogHeader = ({
 );
 DialogHeader.displayName = "DialogHeader";
 
+/**
+ * @component DialogFooter
+ * @description Footer block for dialog actions and action buttons.
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Container attributes.
+ */
 const DialogFooter = ({
   className,
   ...props
@@ -88,6 +109,11 @@ const DialogFooter = ({
 );
 DialogFooter.displayName = "DialogFooter";
 
+/**
+ * @component DialogTitle
+ * @description Primary heading for the modal dialog accessible to screen readers.
+ * @param {React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>} props - Title element attributes.
+ */
 const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
@@ -103,6 +129,11 @@ const DialogTitle = React.forwardRef<
 ));
 DialogTitle.displayName = DialogPrimitive.Title.displayName;
 
+/**
+ * @component DialogDescription
+ * @description Secondary descriptive label for the modal dialog.
+ * @param {React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>} props - Description attributes.
+ */
 const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>

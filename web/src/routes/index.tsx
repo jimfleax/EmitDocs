@@ -3,6 +3,7 @@
  * @description Official public marketing homepage and landing page for EmitDocs.
  * @architecture Composed of modular landing components: LandingHeader, HeroSection, FeaturesBentoGrid,
  * WorkflowTimeline, TrustAndSecurity, LandingBottomCta, and LandingFooter.
+ * @agent_note Public landing page; unauthenticated visitors can explore platform capabilities or navigate to sign-in.
  */
 
 import { createFileRoute } from "@tanstack/react-router";
@@ -14,6 +15,10 @@ import { TrustAndSecurity } from "@/components/landing/TrustAndSecurity";
 import { LandingBottomCta } from "@/components/landing/LandingBottomCta";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 
+/**
+ * @constant Route
+ * @description Public file-based route definition for the root path ("/").
+ */
 export const Route = createFileRoute("/")({
   component: IndexPage,
 });
@@ -22,6 +27,8 @@ export const Route = createFileRoute("/")({
  * @component IndexPage
  * @description Principal landing page showcasing EmitDocs's bulk document automation engine,
  * interactive workflow canvas, features bento grid, and technical verification benchmarks.
+ * @state Static landing view; child sections manage localized canvas animations and interactive state.
+ * @api Public marketing presentation with no direct backend API dependencies.
  * @returns {JSX.Element} Landing page.
  */
 function IndexPage() {

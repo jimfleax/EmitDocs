@@ -37,6 +37,19 @@ export interface RecipientPreviewPanelProps {
  * @component RecipientPreviewPanel
  * @description Detail viewer rendering live merged certificate for the selected row with navigation and zoom controls.
  * @param {RecipientPreviewPanelProps} props - Component properties.
+ * @param {any} props.batch - Batch metadata.
+ * @param {any} props.templateVersion - Bound template version schema.
+ * @param {Uint8Array | null} props.sourcePdfBytes - Binary array of template PDF.
+ * @param {DraftRowItem | null} props.selectedRow - Active draft row to preview.
+ * @param {(direction: "prev" | "next") => void} [props.onNavigateRow] - Step navigation callback.
+ * @param {(sourceRowNumber: number) => void} [props.onJumpToRow] - Direct row jump callback.
+ * @param {boolean} [props.hasPrev=false] - Whether previous row exists.
+ * @param {boolean} [props.hasNext=false] - Whether next row exists.
+ * @state {number} scale - Viewport zoom factor.
+ * @state {number} activePageIndex - Active page index for multi-page templates.
+ * @state {EngineWarning[]} warnings - Layout and font rendering warnings.
+ * @state {string} jumpInput - Text input value for row index jumping.
+ * @state {string | null} dismissedRowId - Identifier of row where overflow warning was dismissed.
  * @returns {JSX.Element} Preview viewport panel with toolbar and document canvas.
  */
 export function RecipientPreviewPanel({

@@ -37,6 +37,11 @@ import {
 import { TemplateLifecycle } from '../api/src/services/template-lifecycle.js';
 import { deleteUserAccount } from '../api/src/services/account-deletion.js';
 
+/**
+ * @desc Creates a mock Hono/controller request context for invoking controller endpoints in PRD-CORE-09 tests.
+ * @param options - Context configuration options including user identity, params, query parameters, and body.
+ * @returns Mock context object with param/query readers, JSON responder, and response inspector.
+ */
 function createMockContext({ user, params = {}, query = {}, body = null }: any) {
   let responseData: any = null;
   let responseStatus = 200;
@@ -56,6 +61,10 @@ function createMockContext({ user, params = {}, query = {}, body = null }: any) 
   };
 }
 
+/**
+ * @desc Executes PRD-CORE-09 Acceptance Matrix AC1 through AC7 covering retention presets, PII pruning, and account deletion.
+ * @returns {Promise<void>} Resolves when all retention acceptance tests pass successfully.
+ */
 async function runCore09Matrix() {
   console.log('===========================================================');
   console.log('  PRD-CORE-09 ACCEPTANCE CRITERIA MATRIX (AC1 - AC7)');

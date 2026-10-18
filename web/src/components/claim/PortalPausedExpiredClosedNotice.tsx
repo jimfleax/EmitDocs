@@ -1,6 +1,8 @@
 /**
  * @file PortalPausedExpiredClosedNotice.tsx
  * @description Full-width banner when portal is paused, disabled, closed, or expired.
+ * @architecture Public claim interface status banner informing participants when access to an issuance portal is restricted.
+ * @agent_note Formats status messages for draft, ready, paused, disabled, closed, and expired states.
  */
 
 import { Pause, Lock, Clock, WarningOctagon } from "@phosphor-icons/react";
@@ -11,6 +13,14 @@ export interface PortalPausedExpiredClosedNoticeProps {
   expiresAt?: string | Date;
 }
 
+/**
+ * @component PortalPausedExpiredClosedNotice
+ * @description Displays a banner explaining why credential claims cannot currently be processed for a portal.
+ * @param {PortalPausedExpiredClosedNoticeProps} props - Component properties.
+ * @param {"draft" | "ready" | "paused" | "disabled" | "closed" | "expired"} props.status - Portal lifecycle status.
+ * @param {string} [props.portalLabel] - Display label for the portal.
+ * @param {string | Date} [props.expiresAt] - Expiry timestamp if status is expired.
+ */
 export function PortalPausedExpiredClosedNotice({
   status,
   portalLabel,
