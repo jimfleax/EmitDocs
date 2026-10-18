@@ -606,31 +606,6 @@ All primary architectural decisions, domain models, specifications, and operatio
 - [Frontend UI Primitives & Design System](docs/architecture-frontend-ui-primitives-and-shared.md) — Radix UI accessible primitives, responsive design tokens, and skeleton animations.
 - [Testing Architecture & Acceptance Matrix](docs/architecture-testing-and-acceptance-suites.md) — End-to-end acceptance matrices, throughput benchmarks, and verification methodology.
 
-### Product Requirements Documents (PRD Pack)
-- [PRD-CORE-01: Authentication & Session Management](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-01-AUTH-AND-SESSION.md)
-- [PRD-CORE-02: Template Library & Upload](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-02-TEMPLATE-LIBRARY-AND-UPLOAD.md)
-- [PRD-CORE-03: Visual PDF Mapping & Live Preview](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-03-PDF-MAPPING-AND-PREVIEW.md)
-- [PRD-CORE-04: Spreadsheet Import & Validation](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-04-SPREADSHEET-IMPORT-AND-VALIDATION.md)
-- [PRD-CORE-05: Draft Review, Inline CAS & 4-Way Diff](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-05-DRAFT-REVIEW-AND-RECONCILIATION.md)
-- [PRD-CORE-06: Approval Preflight & Immutable Snapshot](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-06-APPROVAL-AND-IMMUTABLE-SNAPSHOT.md)
-- [PRD-CORE-07: Resumable Web Worker Generation](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-07-RESUMABLE-PDF-GENERATION.md)
-- [PRD-CORE-08: Streaming ZIP Downloads & Volume Partitioning](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-08-DOWNLOADS-AND-ZIP.md)
-- [PRD-CORE-09: Retention Horizons & Cascading Account Deletion](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-09-RETENTION-AND-ACCOUNT-DELETION.md)
-- [PRD-CORE-10: Private Pilot & Operational Readiness](docs/bulk-document-issuance-prd-pack-v1.0/PRD-CORE-10-PRIVATE-PILOT-AND-OPERATIONAL-READINESS.md)
-- [PRD-CORE-11: Shared Certificate Claim Portal & Keyed Verifiers](docs/emitdocs-shared-certificate-claim-portal-prd-v1.0.md)
-- [PRD Pack Master Index & Vertical Slice Map](docs/bulk-document-issuance-prd-pack-v1.0/00_README_AND_INDEX.md)
-
-### Implementation Plans & Technical Research
-- [PRD-CORE-11 Plan: Shared Certificate Claim Portal](docs/plans/2026-10-18-prd-core-11-shared-claim-portal.md)
-- [PRD-CORE-10 Plan: Pilot Readiness & Contract Verification](docs/plans/2026-10-18-prd-core-10-pilot-readiness.md)
-- [PRD-CORE-09 Plan: Retention & Account Deletion](docs/plans/2026-10-17-prd-core-09-retention-and-deletion.md)
-- [PRD-CORE-08 Plan: Streaming ZIP Packaging](docs/plans/2026-10-16-prd-core-08-streaming-zip.md)
-- [PRD-CORE-07 Plan: Web Worker Generation](docs/plans/2026-10-15-prd-core-07-web-worker-generation.md)
-- [Batch Status Lifecycle Routing Plan](docs/plans/2026-10-15-batch-status-lifecycle-routing.md)
-- [User Cloud Storage API Specification](docs/user-cloud-storage-api-spec.md)
-- [Cloudinary Storage & Asset Cleanup Research](docs/research-storage-and-cloudinary-cleanup.md)
-- [Lint Refactoring Report](docs/lint-refactoring-report.md)
-
 ---
 
 ## License
