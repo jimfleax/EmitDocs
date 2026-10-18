@@ -335,6 +335,9 @@ export const submitRowsChunk = async (c: Context) => {
     if (err instanceof BatchNotFoundError) {
       return c.json({ error: err.message }, 404);
     }
+    if (err instanceof ConcurrencyConflictError) {
+      return c.json({ error: err.message, code: err.code }, 409);
+    }
     if (err instanceof BatchIntakeValidationError) {
       return c.json({ error: err.message, code: err.code }, 400);
     }

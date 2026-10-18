@@ -245,7 +245,7 @@ const SelectTrigger = React.forwardRef<HTMLButtonElement, SelectTriggerProps>(
           if (!props.disabled) context?.setOpen(!context.open);
         }}
         className={cn(
-          "flex h-8 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-2xs transition-colors hover:border-slate-300 focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 select-none [&>span]:line-clamp-1 cursor-pointer",
+          "flex h-8 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-800 shadow-2xs transition-colors hover:border-slate-300 outline-none focus:outline-none focus:border-blue-500 disabled:cursor-not-allowed disabled:opacity-50 select-none [&>span]:line-clamp-1 cursor-pointer",
           className,
         )}
         {...props}

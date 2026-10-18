@@ -8,11 +8,13 @@ import { Button } from "@/components/ui/button";
 
 export interface GenericClaimFailureProps {
   requestId?: string;
+  message?: string;
   onRetry?: () => void;
 }
 
 export function GenericClaimFailure({
   requestId,
+  message,
   onRetry,
 }: GenericClaimFailureProps) {
   return (
@@ -24,7 +26,7 @@ export function GenericClaimFailure({
             Claim Verification Failed
           </h4>
           <p className="leading-relaxed">
-            We couldn't complete this claim. Check the details and try again, or contact the event organizer.
+            {message || "We couldn't complete this claim. Check the details and try again, or contact the event organizer."}
           </p>
         </div>
       </div>

@@ -3,7 +3,7 @@
  * @description Cloudflare Turnstile container using window.turnstile or mock fallback for dev/test.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { ShieldCheck } from "@phosphor-icons/react";
 
 declare global {
@@ -33,16 +33,24 @@ export function TurnstileChallenge({
 }: TurnstileChallengeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
-  const [isSimulated, setIsSimulated] = useState(false);
+
+  const isDev = Boolean(import.meta.env.DEV);
+  const effectiveSiteKey = siteKey || (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined);
+  const isSimulated = isDev && (!effectiveSiteKey || effectiveSiteKey === "mock" || effectiveSiteKey === "test");
 
   useEffect(() => {
     // Development or test environment without real sitekey
-    if (!siteKey || siteKey === "mock" || siteKey === "test") {
-      setIsSimulated(true);
+    if (isSimulated) {
       const timer = setTimeout(() => {
         onSuccess("mock-turnstile-token-" + Math.random().toString(36).slice(2));
       }, 500);
       return () => clearTimeout(timer);
+    }
+
+    // In production, never emit a mock token for a missing key
+    if (!effectiveSiteKey) {
+      onError?.();
+      return;
     }
 
     // Load Turnstile script if not present
@@ -54,7 +62,7 @@ export function TurnstileChallenge({
       script.onload = () => {
         if (containerRef.current && window.turnstile) {
           widgetIdRef.current = window.turnstile.render(containerRef.current, {
-            sitekey: siteKey,
+            sitekey: effectiveSiteKey,
             theme,
             callback: onSuccess,
             "error-callback": onError,
@@ -65,7 +73,7 @@ export function TurnstileChallenge({
       document.head.appendChild(script);
     } else if (containerRef.current) {
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
-        sitekey: siteKey,
+        sitekey: effectiveSiteKey,
         theme,
         callback: onSuccess,
         "error-callback": onError,
@@ -78,7 +86,7 @@ export function TurnstileChallenge({
         window.turnstile.remove(widgetIdRef.current);
       }
     };
-  }, [siteKey, theme, onSuccess, onError, onExpire]);
+  }, [effectiveSiteKey, isSimulated, theme, onSuccess, onError, onExpire]);
 
   if (isSimulated) {
     return (

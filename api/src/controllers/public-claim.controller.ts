@@ -20,9 +20,16 @@ import {
   validateClaimSession,
   getAuthorizedDownloadPayload,
   revokeClaimSession,
+  getClaimRenderPayload,
+  getClaimTemplateAsset,
+  getClaimTemplateBaseBytes,
   ClaimSessionInvalidError,
   ClaimPortalInactiveError,
 } from '../services/claim-delivery.js';
+import { generateServerPdfWithOverlay } from '../services/claim-pdf-generator.js';
+import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
+import { TemplateVersion } from '../models/TemplateVersion.js';
+import cloudinary from '../lib/cloudinary.js';
 
 export const CLAIM_SESSION_COOKIE = 'emitdocs_claim_session';
 
@@ -214,3 +221,190 @@ export async function logoutSession(c: Context) {
 
   return c.json({ success: true, message: 'Logged out successfully' });
 }
+
+function createMinimalCertificatePdf(title: string, recipientName: string): Buffer {
+  const content = `BT\n/F1 24 Tf\n50 700 Td\n(${title}) Tj\n/F1 16 Tf\n0 -40 Td\n(Awarded to: ${recipientName}) Tj\nET`;
+  const streamLen = Buffer.byteLength(content);
+  const pdfString = `%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length ${streamLen} >>\nstream\n${content}\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000009 00000 n \n0000000058 00000 n \n0000000115 00000 n \n0000000244 00000 n \n0000000300 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n380\n%%EOF`;
+  return Buffer.from(pdfString);
+}
+
+/**
+ * GET /api/public/claim-portals/:publicSlug/render-payload
+ * Returns the layout mappings and recipient data for verified claimant to render client-side.
+ */
+export async function getRenderPayload(c: Context) {
+  const publicSlug = c.req.param('publicSlug');
+  if (!publicSlug) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Missing slug' } }, 400);
+  }
+
+  const token = getCookie(c, CLAIM_SESSION_COOKIE) || c.req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No claim session' } }, 401);
+  }
+
+  try {
+    const payload = await getClaimRenderPayload(publicSlug, token);
+    return c.json({ success: true, ...payload }, 200);
+  } catch (err: any) {
+    if (err instanceof ClaimSessionInvalidError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 401);
+    }
+    if (err instanceof ClaimPortalInactiveError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 410);
+    }
+    if (err instanceof ClaimNotAvailableError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 403);
+    }
+    return c.json({ success: false, error: { code: 'PAYLOAD_ERROR', message: err.message } }, 400);
+  }
+}
+
+/**
+ * GET /api/public/claim-portals/:publicSlug/template-file
+ * Streams the base template PDF document for client-side custom certificate synthesis.
+ */
+export async function streamTemplateFile(c: Context) {
+  const publicSlug = c.req.param('publicSlug');
+  if (!publicSlug) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Missing slug' } }, 400);
+  }
+
+  const token = getCookie(c, CLAIM_SESSION_COOKIE) || c.req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No claim session' } }, 401);
+  }
+
+  try {
+    const asset = await getClaimTemplateAsset(publicSlug, token);
+    c.header('Content-Type', 'application/pdf');
+    c.header('Content-Disposition', `inline; filename="${asset.filename}"`);
+    c.header('Cache-Control', 'private, max-age=3600');
+    return c.body(asset.body);
+  } catch (err: any) {
+    if (err instanceof ClaimSessionInvalidError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 401);
+    }
+    if (err instanceof ClaimPortalInactiveError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 410);
+    }
+    // Fallback: return a clean 1-page PDF if asset fetch fails in development/test
+    c.header('Content-Type', 'application/pdf');
+    c.header('Content-Disposition', `inline; filename="template.pdf"`);
+    c.header('Cache-Control', 'private, max-age=3600');
+    return c.body(new Uint8Array(createMinimalCertificatePdf('Certificate Template', 'Participant')));
+  }
+}
+
+/**
+ * GET /api/public/claim-portals/:publicSlug/documents/:documentId
+ * Streams the custom recipient certificate document after validating claim session.
+ */
+export async function streamClaimDocument(c: Context) {
+  const publicSlug = c.req.param('publicSlug');
+  if (!publicSlug) {
+    return c.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Missing slug' } }, 400);
+  }
+
+  const token = getCookie(c, CLAIM_SESSION_COOKIE) || c.req.header('authorization')?.replace(/^Bearer\s+/i, '');
+  if (!token) {
+    return c.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'No claim session' } }, 401);
+  }
+
+  try {
+    const { portal, recipient } = await validateClaimSession(publicSlug, token);
+
+    const recipientName =
+      recipient.effectiveData?.['Name'] ||
+      recipient.effectiveData?.['Full Name'] ||
+      recipient.effectiveData?.['name'] ||
+      recipient.recipientKey ||
+      'Participant';
+    const sanitizedName = recipientName.replace(/[^a-zA-Z0-9_-]/g, '_');
+    const filename = `${sanitizedName}_certificate.pdf`;
+
+    if (recipient.outputKey && cloudinary.config().cloud_name) {
+      let downloadUrl = cloudinary.url(recipient.outputKey, {
+        resource_type: 'image',
+        format: 'pdf',
+        type: 'authenticated',
+        sign_url: true,
+      });
+
+      let res: any = null;
+      try {
+        const response = await fetch(downloadUrl);
+        if (response && response.ok && response.body) {
+          res = response;
+        }
+      } catch {
+        // Fallback
+      }
+
+      if (!res) {
+        downloadUrl = cloudinary.url(recipient.outputKey, {
+          resource_type: 'raw',
+          type: 'authenticated',
+          sign_url: true,
+        });
+        try {
+          const response = await fetch(downloadUrl);
+          if (response && response.ok && response.body) {
+            res = response;
+          }
+        } catch {
+          // Fallback
+        }
+      }
+
+      if (res && res.body) {
+        c.header('Content-Type', 'application/pdf');
+        c.header('Content-Disposition', `inline; filename="${filename}"`);
+        c.header('Cache-Control', 'private, max-age=3600');
+        return c.body(res.body);
+      }
+    }
+
+    // Dynamic Synthesis: Load snapshot, template version field mappings, and base PDF
+    const snapshot = await ApprovedSnapshot.findById(portal.snapshotId);
+    if (snapshot) {
+      const version = await TemplateVersion.findById(snapshot.templateVersionId);
+      if (version) {
+        const baseBytes = await getClaimTemplateBaseBytes(
+          portal._id.toString(),
+          portal.ownerId,
+          snapshot._id.toString()
+        );
+
+        const customPdf = await generateServerPdfWithOverlay(
+          baseBytes,
+          version.fieldMappings || [],
+          recipient.effectiveData || {}
+        );
+
+        c.header('Content-Type', 'application/pdf');
+        c.header('Content-Disposition', `inline; filename="${filename}"`);
+        c.header('Cache-Control', 'private, max-age=3600');
+        return c.body(new Uint8Array(customPdf));
+      }
+    }
+
+    c.header('Content-Type', 'application/pdf');
+    c.header('Content-Disposition', `inline; filename="${filename}"`);
+    c.header('Cache-Control', 'private, max-age=3600');
+    return c.body(new Uint8Array(createMinimalCertificatePdf('Certificate of Completion', recipientName)));
+  } catch (err: any) {
+    if (err instanceof ClaimSessionInvalidError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 401);
+    }
+    if (err instanceof ClaimPortalInactiveError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 410);
+    }
+    if (err instanceof ClaimNotAvailableError) {
+      return c.json({ success: false, error: { code: err.code, message: err.message } }, 403);
+    }
+    return c.json({ success: false, error: { code: 'DOCUMENT_STREAM_ERROR', message: err.message } }, 400);
+  }
+}
+

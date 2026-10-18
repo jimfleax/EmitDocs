@@ -23,8 +23,7 @@ import {
   evaluateImportedCredentialStrength,
 } from './keyed-verifier.js';
 
-const CLAIM_PORTAL_HMAC_SECRET =
-  process.env.CLAIM_PORTAL_HMAC_SECRET || 'emitdocs_default_portal_hmac_secret_for_dev_test_mode_minimum_32_bytes_long';
+import { CLAIM_PORTAL_HMAC_SECRET } from './participant-claim.js';
 
 /* -------------------------------------------------------------------------- */
 /*                               Typed Domain Errors                          */
@@ -105,6 +104,13 @@ export class ClaimPortalLifecycle {
     batchId: string,
     input: { label: string; instructions?: string }
   ): Promise<IClaimPortal> {
+    if (!input || typeof input.label !== 'string' || input.label.trim() === '') {
+      throw new BatchNotEligibleError('Portal label is required and must be a non-empty string');
+    }
+    if (input.instructions !== undefined && typeof input.instructions !== 'string') {
+      throw new BatchNotEligibleError('Portal instructions must be a string');
+    }
+
     const batch = await Batch.findOne({ _id: batchId, ownerId });
     if (!batch) {
       throw new PortalNotFoundError(`Batch ${batchId} not found or not owned by user`);
@@ -156,6 +162,16 @@ export class ClaimPortalLifecycle {
     portalId: string,
     input: { label?: string; instructions?: string; expectedVersion?: number }
   ): Promise<IClaimPortal> {
+    if (!input || typeof input !== 'object') {
+      throw new BatchNotEligibleError('Update input must be an object');
+    }
+    if (input.label !== undefined && (typeof input.label !== 'string' || input.label.trim() === '')) {
+      throw new BatchNotEligibleError('Portal label must be a non-empty string');
+    }
+    if (input.instructions !== undefined && typeof input.instructions !== 'string') {
+      throw new BatchNotEligibleError('Portal instructions must be a string');
+    }
+
     const query: any = { _id: portalId, ownerId };
     if (input.expectedVersion !== undefined) {
       query.version = input.expectedVersion;
@@ -202,7 +218,7 @@ export class ClaimPortalLifecycle {
     const recipients = await ApprovedRecipient.find({ snapshotId: portal.snapshotId, status: 'valid' });
     const tokens = generateSecureTokens(recipients.length);
 
-    await ClaimCredentialSet.findOneAndUpdate(
+    const credSet = await ClaimCredentialSet.findOneAndUpdate(
       { portalId: portal._id, revision },
       {
         portalId: portal._id,
@@ -215,41 +231,59 @@ export class ClaimPortalLifecycle {
       { upsert: true, new: true }
     );
 
+    const existingStates = await ClaimRecipientState.find({
+      portalId: portal._id,
+      recipientId: { $in: recipients.map((r) => r._id) },
+    });
+    const revokedRecipientIds = new Set(
+      existingStates
+        .filter((s) => s.status === 'revoked')
+        .map((s) => s.recipientId.toString())
+    );
+
     await ClaimCredential.deleteMany({ portalId: portal._id, credentialSetRevision: revision });
 
-    const credDocs = recipients.map((r, i) => {
-      const token = tokens[i];
-      const verifier = computeCredentialVerifier(CLAIM_PORTAL_HMAC_SECRET, portal._id.toString(), revision, token);
-      return {
-        ownerId,
-        portalId: portal._id,
-        credentialSetId: portal._id,
-        credentialSetRevision: revision,
-        recipientId: r._id,
-        credentialVerifier: verifier,
-        credentialKind: 'single',
-        verifierKeyVersion: 1,
-        strengthClass: 'generated',
-        status: 'active',
-      };
-    });
+    const credDocs = recipients
+      .filter((r) => !revokedRecipientIds.has(r._id.toString()))
+      .map((r) => {
+        const i = recipients.indexOf(r);
+        const token = tokens[i];
+        const verifier = computeCredentialVerifier(CLAIM_PORTAL_HMAC_SECRET, portal._id.toString(), revision, token);
+        return {
+          ownerId,
+          portalId: portal._id,
+          credentialSetId: credSet._id,
+          credentialSetRevision: revision,
+          recipientId: r._id,
+          credentialVerifier: verifier,
+          credentialKind: 'single' as const,
+          verifierKeyVersion: 1,
+          strengthClass: 'generated' as const,
+          status: 'active' as const,
+        };
+      });
 
     if (credDocs.length > 0) {
       await ClaimCredential.insertMany(credDocs, { ordered: false });
     }
 
-    for (const r of recipients) {
-      await ClaimRecipientState.findOneAndUpdate(
-        { portalId: portal._id, recipientId: r._id },
-        {
-          portalId: portal._id,
-          snapshotId: portal.snapshotId,
-          recipientId: r._id,
-          credentialSetRevision: revision,
-          status: 'eligible',
+    if (recipients.length > 0) {
+      const recipientOps = recipients.map((r) => ({
+        updateOne: {
+          filter: { portalId: portal._id, recipientId: r._id },
+          update: {
+            $set: {
+              snapshotId: portal.snapshotId,
+              credentialSetRevision: revision,
+            },
+            $setOnInsert: {
+              status: 'eligible',
+            },
+          },
+          upsert: true,
         },
-        { upsert: true }
-      );
+      }));
+      await ClaimRecipientState.bulkWrite(recipientOps, { ordered: false });
     }
 
     portal.eligibleRecipientCount = recipients.length;
@@ -374,46 +408,63 @@ export class ClaimPortalLifecycle {
       { upsert: true, new: true }
     );
 
+    const existingStates = await ClaimRecipientState.find({
+      portalId: portal._id,
+      recipientId: { $in: recipients.map((r) => r._id) },
+    });
+    const revokedRecipientIds = new Set(
+      existingStates
+        .filter((s) => s.status === 'revoked')
+        .map((s) => s.recipientId.toString())
+    );
+
     await ClaimCredential.deleteMany({ portalId: portal._id, credentialSetRevision: revision });
 
-    const credDocs = recipients.map((r) => {
-      const pVal = String(r.effectiveData?.[input.primaryFieldKey] ?? '');
-      const canonical = input.secondaryFieldKey
-        ? canonicalizePair(pVal, String(r.effectiveData?.[input.secondaryFieldKey] ?? ''))
-        : canonicalizeCredential(pVal);
+    const credDocs = recipients
+      .filter((r) => !revokedRecipientIds.has(r._id.toString()))
+      .map((r) => {
+        const pVal = String(r.effectiveData?.[input.primaryFieldKey] ?? '');
+        const canonical = input.secondaryFieldKey
+          ? canonicalizePair(pVal, String(r.effectiveData?.[input.secondaryFieldKey] ?? ''))
+          : canonicalizeCredential(pVal);
 
-      const verifier = computeCredentialVerifier(CLAIM_PORTAL_HMAC_SECRET, portal._id.toString(), revision, canonical);
+        const verifier = computeCredentialVerifier(CLAIM_PORTAL_HMAC_SECRET, portal._id.toString(), revision, canonical);
 
-      return {
-        ownerId,
-        portalId: portal._id,
-        credentialSetId: portal._id,
-        credentialSetRevision: revision,
-        recipientId: r._id,
-        credentialVerifier: verifier,
-        credentialKind: input.secondaryFieldKey ? 'pair' : 'single',
-        verifierKeyVersion: 1,
-        strengthClass: input.secondaryFieldKey ? 'two_field_import' : 'strong_import',
-        status: 'active',
-      };
-    });
+        return {
+          ownerId,
+          portalId: portal._id,
+          credentialSetId: credSet._id,
+          credentialSetRevision: revision,
+          recipientId: r._id,
+          credentialVerifier: verifier,
+          credentialKind: input.secondaryFieldKey ? ('pair' as const) : ('single' as const),
+          verifierKeyVersion: 1,
+          strengthClass: input.secondaryFieldKey ? ('two_field_import' as const) : ('strong_import' as const),
+          status: 'active' as const,
+        };
+      });
 
     if (credDocs.length > 0) {
       await ClaimCredential.insertMany(credDocs, { ordered: false });
     }
 
-    for (const r of recipients) {
-      await ClaimRecipientState.findOneAndUpdate(
-        { portalId: portal._id, recipientId: r._id },
-        {
-          portalId: portal._id,
-          snapshotId: portal.snapshotId,
-          recipientId: r._id,
-          credentialSetRevision: revision,
-          status: 'eligible',
+    if (recipients.length > 0) {
+      const recipientOps = recipients.map((r) => ({
+        updateOne: {
+          filter: { portalId: portal._id, recipientId: r._id },
+          update: {
+            $set: {
+              snapshotId: portal.snapshotId,
+              credentialSetRevision: revision,
+            },
+            $setOnInsert: {
+              status: 'eligible',
+            },
+          },
+          upsert: true,
         },
-        { upsert: true }
-      );
+      }));
+      await ClaimRecipientState.bulkWrite(recipientOps, { ordered: false });
     }
 
     portal.eligibleRecipientCount = recipients.length;
@@ -439,6 +490,11 @@ export class ClaimPortalLifecycle {
     missingOutputCount: number;
     isReady: boolean;
     blockers: string[];
+    credentialSetStatus?: string;
+    primaryFieldKey?: string;
+    secondaryFieldKey?: string;
+    strengthReport?: any;
+    duplicateCollisions?: any[];
   }> {
     const portal = await ClaimPortal.findOne({ _id: portalId, ownerId });
     if (!portal) throw new PortalNotFoundError(`Portal ${portalId} not found`);
@@ -469,13 +525,81 @@ export class ClaimPortalLifecycle {
     const excludedCount = missingOutputs.length;
     const isReady = blockers.length === 0 && eligibleCount > 0;
 
+    let strengthReport: any = null;
+    let duplicateCollisions: any[] | undefined = undefined;
+
+    if (credSet?.primaryFieldKey) {
+      const validRecipients = recipients.filter((r) => r.status === 'valid');
+      const primaryValues = validRecipients.map(
+        (r) => String(r.effectiveData?.[credSet.primaryFieldKey!] ?? (r as any)[credSet.primaryFieldKey!] ?? '')
+      );
+
+      if (!credSet.secondaryFieldKey) {
+        strengthReport = evaluateImportedCredentialStrength(primaryValues);
+        if (strengthReport.collisions?.length > 0) {
+          const counts = new Map<string, { count: number; recipientKeys: string[] }>();
+          for (const r of validRecipients) {
+            const val = canonicalizeCredential(
+              String(r.effectiveData?.[credSet.primaryFieldKey!] ?? (r as any)[credSet.primaryFieldKey!] ?? '')
+            );
+            const entry = counts.get(val) || { count: 0, recipientKeys: [] };
+            entry.count++;
+            if (r.recipientKey) entry.recipientKeys.push(r.recipientKey);
+            counts.set(val, entry);
+          }
+          const colls: any[] = [];
+          for (const [value, entry] of counts.entries()) {
+            if (entry.count > 1) {
+              colls.push({ value, count: entry.count, recipientKeys: entry.recipientKeys });
+            }
+          }
+          if (colls.length > 0) duplicateCollisions = colls;
+        }
+      } else {
+        const pairs = validRecipients.map((r) =>
+          canonicalizePair(
+            String(r.effectiveData?.[credSet.primaryFieldKey!] ?? (r as any)[credSet.primaryFieldKey!] ?? ''),
+            String(r.effectiveData?.[credSet.secondaryFieldKey!] ?? (r as any)[credSet.secondaryFieldKey!] ?? '')
+          )
+        );
+        const counts = new Map<string, { count: number; recipientKeys: string[] }>();
+        for (let i = 0; i < validRecipients.length; i++) {
+          const r = validRecipients[i];
+          const val = pairs[i];
+          const entry = counts.get(val) || { count: 0, recipientKeys: [] };
+          entry.count++;
+          if (r.recipientKey) entry.recipientKeys.push(r.recipientKey);
+          counts.set(val, entry);
+        }
+        const collisions: string[] = [];
+        const colls: any[] = [];
+        for (const [value, entry] of counts.entries()) {
+          if (entry.count > 1) {
+            collisions.push(value);
+            colls.push({ value, count: entry.count, recipientKeys: entry.recipientKeys });
+          }
+        }
+        if (colls.length > 0) duplicateCollisions = colls;
+        strengthReport = {
+          strong: collisions.length === 0,
+          reason: collisions.length > 0 ? `Duplicate credential collisions detected: ${collisions.slice(0, 5).join(', ')}` : undefined,
+          collisions,
+        };
+      }
+    }
+
     return {
       eligibleCount,
       excludedCount,
-      duplicateCount: 0,
+      duplicateCount: duplicateCollisions ? duplicateCollisions.length : 0,
       missingOutputCount: missingOutputs.length,
       isReady,
       blockers,
+      credentialSetStatus: credSet ? credSet.status : 'preparing',
+      primaryFieldKey: credSet?.primaryFieldKey,
+      secondaryFieldKey: credSet?.secondaryFieldKey,
+      strengthReport,
+      duplicateCollisions,
     };
   }
 
@@ -558,6 +682,23 @@ export class ClaimPortalLifecycle {
     }
     if (Date.now() >= new Date(portal.expiresAt).getTime()) {
       throw new InvalidStateTransitionError('Cannot resume expired portal');
+    }
+
+    const credSet = await ClaimCredentialSet.findOne({
+      portalId: portal._id,
+      revision: portal.credentialSetRevision,
+    });
+    if (!credSet || credSet.status !== 'ready') {
+      const preflight = await this.getPortalPreflight(ownerId, portalId);
+      if (!preflight.isReady) {
+        const fatalBlockers = preflight.blockers.filter((b) => !b.includes('missing generated certificate outputs'));
+        if (fatalBlockers.length > 0) {
+          throw new InvalidStateTransitionError(`Cannot resume portal: ${fatalBlockers.join('; ')}`);
+        }
+        throw new InvalidStateTransitionError(
+          `Cannot resume portal with blockers: ${preflight.blockers.join('; ')}`
+        );
+      }
     }
 
     portal.status = 'active';
@@ -643,8 +784,10 @@ export class ClaimPortalLifecycle {
 
     portal.credentialSetRevision = newRevision;
     portal.credentialMode = targetMode;
-    portal.status = 'paused';
-    portal.pausedAt = new Date();
+    if (!['draft', 'disabled', 'expired'].includes(portal.status)) {
+      portal.status = 'paused';
+      portal.pausedAt = new Date();
+    }
     portal.version += 1;
     await portal.save();
 

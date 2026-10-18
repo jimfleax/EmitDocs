@@ -44,28 +44,28 @@ export async function expireBatchIfDue(
   const isPastDue = batch.expiresAt ? now >= new Date(batch.expiresAt) : false;
 
   if (batch.status === 'expired' || isPastDue) {
-    if (batch.status !== 'expired') {
-      batch.status = 'expired';
-      await batch.save();
-    }
-
     const portal = await ClaimPortal.findOne({ batchId: batch._id });
     if (portal) {
-      if (portal.status !== 'expired') {
-        portal.status = 'expired';
-        await portal.save();
-      }
       await Promise.all([
         ClaimCredential.deleteMany({ portalId: portal._id }),
         ClaimSession.deleteMany({ portalId: portal._id }),
         ClaimRecipientState.deleteMany({ portalId: portal._id }),
       ]);
+      if (portal.status !== 'expired') {
+        portal.status = 'expired';
+        await portal.save();
+      }
     }
 
     await Promise.all([
       ApprovedRecipient.deleteMany({ batchId: batch._id }),
       DraftRow.deleteMany({ batchId: batch._id }),
     ]);
+
+    if (batch.status !== 'expired') {
+      batch.status = 'expired';
+      await batch.save();
+    }
 
     return { expired: true, batch };
   }
@@ -88,26 +88,26 @@ export async function pruneAllExpiredBatches(): Promise<PruneAllResult> {
   let prunedDraftRowsCount = 0;
 
   for (const batch of expiredBatches) {
-    batch.status = 'expired';
-    await batch.save();
-
     const portal = await ClaimPortal.findOne({ batchId: batch._id });
     if (portal) {
-      if (portal.status !== 'expired') {
-        portal.status = 'expired';
-        await portal.save();
-      }
       await Promise.all([
         ClaimCredential.deleteMany({ portalId: portal._id }),
         ClaimSession.deleteMany({ portalId: portal._id }),
         ClaimRecipientState.deleteMany({ portalId: portal._id }),
       ]);
+      if (portal.status !== 'expired') {
+        portal.status = 'expired';
+        await portal.save();
+      }
     }
 
     const [recRes, draftRes] = await Promise.all([
       ApprovedRecipient.deleteMany({ batchId: batch._id }),
       DraftRow.deleteMany({ batchId: batch._id }),
     ]);
+
+    batch.status = 'expired';
+    await batch.save();
 
     prunedRecipientsCount += recRes.deletedCount || 0;
     prunedDraftRowsCount += draftRes.deletedCount || 0;

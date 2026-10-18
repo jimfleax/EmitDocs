@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "@/components/ui/toast";
+import { escapeCsvCell } from "@/lib/csv-escape";
 
 export interface GeneratedTokenExportPanelProps {
   portalId: string;
@@ -45,7 +46,10 @@ export function GeneratedTokenExportPanel({
       // Build CSV client-side
       const headers = "RecipientKey,Name,Email,ClaimToken\n";
       const rows = tokens
-        .map((t) => `"${t.recipientKey}","${t.name.replace(/"/g, '""')}","${t.email}","${t.token}"`)
+        .map(
+          (t) =>
+            `${escapeCsvCell(t.recipientKey)},${escapeCsvCell(t.name)},${escapeCsvCell(t.email)},${escapeCsvCell(t.token, true)}`
+        )
         .join("\n");
       const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);

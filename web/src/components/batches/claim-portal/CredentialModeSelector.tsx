@@ -33,12 +33,16 @@ export function CredentialModeSelector({
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="radiogroup" aria-label="Credential Mode">
         {/* Generated Token Option */}
-        <div
+        <button
+          type="button"
+          role="radio"
+          aria-checked={mode === "generated_token"}
+          disabled={disabled}
           onClick={() => !disabled && onChange("generated_token")}
           className={cn(
-            "p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3",
+            "text-left p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 w-full",
             mode === "generated_token"
               ? "border-blue-600 bg-blue-50/40 dark:bg-blue-950/20 shadow-xs"
               : "border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900",
@@ -68,13 +72,17 @@ export function CredentialModeSelector({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>High-entropy, zero plaintext storage in database</span>
           </div>
-        </div>
+        </button>
 
         {/* Imported Credential Option */}
-        <div
+        <button
+          type="button"
+          role="radio"
+          aria-checked={mode === "imported_credential"}
+          disabled={disabled}
           onClick={() => !disabled && onChange("imported_credential")}
           className={cn(
-            "p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3",
+            "text-left p-4 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between space-y-3 w-full",
             mode === "imported_credential"
               ? "border-blue-600 bg-blue-50/40 dark:bg-blue-950/20 shadow-xs"
               : "border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900",
@@ -104,7 +112,7 @@ export function CredentialModeSelector({
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
             <span>Collision detection and mandatory 2FA on weak keys</span>
           </div>
-        </div>
+        </button>
       </div>
     </div>
   );

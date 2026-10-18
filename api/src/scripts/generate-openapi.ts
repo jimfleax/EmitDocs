@@ -1105,9 +1105,26 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Claim portal details' },
+            '200': {
+              description: 'Claim portal details or null if not yet initialized',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: {
+                        oneOf: [
+                          { $ref: '#/components/schemas/ClaimPortal' },
+                          { type: 'null' },
+                        ],
+                      },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
-            '404': { $ref: '#/components/responses/NotFoundError' },
           },
         },
         post: {
@@ -1118,9 +1135,23 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '201': { description: 'Created claim portal' },
+            '201': {
+              description: 'Created claim portal',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '409': { $ref: '#/components/responses/ConflictError' },
           },
         },
       },
@@ -1133,10 +1164,24 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Updated claim portal' },
+            '200': {
+              description: 'Updated claim portal',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
             '404': { $ref: '#/components/responses/NotFoundError' },
+            '409': { $ref: '#/components/responses/ConflictError' },
           },
         },
       },
@@ -1149,9 +1194,36 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Generated token export data' },
+            '200': {
+              description: 'Generated token export data',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      revision: { type: 'integer' },
+                      exportTokens: {
+                        type: 'array',
+                        items: {
+                          type: 'object',
+                          properties: {
+                            recipientKey: { type: 'string' },
+                            name: { type: 'string' },
+                            email: { type: 'string' },
+                            token: { type: 'string' },
+                          },
+                          required: ['recipientKey', 'token'],
+                        },
+                      },
+                    },
+                    required: ['revision', 'exportTokens'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '409': { $ref: '#/components/responses/ConflictError' },
           },
         },
       },
@@ -1164,9 +1236,23 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Export acknowledged' },
+            '200': {
+              description: 'Export acknowledged',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      credentialSet: { $ref: '#/components/schemas/ClaimCredentialSet' },
+                    },
+                    required: ['credentialSet'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '409': { $ref: '#/components/responses/ConflictError' },
           },
         },
       },
@@ -1179,9 +1265,23 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Imported credentials configured' },
+            '200': {
+              description: 'Imported credentials configured',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      credentialSet: { $ref: '#/components/schemas/ClaimCredentialSet' },
+                    },
+                    required: ['credentialSet'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '409': { $ref: '#/components/responses/ConflictError' },
           },
         },
       },
@@ -1194,7 +1294,22 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Credentials rotated' },
+            '200': {
+              description: 'Credentials rotated',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                      credentialSet: { $ref: '#/components/schemas/ClaimCredentialSet' },
+                      revision: { type: 'integer' },
+                    },
+                    required: ['portal', 'credentialSet', 'revision'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
@@ -1209,7 +1324,24 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Preflight readiness report' },
+            '200': {
+              description: 'Preflight readiness report',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      isReady: { type: 'boolean' },
+                      missingOutputCount: { type: 'integer' },
+                      missingOutputs: { type: 'array', items: { type: 'object' } },
+                      unmappedFields: { type: 'array', items: { type: 'string' } },
+                      blockers: { type: 'array', items: { type: 'string' } },
+                    },
+                    required: ['isReady', 'missingOutputCount', 'missingOutputs', 'unmappedFields', 'blockers'],
+                  },
+                },
+              },
+            },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
             '404': { $ref: '#/components/responses/NotFoundError' },
           },
@@ -1224,9 +1356,23 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Portal activated' },
+            '200': {
+              description: 'Portal activated',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '409': { $ref: '#/components/responses/ConflictError' },
           },
         },
       },
@@ -1239,7 +1385,20 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Portal paused' },
+            '200': {
+              description: 'Portal paused',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
@@ -1254,7 +1413,20 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Portal resumed' },
+            '200': {
+              description: 'Portal resumed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
@@ -1269,7 +1441,20 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Portal disabled' },
+            '200': {
+              description: 'Portal disabled',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
@@ -1284,7 +1469,20 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Portal closed' },
+            '200': {
+              description: 'Portal closed',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      portal: { $ref: '#/components/schemas/ClaimPortal' },
+                    },
+                    required: ['portal'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
@@ -1294,18 +1492,37 @@ export function buildOpenApiSpec() {
         get: {
           tags: ['ClaimPortals'],
           summary: 'List recipient claim statuses',
-          description: 'Returns paginated and searchable list of recipient claim states.',
+          description: 'Returns paginated list of recipient claim states.',
           operationId: 'getClaimPortalRecipients',
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [
             { name: 'portalId', in: 'path', required: true, schema: { type: 'string' } },
             { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
-            { name: 'limit', in: 'query', schema: { type: 'integer', default: 50 } },
-            { name: 'search', in: 'query', schema: { type: 'string' } },
+            { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
             { name: 'status', in: 'query', schema: { type: 'string' } },
           ],
           responses: {
-            '200': { description: 'Paginated recipient states' },
+            '200': {
+              description: 'Paginated recipient states',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      items: {
+                        type: 'array',
+                        items: { type: 'object' },
+                      },
+                      total: { type: 'integer' },
+                      page: { type: 'integer' },
+                      limit: { type: 'integer' },
+                      totalPages: { type: 'integer' },
+                    },
+                    required: ['items', 'total', 'page', 'limit', 'totalPages'],
+                  },
+                },
+              },
+            },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
         },
@@ -1322,7 +1539,20 @@ export function buildOpenApiSpec() {
             { name: 'recipientId', in: 'path', required: true, schema: { type: 'string' } },
           ],
           responses: {
-            '200': { description: 'Recipient claim revoked' },
+            '200': {
+              description: 'Recipient claim revoked',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      recipientState: { type: 'object' },
+                    },
+                    required: ['recipientState'],
+                  },
+                },
+              },
+            },
             '400': { $ref: '#/components/responses/BadRequestError' },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
@@ -1337,7 +1567,26 @@ export function buildOpenApiSpec() {
           security: [{ sessionCookie: [] }, { testAuth: [] }],
           parameters: [{ name: 'portalId', in: 'path', required: true, schema: { type: 'string' } }],
           responses: {
-            '200': { description: 'Portal analytics' },
+            '200': {
+              description: 'Portal analytics',
+              content: {
+                'application/json': {
+                  schema: {
+                    type: 'object',
+                    properties: {
+                      uniqueClaimedCount: { type: 'integer' },
+                      eligibleRecipientCount: { type: 'integer' },
+                      claimRatePercent: { type: 'number' },
+                      timeline: {
+                        type: 'array',
+                        items: { type: 'object' },
+                      },
+                    },
+                    required: ['uniqueClaimedCount', 'eligibleRecipientCount', 'claimRatePercent', 'timeline'],
+                  },
+                },
+              },
+            },
             '401': { $ref: '#/components/responses/UnauthorizedError' },
           },
         },
@@ -1407,6 +1656,59 @@ export function buildOpenApiSpec() {
           },
         },
       },
+      '/public/claim-portals/{publicSlug}/render-payload': {
+        get: {
+          tags: ['PublicClaim'],
+          summary: 'Get certificate layout mappings and recipient data',
+          description: 'Retrieves template layout mappings and recipient data for client-side custom PDF generation.',
+          operationId: 'getPublicClaimRenderPayload',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Render payload with field mappings and effective data' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}/template-file': {
+        get: {
+          tags: ['PublicClaim'],
+          summary: 'Stream base template PDF',
+          description: 'Streams the base template PDF asset for client-side certificate synthesis.',
+          operationId: 'streamPublicClaimTemplateFile',
+          parameters: [{ name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } }],
+          responses: {
+            '200': { description: 'Binary PDF stream of base template' },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+          },
+        },
+      },
+      '/public/claim-portals/{publicSlug}/documents/{documentId}': {
+        get: {
+          tags: ['PublicClaim'],
+          summary: 'Stream claimed recipient certificate document',
+          description: 'Streams the PDF document for an authenticated participant session.',
+          operationId: 'streamClaimDocument',
+          parameters: [
+            { name: 'publicSlug', in: 'path', required: true, schema: { type: 'string' } },
+            { name: 'documentId', in: 'path', required: true, schema: { type: 'string' } },
+          ],
+          responses: {
+            '200': {
+              description: 'PDF certificate binary stream',
+              content: {
+                'application/pdf': {
+                  schema: {
+                    type: 'string',
+                    format: 'binary',
+                  },
+                },
+              },
+            },
+            '401': { $ref: '#/components/responses/UnauthorizedError' },
+            '404': { $ref: '#/components/responses/NotFoundError' },
+          },
+        },
+      },
     },
     components: {
       securitySchemes: {
@@ -1451,6 +1753,14 @@ export function buildOpenApiSpec() {
         },
         NotFoundError: {
           description: 'Requested resource not found or not accessible by tenant',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/StandardError' },
+            },
+          },
+        },
+        ConflictError: {
+          description: 'Conflict in resource state, duplicate entity, or version mismatch',
           content: {
             'application/json': {
               schema: { $ref: '#/components/schemas/StandardError' },
@@ -1601,6 +1911,66 @@ export function buildOpenApiSpec() {
             assetCount: { type: 'integer' },
           },
           required: ['totalBytes', 'quotaBytes', 'usagePercent', 'templateCount', 'assetCount'],
+        },
+        ClaimPortal: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            publicSlug: { type: 'string' },
+            ownerId: { type: 'string' },
+            batchId: { type: 'string' },
+            snapshotId: { type: 'string' },
+            credentialMode: {
+              type: 'string',
+              enum: ['generated_token', 'imported_credential'],
+            },
+            credentialSetRevision: { type: 'integer' },
+            credentialSetStatus: { type: 'string' },
+            primaryFieldKey: { type: 'string' },
+            secondaryFieldKey: { type: 'string' },
+            status: {
+              type: 'string',
+              enum: ['draft', 'ready', 'active', 'paused', 'disabled', 'closed', 'expired'],
+            },
+            label: { type: 'string' },
+            instructions: { type: 'string' },
+            eligibleRecipientCount: { type: 'integer' },
+            excludedRecipientCount: { type: 'integer' },
+            uniqueClaimedCount: { type: 'integer' },
+            expiresAt: { type: 'string', format: 'date-time' },
+            activatedAt: { type: 'string', format: 'date-time' },
+            pausedAt: { type: 'string', format: 'date-time' },
+            disabledAt: { type: 'string', format: 'date-time' },
+            closedAt: { type: 'string', format: 'date-time' },
+            version: { type: 'integer' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+          required: ['_id', 'publicSlug', 'ownerId', 'batchId', 'snapshotId', 'credentialMode', 'status'],
+        },
+        ClaimCredentialSet: {
+          type: 'object',
+          properties: {
+            _id: { type: 'string' },
+            portalId: { type: 'string' },
+            revision: { type: 'integer' },
+            mode: {
+              type: 'string',
+              enum: ['generated_token', 'imported_credential'],
+            },
+            status: {
+              type: 'string',
+              enum: ['preparing', 'awaiting_export_ack', 'ready', 'revoked'],
+            },
+            primaryFieldKey: { type: 'string' },
+            secondaryFieldKey: { type: 'string' },
+            generatedAt: { type: 'string', format: 'date-time' },
+            exportAcknowledgedAt: { type: 'string', format: 'date-time' },
+            revokedAt: { type: 'string', format: 'date-time' },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' },
+          },
+          required: ['_id', 'portalId', 'revision', 'mode', 'status'],
         },
       },
     },

@@ -9,7 +9,20 @@
 import crypto from 'node:crypto';
 import { ClaimRateLimit } from '../models/ClaimRateLimit.js';
 
-const ROTATING_SALT = process.env.CLAIM_RATE_LIMIT_SALT || 'emitdocs_rate_limit_ip_salt_2026';
+export function getClaimRateLimitSalt(): string {
+  const salt = process.env.CLAIM_RATE_LIMIT_SALT;
+  if (process.env.NODE_ENV === 'production') {
+    if (!salt || salt.trim() === '') {
+      throw new Error(
+        'CLAIM_RATE_LIMIT_SALT must be set when NODE_ENV is production'
+      );
+    }
+    return salt;
+  }
+  return salt || 'emitdocs_dev_claim_rate_limit_salt';
+}
+
+export const ROTATING_SALT = getClaimRateLimitSalt();
 
 /**
  * Pseudonymizes client IP address to prevent storing plaintext PII while allowing windowed throttling.

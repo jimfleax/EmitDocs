@@ -12,6 +12,9 @@ import {
   getSession,
   getDownloadUrl,
   logoutSession,
+  getRenderPayload,
+  streamTemplateFile,
+  streamClaimDocument,
 } from '../controllers/public-claim.controller.js';
 
 const publicClaimApp = new Hono();
@@ -21,5 +24,9 @@ publicClaimApp.post('/:publicSlug/claim', claimCredential);
 publicClaimApp.get('/:publicSlug/session', getSession);
 publicClaimApp.post('/:publicSlug/download-url', getDownloadUrl);
 publicClaimApp.post('/:publicSlug/logout', logoutSession);
+publicClaimApp.get('/:publicSlug/render-payload', getRenderPayload);
+publicClaimApp.get('/:publicSlug/template-file', streamTemplateFile);
+publicClaimApp.get('/:publicSlug/documents/:documentId', streamClaimDocument);
+publicClaimApp.get('/:publicSlug/documents/*', streamClaimDocument);
 
 export default publicClaimApp;

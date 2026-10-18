@@ -95,6 +95,11 @@ export function ClaimPortalStatusHeader({
           >
             <Globe className="w-3.5 h-3.5 text-blue-500" />
             <span>Open Portal</span>
+            {portal.status !== "active" && (
+              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-200 dark:border-amber-800">
+                Inactive
+              </span>
+            )}
             <ArrowSquareOut className="w-3 h-3 text-slate-400" />
           </a>
         </div>
@@ -125,6 +130,17 @@ export function ClaimPortalStatusHeader({
           )}
         </button>
       </div>
+
+      {portal.status !== "active" && (
+        <div className="flex items-center gap-2.5 p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/80 text-xs text-amber-800 dark:text-amber-200">
+          <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0 animate-pulse" />
+          <span>
+            {portal.status === "ready"
+              ? "Portal is configured but currently inactive. Participants opening this link will see 'Portal Not Yet Active' until you click Activate Portal."
+              : `Portal is currently ${portal.status}. Participants cannot claim certificates until it is active.`}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

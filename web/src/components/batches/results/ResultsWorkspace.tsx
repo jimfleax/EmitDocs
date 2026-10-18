@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "@tanstack/react-router";
 import {
   FilePdf,
   Hash,
@@ -14,6 +15,8 @@ import {
   ShieldCheck,
   CaretRight,
   CaretDown,
+  ShareNetwork,
+  ArrowRight,
 } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
@@ -398,6 +401,17 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       subtitle={subtitleSlot}
       backTo={`/app/batches/${batchId}/review`}
       backLabel="Back to Review"
+      actions={
+        snapshot && !isExpired ? (
+          <Link
+            to={`/app/batches/${batchId}/claim-portal` as any}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-colors cursor-pointer select-none"
+          >
+            <ShareNetwork className="w-3.5 h-3.5" weight="bold" />
+            <span>Claim Portal</span>
+          </Link>
+        ) : undefined
+      }
       maxWidth="5xl"
       isLoading={isLoading}
     >
@@ -546,6 +560,37 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Certificate Claim Portal Banner (PRD-CORE-11) */}
+        {snapshot && !isExpired && (
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-50/90 via-blue-50/50 to-slate-50 dark:from-indigo-950/40 dark:via-blue-950/20 dark:to-slate-900 border border-indigo-200/80 dark:border-indigo-800/60 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                <ShareNetwork className="w-5 h-5" weight="bold" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Self-Service Certificate Claim Portal
+                  </h3>
+                  <Badge variant="primary" size="sm">Online Distribution</Badge>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
+                  Share certificates directly with recipients via a public claim link. Issue CSPRNG tokens or verify with existing IDs, enforce Turnstile bot protection, and track claims in real time.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to={`/app/batches/${batchId}/claim-portal` as any}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs transition-all shrink-0 cursor-pointer"
+            >
+              <ShareNetwork className="w-3.5 h-3.5" weight="bold" />
+              <span>Configure &amp; Share</span>
+              <ArrowRight className="w-3.5 h-3.5" weight="bold" />
+            </Link>
           </div>
         )}
 

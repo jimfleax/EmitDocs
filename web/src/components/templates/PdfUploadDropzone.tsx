@@ -323,7 +323,7 @@ export function PdfUploadDropzone() {
           onChange={(e) => setName(e.target.value)}
           placeholder="e.g. Workshop Certificate of Completion"
           disabled={isUploading}
-          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="w-full px-4 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:outline-none focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400 disabled:opacity-60 disabled:cursor-not-allowed"
         />
         <p className="text-xs text-slate-400 font-normal">
           A descriptive name for your certificate or credential layout.

@@ -127,7 +127,11 @@ export async function deleteUserAccount(userId: string): Promise<DeleteAccountRe
         ClaimCredentialSet.deleteMany({ portalId: { $in: portalIds } }),
         ClaimSession.deleteMany({ portalId: { $in: portalIds } }),
         ClaimRecipientState.deleteMany({ portalId: { $in: portalIds } }),
-        ClaimPortal.deleteMany({ ownerId: userId }),
+      ]);
+
+      await ClaimPortal.deleteMany({ ownerId: userId });
+
+      await Promise.all([
         BatchImport.deleteMany({ ownerId: userId }),
         DraftRow.deleteMany({ ownerId: userId }),
         ApprovedSnapshot.deleteMany({ ownerId: userId }),

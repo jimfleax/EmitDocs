@@ -92,19 +92,27 @@ async function run() {
   const shortCheck = evaluateImportedCredentialStrength(["12345", "12346"]);
   assert.strictEqual(shortCheck.strong, false);
   assert.ok(shortCheck.reason?.includes("12"), "Reason should mention min 12 chars");
+  assert.ok(!shortCheck.reason?.includes("12345"), "Reason must not leak raw credential");
+  assert.ok(shortCheck.reason?.includes("row 1"), "Reason should report row index");
 
   // Weak: pure numeric (even if >= 12)
   const numericCheck = evaluateImportedCredentialStrength(["123456789012345"]);
   assert.strictEqual(numericCheck.strong, false);
   assert.ok(numericCheck.reason?.toLowerCase().includes("numeric"), "Reason should mention numeric requirement");
+  assert.ok(!numericCheck.reason?.includes("123456789012345"), "Reason must not leak raw credential");
+  assert.ok(numericCheck.reason?.includes("row 1"), "Reason should report row index");
 
   // Weak: repeated characters
   const repeatedCheck = evaluateImportedCredentialStrength(["AAAAAAAAAAAA"]);
   assert.strictEqual(repeatedCheck.strong, false);
+  assert.ok(!repeatedCheck.reason?.includes("AAAAAAAAAAAA"), "Reason must not leak raw credential");
+  assert.ok(repeatedCheck.reason?.includes("row 1"), "Reason should report row index");
 
   // Weak: sequential pattern
   const seqCheck = evaluateImportedCredentialStrength(["abcdefghijkl"]);
   assert.strictEqual(seqCheck.strong, false);
+  assert.ok(!seqCheck.reason?.includes("abcdefghijkl"), "Reason must not leak raw credential");
+  assert.ok(seqCheck.reason?.includes("row 1"), "Reason should report row index");
 
   // Weak: collisions detected across records
   const collisionCheck = evaluateImportedCredentialStrength([
@@ -115,6 +123,8 @@ async function run() {
   assert.strictEqual(collisionCheck.strong, false);
   assert.strictEqual(collisionCheck.collisions.length, 1);
   assert.strictEqual(collisionCheck.collisions[0], "KJ98321-ZX981A");
+  assert.ok(!collisionCheck.reason?.includes("KJ98321-ZX981A"), "Collision reason must not leak credential value");
+  assert.ok(collisionCheck.reason?.includes("1 collision"), "Collision reason should report count");
 
   // Strong: entropy, length >= 12, non-sequential, no collisions
   const strongCheck = evaluateImportedCredentialStrength([

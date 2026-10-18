@@ -7,7 +7,6 @@
  */
 
 import crypto from 'node:crypto';
-import mongoose from 'mongoose';
 import { ClaimPortal, IClaimPortal } from '../models/ClaimPortal.js';
 import { ClaimCredentialSet, IClaimCredentialSet } from '../models/ClaimCredentialSet.js';
 import { ClaimCredential } from '../models/ClaimCredential.js';
@@ -26,8 +25,20 @@ import {
 } from './claim-rate-limiter.js';
 import { verifyTurnstileToken } from './turnstile.js';
 
-export const CLAIM_PORTAL_HMAC_SECRET =
-  process.env.CLAIM_PORTAL_HMAC_SECRET || 'emitdocs_default_portal_hmac_secret_for_dev_test_mode_minimum_32_bytes_long';
+function getClaimPortalHmacSecret(): string {
+  const secret = process.env.CLAIM_PORTAL_HMAC_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    if (!secret || Buffer.byteLength(secret, 'utf8') < 32) {
+      throw new Error(
+        'CLAIM_PORTAL_HMAC_SECRET must be set and at least 32 bytes when NODE_ENV is production'
+      );
+    }
+    return secret;
+  }
+  return secret || 'emitdocs_default_portal_hmac_secret_for_dev_test_mode_minimum_32_bytes_long';
+}
+
+export const CLAIM_PORTAL_HMAC_SECRET = getClaimPortalHmacSecret();
 
 export const GENERIC_CLAIM_ERROR_MESSAGE =
   "We couldn't complete this claim. Check the details and try again, or contact the organizer.";
@@ -212,9 +223,7 @@ export async function authenticateClaim(
   }
 
   // 7. Atomic Claim State Update & Unique Claimed Count increment (AC-015)
-  const isFirstClaim = !recipientState || recipientState.status !== 'claimed';
-
-  await ClaimRecipientState.findOneAndUpdate(
+  const prevState = await ClaimRecipientState.findOneAndUpdate(
     { portalId: portal._id, recipientId: credential.recipientId },
     {
       $set: {
@@ -227,8 +236,10 @@ export async function authenticateClaim(
         firstClaimAt: now,
       },
     },
-    { upsert: true, new: true }
+    { upsert: true, new: false }
   );
+
+  const isFirstClaim = !prevState || prevState.status !== 'claimed';
 
   if (isFirstClaim) {
     await ClaimRecipientState.updateOne(

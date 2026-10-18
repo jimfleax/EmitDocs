@@ -147,7 +147,12 @@ async function acquireMongoImportLock(
   importId: string | mongoose.Types.ObjectId,
   batchId: string | mongoose.Types.ObjectId,
   ownerId: string
-): Promise<{ batchImport: IBatchImport; releaseLock: () => Promise<void> }> {
+): Promise<{
+  batchImport: IBatchImport;
+  lockToken: string;
+  isLockLost: () => boolean;
+  releaseLock: () => Promise<void>;
+}> {
   const lockToken = new mongoose.Types.ObjectId().toHexString();
   const maxWaitMs = 15000;
   const pollIntervalMs = 25;
@@ -176,7 +181,29 @@ async function acquireMongoImportLock(
     );
 
     if (batchImport) {
+      let lockLost = false;
+      const heartbeatTimer = setInterval(async () => {
+        try {
+          const res = await BatchImport.updateOne(
+            { _id: importId, ingestLockToken: lockToken },
+            { $set: { ingestLockExpiresAt: new Date(Date.now() + 10000) } }
+          );
+          if (res.matchedCount === 0) {
+            lockLost = true;
+            clearInterval(heartbeatTimer);
+          }
+        } catch {
+          lockLost = true;
+          clearInterval(heartbeatTimer);
+        }
+      }, 3000);
+
+      if (typeof heartbeatTimer.unref === 'function') {
+        heartbeatTimer.unref();
+      }
+
       const releaseLock = async () => {
+        clearInterval(heartbeatTimer);
         try {
           await BatchImport.updateOne(
             { _id: importId, ingestLockToken: lockToken },
@@ -186,7 +213,12 @@ async function acquireMongoImportLock(
           // Best-effort release
         }
       };
-      return { batchImport, releaseLock };
+      return {
+        batchImport,
+        lockToken,
+        isLockLost: () => lockLost,
+        releaseLock,
+      };
     }
 
     const exists = await BatchImport.exists({ _id: importId, batchId, ownerId });
@@ -229,7 +261,7 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
     );
   }
 
-  const { batchImport, releaseLock } = await acquireMongoImportLock(importId, batchId, ownerId);
+  const { batchImport, lockToken, isLockLost, releaseLock } = await acquireMongoImportLock(importId, batchId, ownerId);
   try {
     const batch = await Batch.findOne({
       _id: batchId,
@@ -317,6 +349,13 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
       });
     }
 
+    if (isLockLost()) {
+      throw new ConcurrencyConflictError(
+        'Import intake lock was lost during chunk processing',
+        'IMPORT_LOCK_LOST'
+      );
+    }
+
     if (bulkOps.length > 0) {
       await DraftRow.bulkWrite(bulkOps, { ordered: false });
     }
@@ -328,7 +367,16 @@ export async function ingestChunk(input: IngestChunkInput): Promise<IngestChunkR
     if (totalChunks !== undefined) {
       updateDoc.$set = { totalExpectedChunks: totalChunks };
     }
-    await BatchImport.updateOne({ _id: batchImport._id }, updateDoc);
+    const finalUpdateRes = await BatchImport.updateOne(
+      { _id: batchImport._id, ingestLockToken: lockToken },
+      updateDoc
+    );
+    if (finalUpdateRes.matchedCount === 0) {
+      throw new ConcurrencyConflictError(
+        'Import intake lock was lost before recording chunk completion',
+        'IMPORT_LOCK_LOST'
+      );
+    }
 
     return {
       chunkId,

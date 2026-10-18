@@ -10,12 +10,21 @@ export type BatchRoutePath =
   | "/app/batches/$batchId/import"
   | "/app/batches/$batchId/review"
   | "/app/batches/$batchId/approve"
-  | "/app/batches/$batchId/results";
+  | "/app/batches/$batchId/results"
+  | "/app/batches/$batchId/claim-portal";
 
 export interface BatchRouteTarget {
   to: BatchRoutePath;
   params?: { batchId?: string };
   path: string;
+}
+
+export function getBatchClaimPortalRoute(batchId: string): BatchRouteTarget {
+  return {
+    to: "/app/batches/$batchId/claim-portal",
+    params: { batchId },
+    path: `/app/batches/${batchId}/claim-portal`,
+  };
 }
 
 export interface BatchBadgeConfig {

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Play, Pause, Stop, Lock, ShieldCheck } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/Spinner";
+import { toast } from "@/components/ui/toast";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,9 @@ export interface ClaimPortalLifecycleControlsProps {
   status: ClaimPortalStatus;
   isReady: boolean;
   hasBlockers: boolean;
-  onActivate: () => Promise<void>;
+  missingOutputCount?: number;
+  fatalBlockers?: string[];
+  onActivate: (ackExclusions?: boolean) => Promise<void>;
   onPause: () => Promise<void>;
   onResume: () => Promise<void>;
   onDisable: () => Promise<void>;
@@ -31,8 +34,10 @@ export interface ClaimPortalLifecycleControlsProps {
 
 export function ClaimPortalLifecycleControls({
   status,
-  isReady,
-  hasBlockers,
+  isReady: _isReady,
+  hasBlockers: _hasBlockers,
+  missingOutputCount = 0,
+  fatalBlockers = [],
   onActivate,
   onPause,
   onResume,
@@ -41,12 +46,29 @@ export function ClaimPortalLifecycleControls({
   isLoading = false,
 }: ClaimPortalLifecycleControlsProps) {
   const [closeConfirmOpen, setCloseConfirmOpen] = useState(false);
+  const [ackExclusionsModalOpen, setAckExclusionsModalOpen] = useState(false);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+
+  const hasFatalBlockers = fatalBlockers.length > 0;
+
+  const handleActivateClick = () => {
+    if (hasFatalBlockers) {
+      toast.error("Cannot Activate Portal", fatalBlockers.join("; "));
+      return;
+    }
+    if (missingOutputCount > 0) {
+      setAckExclusionsModalOpen(true);
+      return;
+    }
+    void runAction("activate", () => onActivate(false));
+  };
 
   const runAction = async (name: string, fn: () => Promise<void>) => {
     try {
       setActionInProgress(name);
       await fn();
+    } catch (err: any) {
+      toast.error("Action Failed", err?.message || `Failed to ${name} claim portal`);
     } finally {
       setActionInProgress(null);
     }
@@ -82,9 +104,9 @@ export function ClaimPortalLifecycleControls({
           {/* Activate Portal (from draft or ready) */}
           {(status === "draft" || status === "ready") && (
             <Button
-              onClick={() => runAction("activate", onActivate)}
-              disabled={!isReady || hasBlockers || isLoading || !!actionInProgress}
-              className="text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={handleActivateClick}
+              disabled={hasFatalBlockers || isLoading || !!actionInProgress}
+              className="text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
             >
               {actionInProgress === "activate" ? <Spinner size="sm" /> : <ShieldCheck className="w-4 h-4" />}
               <span>Activate Portal</span>
@@ -105,7 +127,7 @@ export function ClaimPortalLifecycleControls({
           )}
 
           {/* Resume Portal */}
-          {(status === "paused" || status === "disabled") && (
+          {status === "paused" && (
             <Button
               onClick={() => runAction("resume", onResume)}
               disabled={isLoading || !!actionInProgress}
@@ -142,6 +164,40 @@ export function ClaimPortalLifecycleControls({
           )}
         </div>
       </div>
+
+      {/* Acknowledge Missing Outputs Dialog */}
+      <Dialog open={ackExclusionsModalOpen} onOpenChange={setAckExclusionsModalOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Activate Portal with Dynamic Generation?</DialogTitle>
+            <DialogDescription className="space-y-2 pt-1 text-xs">
+              <p>
+                <strong>{missingOutputCount} recipient(s)</strong> do not have pre-generated certificate output files.
+              </p>
+              <p>
+                EmitDocs will synthesize valid certificates on-demand when recipients complete their claim.
+              </p>
+              <p>
+                Proceeding will publish this portal and allow participants with valid credentials to claim their certificates.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setAckExclusionsModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+              onClick={async () => {
+                setAckExclusionsModalOpen(false);
+                await runAction("activate", () => onActivate(true));
+              }}
+            >
+              Acknowledge & Activate
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Close Portal Modal */}
       <Dialog open={closeConfirmOpen} onOpenChange={setCloseConfirmOpen}>

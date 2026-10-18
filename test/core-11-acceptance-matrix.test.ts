@@ -41,6 +41,7 @@ import mongoose from 'mongoose';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../api/.env') });
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 import { Batch } from '../api/src/models/Batch.js';
 import { ApprovedSnapshot } from '../api/src/models/ApprovedSnapshot.js';

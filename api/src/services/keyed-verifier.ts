@@ -147,38 +147,39 @@ export function evaluateImportedCredentialStrength(values: string[]): Credential
   if (collisions.length > 0) {
     return {
       strong: false,
-      reason: `Duplicate credential collisions detected: ${collisions.slice(0, 5).join(", ")}`,
+      reason: `Duplicate credential collisions detected (${collisions.length} collision${collisions.length === 1 ? "" : "s"})`,
       collisions,
     };
   }
 
-  for (const raw of values) {
+  for (let i = 0; i < values.length; i++) {
+    const raw = values[i];
     const val = canonicalizeCredential(raw);
     if (val.length < 12) {
       return {
         strong: false,
-        reason: `Credential "${val}" is shorter than minimum required 12 characters (${val.length} chars)`,
+        reason: `Credential at row ${i + 1} is shorter than minimum required 12 characters (${val.length} chars)`,
         collisions: [],
       };
     }
     if (/^\d+$/.test(val)) {
       return {
         strong: false,
-        reason: `Credential "${val}" is purely numeric; secondary factor is required`,
+        reason: `Credential at row ${i + 1} is purely numeric; secondary factor is required`,
         collisions: [],
       };
     }
     if (/^(.)\1+$/.test(val) || new Set(val).size <= 2) {
       return {
         strong: false,
-        reason: `Credential "${val}" contains repeated characters`,
+        reason: `Credential at row ${i + 1} contains repeated characters`,
         collisions: [],
       };
     }
     if (isSequential(val)) {
       return {
         strong: false,
-        reason: `Credential "${val}" contains a sequential character pattern`,
+        reason: `Credential at row ${i + 1} contains a sequential character pattern`,
         collisions: [],
       };
     }

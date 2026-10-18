@@ -160,12 +160,17 @@ async function run() {
     );
     console.log('✓ AC-001 verified (Create Portal Draft, slug generation, owner & duplicate constraints)');
 
-    // 2. CAS Version update on config
+    // 2. CAS Version update on config (label & instructions)
     const updated = await ClaimPortalLifecycle.updatePortalConfig(ownerId, portal._id.toString(), {
       label: 'Updated Graduation Ceremony 2026',
+      instructions: 'Please provide your 8-digit student number to claim your graduation certificate.',
       expectedVersion: 0,
     });
     assert.strictEqual(updated.label, 'Updated Graduation Ceremony 2026');
+    assert.strictEqual(
+      updated.instructions,
+      'Please provide your 8-digit student number to claim your graduation certificate.'
+    );
     assert.strictEqual(updated.version, 1);
 
     // Conflict on stale version
@@ -249,7 +254,7 @@ async function run() {
     assert.strictEqual(rotated.revision, 2);
     assert.strictEqual(rotated.portal.credentialSetRevision, 2);
     assert.strictEqual(rotated.portal.credentialMode, 'imported_credential');
-    assert.strictEqual(rotated.portal.status, 'paused');
+    assert.strictEqual(rotated.portal.status, 'disabled');
 
     // Prior revision 1 credentials must now be revoked
     const revokedOldCreds = await ClaimCredential.find({ portalId: portal._id, credentialSetRevision: 1 });

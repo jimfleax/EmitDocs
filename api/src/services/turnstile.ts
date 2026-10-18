@@ -23,10 +23,12 @@ export async function verifyTurnstileToken(
   remoteIp?: string
 ): Promise<TurnstileVerifyResult> {
   const secretKey = process.env.TURNSTILE_SECRET_KEY;
-  const isDevOrTest = process.env.NODE_ENV !== 'production';
+  const isBypassAllowed =
+    process.env.NODE_ENV === 'test' ||
+    process.env.TURNSTILE_ALLOW_BYPASS === 'true';
 
   // Test bypass
-  if ((isDevOrTest && token === 'TEST_PASS_TOKEN') || (!secretKey && isDevOrTest)) {
+  if (isBypassAllowed && (token === 'TEST_PASS_TOKEN' || !secretKey)) {
     return { success: true };
   }
 
@@ -46,12 +48,14 @@ export async function verifyTurnstileToken(
       formData.append('remoteip', remoteIp);
     }
 
+    const timeoutMs = Number(process.env.TURNSTILE_TIMEOUT_MS) || 5000;
     const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
       body: formData.toString(),
+      signal: AbortSignal.timeout(timeoutMs),
     });
 
     if (!res.ok) {

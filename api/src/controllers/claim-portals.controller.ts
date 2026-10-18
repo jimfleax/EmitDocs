@@ -8,6 +8,7 @@
 import { Context } from 'hono';
 import { getJsonBody } from '../lib/request.js';
 import { ClaimPortal } from '../models/ClaimPortal.js';
+import { ClaimCredentialSet } from '../models/ClaimCredentialSet.js';
 import {
   ClaimPortalLifecycle,
   PortalConflictError,
@@ -52,7 +53,17 @@ export const getPortalByBatch = async (c: Context) => {
   try {
     const portal = await ClaimPortal.findOne({ batchId, ownerId: user.id });
     if (!portal) return c.json({ portal: null }, 200);
-    return c.json({ portal }, 200);
+    const credSet = await ClaimCredentialSet.findOne({
+      portalId: portal._id,
+      revision: portal.credentialSetRevision,
+    });
+    const portalData = portal.toObject();
+    if (credSet) {
+      portalData.credentialSetStatus = credSet.status;
+      portalData.primaryFieldKey = credSet.primaryFieldKey;
+      portalData.secondaryFieldKey = credSet.secondaryFieldKey;
+    }
+    return c.json({ portal: portalData }, 200);
   } catch (err) {
     return handleControllerError(c, err);
   }
@@ -70,7 +81,9 @@ export const createPortal = async (c: Context) => {
       label: body?.label,
       instructions: body?.instructions,
     });
-    return c.json({ portal }, 201);
+    const portalData = portal.toObject();
+    portalData.credentialSetStatus = 'preparing';
+    return c.json({ portal: portalData }, 201);
   } catch (err) {
     return handleControllerError(c, err);
   }

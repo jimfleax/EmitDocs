@@ -53,9 +53,8 @@ export function PublicClaimCredentialForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {isTokenMode ? (
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-            <span>Claim Access Token</span>
-            <span className="text-[11px] font-normal text-slate-400">Issued by organizer</span>
+          <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            Claim Access Token
           </label>
           <div className="relative">
             <Key className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
@@ -66,18 +65,18 @@ export function PublicClaimCredentialForm({
               value={primary}
               onChange={(e) => setPrimary(e.target.value)}
               placeholder="e.g. 43-character token"
-              className="pl-9 font-mono text-xs h-9 tracking-wider"
+              className="pl-9 font-mono text-xs h-10 tracking-wider bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
               disabled={isLoading}
             />
           </div>
-          <span className="text-[11px] text-slate-500 leading-normal block">
-            Enter the private claim token from your invitation email or badge.
-          </span>
+          <p className="text-[11px] text-slate-400">
+            Enter the private claim token provided by your organizer.
+          </p>
         </div>
       ) : (
         <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
               {primaryFieldLabel || "Primary Identifier"}
             </label>
             <Input
@@ -87,16 +86,15 @@ export function PublicClaimCredentialForm({
               value={primary}
               onChange={(e) => setPrimary(e.target.value)}
               placeholder={`Enter your ${primaryFieldLabel || "ID"}...`}
-              className="text-xs h-9"
+              className="text-xs h-10 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
               disabled={isLoading}
             />
           </div>
 
           {secondaryFieldLabel && (
             <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
-                <span>{secondaryFieldLabel}</span>
-                <span className="text-[10px] text-blue-600 font-semibold uppercase">Verification</span>
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                {secondaryFieldLabel}
               </label>
               <Input
                 type="text"
@@ -104,7 +102,7 @@ export function PublicClaimCredentialForm({
                 value={secondary}
                 onChange={(e) => setSecondary(e.target.value)}
                 placeholder={`Enter your ${secondaryFieldLabel}...`}
-                className="text-xs h-9"
+                className="text-xs h-10 bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
                 disabled={isLoading}
               />
             </div>
@@ -124,7 +122,7 @@ export function PublicClaimCredentialForm({
       <Button
         type="submit"
         disabled={!primary.trim() || (requiresTurnstile && !turnstileToken) || isLoading}
-        className="w-full h-10 text-xs font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white"
+        className="w-full h-11 text-xs font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 rounded-xl transition-all cursor-pointer"
       >
         {isLoading ? <Spinner size="sm" /> : <ShieldCheck className="w-4 h-4" />}
         <span>Verify &amp; Access Certificate</span>

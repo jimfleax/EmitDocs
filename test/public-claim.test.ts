@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.resolve(__dirname, '../api/.env') });
+process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 
 import { ClaimPortal } from '../api/src/models/ClaimPortal.js';
 import { ClaimCredentialSet } from '../api/src/models/ClaimCredentialSet.js';

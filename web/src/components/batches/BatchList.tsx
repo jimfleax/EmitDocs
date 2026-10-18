@@ -18,6 +18,7 @@ import {
   Eye,
   ArrowRight,
   CircleNotch,
+  ShareNetwork,
 } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Badge } from "@/components/ui/Badge";
@@ -220,7 +221,7 @@ export function BatchList() {
               placeholder="Search batches..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400"
+              className="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none focus:outline-none focus:border-blue-500 transition-all text-slate-900 placeholder:text-slate-400"
             />
           </div>
 
@@ -438,6 +439,17 @@ export function BatchList() {
 
                 {/* Right section: Action Buttons + Popover Menu */}
                 <div className="flex items-center justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                  {batch.approvedSnapshotId && (
+                    <Link
+                      to={`/app/batches/${batch._id}/claim-portal` as any}
+                      title="Open Certificate Claim Portal"
+                      className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 dark:bg-indigo-950/40 dark:text-indigo-300 dark:hover:bg-indigo-900/60 border border-indigo-200/80 dark:border-indigo-800/80 transition-colors select-none cursor-pointer"
+                    >
+                      <ShareNetwork size={13} weight="bold" />
+                      <span>Share Portal</span>
+                    </Link>
+                  )}
+
                   <Link
                     to={destination.path as any}
                     className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-slate-50 text-slate-700 hover:bg-blue-50 hover:text-blue-600 border border-slate-200/80 transition-colors select-none cursor-pointer"
@@ -457,7 +469,21 @@ export function BatchList() {
                         <DotsThreeVertical size={18} weight="bold" />
                       </button>
                     </PopoverTrigger>
-                    <PopoverContent align="end" className="w-36 p-1">
+                    <PopoverContent align="end" className="w-40 p-1">
+                      {batch.approvedSnapshotId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigate({
+                              to: `/app/batches/${batch._id}/claim-portal` as any,
+                            });
+                          }}
+                          className="flex w-full items-center gap-2 px-2.5 py-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 rounded-lg transition-colors cursor-pointer select-none"
+                        >
+                          <ShareNetwork size={14} weight="bold" />
+                          <span>Claim Portal</span>
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => {

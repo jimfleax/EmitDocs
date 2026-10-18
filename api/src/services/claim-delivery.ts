@@ -11,6 +11,9 @@ import { ClaimPortal, IClaimPortal } from '../models/ClaimPortal.js';
 import { ClaimSession, IClaimSession } from '../models/ClaimSession.js';
 import { ClaimRecipientState } from '../models/ClaimRecipientState.js';
 import { ApprovedRecipient, IApprovedRecipientDoc } from '../models/ApprovedRecipient.js';
+import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
+import { TemplateVersion } from '../models/TemplateVersion.js';
+import { TemplateLifecycle } from './template-lifecycle.js';
 import { ClaimNotAvailableError } from './participant-claim.js';
 
 export class ClaimSessionInvalidError extends Error {
@@ -119,7 +122,7 @@ export async function getAuthorizedDownloadPayload(
   publicSlug: string,
   rawToken: string
 ): Promise<AuthorizedDownloadPayload> {
-  const { portal, recipient } = await validateClaimSession(publicSlug, rawToken);
+  const { recipient } = await validateClaimSession(publicSlug, rawToken);
 
   const recipientName =
     recipient.effectiveData?.['Name'] ||
@@ -133,7 +136,7 @@ export async function getAuthorizedDownloadPayload(
 
   // Anti-IDOR: URL points directly to verified recipient's output or authorized proxy
   const downloadUrl = recipient.outputKey
-    ? `/api/storage/file/${recipient.outputKey}`
+    ? `/api/public/claim-portals/${encodeURIComponent(publicSlug)}/documents/${recipient.outputKey}`
     : `/api/public/claim-portals/${encodeURIComponent(publicSlug)}/documents/${recipient._id}`;
 
   return {
@@ -162,3 +165,114 @@ export async function revokeClaimSession(rawToken: string): Promise<boolean> {
 
   return result.modifiedCount > 0;
 }
+
+export interface ClaimRenderPayload {
+  recipientName: string;
+  filename: string;
+  fieldMappings: any[];
+  effectiveData: Record<string, any>;
+  templateVersion: number;
+  outputKey: string | null;
+}
+
+/**
+ * Retrieves the full generation payload (template field mappings and recipient effective data)
+ * for an authorized claim session, allowing deterministic client-side or server-side custom PDF synthesis.
+ */
+export async function getClaimRenderPayload(
+  publicSlug: string,
+  rawToken: string
+): Promise<ClaimRenderPayload> {
+  const { portal, recipient } = await validateClaimSession(publicSlug, rawToken);
+
+  const snapshot = await ApprovedSnapshot.findById(portal.snapshotId);
+  if (!snapshot) {
+    throw new ClaimSessionInvalidError('Snapshot for portal not found');
+  }
+
+  const version = await TemplateVersion.findById(snapshot.templateVersionId);
+  if (!version) {
+    throw new ClaimSessionInvalidError('Template version for snapshot not found');
+  }
+
+  const recipientName =
+    recipient.effectiveData?.['Name'] ||
+    recipient.effectiveData?.['Full Name'] ||
+    recipient.effectiveData?.['name'] ||
+    recipient.recipientKey ||
+    'Participant';
+
+  const sanitizedName = recipientName.replace(/[^a-zA-Z0-9_-]/g, '_');
+  const filename = `${sanitizedName}_certificate.pdf`;
+
+  return {
+    recipientName,
+    filename,
+    fieldMappings: version.fieldMappings || [],
+    effectiveData: recipient.effectiveData || {},
+    templateVersion: version.version,
+    outputKey: recipient.outputKey,
+  };
+}
+
+/**
+ * Retrieves the base PDF template stream for an authorized claim session.
+ */
+export async function getClaimTemplateAsset(
+  publicSlug: string,
+  rawToken: string
+): Promise<{ body: any; filename: string }> {
+  const { portal } = await validateClaimSession(publicSlug, rawToken);
+
+  const snapshot = await ApprovedSnapshot.findById(portal.snapshotId);
+  if (!snapshot) throw new ClaimSessionInvalidError('Snapshot not found');
+
+  return TemplateLifecycle.streamAsset({
+    templateId: snapshot.templateId.toString(),
+    versionId: snapshot.templateVersionId.toString(),
+    ownerId: portal.ownerId,
+  });
+}
+
+/**
+ * Retrieves the base PDF template bytes as Buffer for server-side overlay generation.
+ */
+export async function getClaimTemplateBaseBytes(
+  portalId: string,
+  ownerId: string,
+  snapshotId: string
+): Promise<Buffer | null> {
+  try {
+    const snapshot = await ApprovedSnapshot.findById(snapshotId);
+    if (!snapshot) return null;
+
+    const asset = await TemplateLifecycle.streamAsset({
+      templateId: snapshot.templateId.toString(),
+      versionId: snapshot.templateVersionId.toString(),
+      ownerId,
+    });
+
+    if (asset && asset.body) {
+      if (Buffer.isBuffer(asset.body)) return asset.body;
+      const chunks: Buffer[] = [];
+      const reader = (asset.body as any).getReader ? (asset.body as any).getReader() : null;
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(Buffer.from(value));
+        }
+        return Buffer.concat(chunks);
+      } else if (typeof (asset.body as any)[Symbol.asyncIterator] === 'function') {
+        for await (const chunk of asset.body as any) {
+          chunks.push(Buffer.from(chunk));
+        }
+        return Buffer.concat(chunks);
+      }
+    }
+  } catch {
+    // Fallback if Cloudinary asset is missing or offline
+  }
+  return null;
+}
+

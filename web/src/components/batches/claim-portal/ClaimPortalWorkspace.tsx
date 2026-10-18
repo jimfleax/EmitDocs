@@ -4,9 +4,12 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { ShieldCheck } from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Alert } from "@/components/ui/Alert";
 import { toast } from "@/components/ui/toast";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/Spinner";
 import { ClaimPortalStatusHeader } from "./ClaimPortalStatusHeader";
 import { CredentialModeSelector } from "./CredentialModeSelector";
 import { ImportedCredentialColumnMapper } from "./ImportedCredentialColumnMapper";
@@ -20,6 +23,7 @@ import { ExcludedRecipientReviewTable } from "./ExcludedRecipientReviewTable";
 import { ClaimPortalLifecycleControls } from "./ClaimPortalLifecycleControls";
 import { ClaimAnalyticsSummary } from "./ClaimAnalyticsSummary";
 import { RecipientClaimStatusTable } from "./RecipientClaimStatusTable";
+import { ClaimPortalSettingsPanel } from "./ClaimPortalSettingsPanel";
 
 export interface ClaimPortalWorkspaceProps {
   batchId: string;
@@ -32,6 +36,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
 
   const [batch, setBatch] = useState<any>(null);
   const [portal, setPortal] = useState<any>(null);
+  const [credentialSetStatus, setCredentialSetStatus] = useState<
+    "preparing" | "awaiting_export_ack" | "ready" | "revoked" | "expired"
+  >("preparing");
   const [analytics, setAnalytics] = useState<any>({
     totalEligible: 0,
     uniqueClaimedCount: 0,
@@ -45,6 +52,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   const [primaryFieldKey, setPrimaryFieldKey] = useState<string>("");
   const [secondaryFieldKey, setSecondaryFieldKey] = useState<string | undefined>(undefined);
   const [strengthReport, setStrengthReport] = useState<any>(null);
+  const [isSavingImport, setIsSavingImport] = useState(false);
+  const [importConfigError, setImportConfigError] = useState<string | null>(null);
+  const [weakReasons, setWeakReasons] = useState<string[]>([]);
 
   // Recipient table state
   const [recipients, setRecipients] = useState<any[]>([]);
@@ -71,7 +81,11 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       // 2. Fetch or create portal
       let currentPortal: any = null;
       const pRes = await fetch(`/api/batches/${batchId}/claim-portal`, { credentials: "include" });
-      if (pRes.status === 404) {
+      if (!pRes.ok) {
+        throw new Error("Failed to load claim portal");
+      }
+      const pData = await pRes.json();
+      if (!pData.portal) {
         // Create initial draft
         const createRes = await fetch(`/api/batches/${batchId}/claim-portal`, {
           method: "POST",
@@ -83,10 +97,15 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
         const createData = await createRes.json();
         currentPortal = createData.portal;
         setPortal(createData.portal);
-      } else if (pRes.ok) {
-        const pData = await pRes.json();
+        if (createData.portal?.credentialSetStatus) {
+          setCredentialSetStatus(createData.portal.credentialSetStatus);
+        }
+      } else {
         currentPortal = pData.portal;
         setPortal(pData.portal);
+        if (pData.portal?.credentialSetStatus) {
+          setCredentialSetStatus(pData.portal.credentialSetStatus);
+        }
       }
 
       // 3. Fetch preflight & analytics if portal exists
@@ -99,10 +118,25 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
           const preData = await preRes.json();
           setPreflight(preData);
           setStrengthReport(preData.strengthReport || null);
+          if (preData.credentialSetStatus) {
+            setCredentialSetStatus(preData.credentialSetStatus);
+          }
+          if (preData.primaryFieldKey) {
+            setPrimaryFieldKey((prev) => prev || preData.primaryFieldKey);
+          }
+          if (preData.secondaryFieldKey) {
+            setSecondaryFieldKey((prev) => prev || preData.secondaryFieldKey);
+          }
         }
         if (anRes.ok) {
           const anData = await anRes.json();
-          setAnalytics(anData);
+          const raw = anData.analytics || anData;
+          setAnalytics({
+            totalEligible: Number(raw.totalEligible ?? 0),
+            uniqueClaimedCount: Number(raw.claimedCount ?? raw.uniqueClaimedCount ?? 0),
+            unclaimedCount: Number(raw.unclaimedCount ?? 0),
+            claimRatePercent: Number(raw.claimRatePercent ?? 0),
+          });
         }
       }
 
@@ -126,8 +160,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   }, [loadData]);
 
   // Load recipients
+  const portalId = portal?._id;
   const loadRecipients = useCallback(async () => {
-    if (!portal?._id) return;
+    if (!portalId) return;
     try {
       const q = new URLSearchParams({
         page: String(recPage),
@@ -135,16 +170,30 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
         search: recSearch,
         status: recStatusFilter,
       });
-      const res = await fetch(`/api/claim-portals/${portal._id}/recipients?${q}`, { credentials: "include" });
+      const res = await fetch(`/api/claim-portals/${portalId}/recipients?${q}`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
-        setRecipients(data.recipients || []);
+        const mapped = (data.items || []).map((item: any) => {
+          const rec = typeof item.recipientId === "object" && item.recipientId !== null ? item.recipientId : {};
+          const eff = rec.effectiveData || {};
+          const recipientId = rec._id || (typeof item.recipientId === "string" ? item.recipientId : item._id);
+          return {
+            _id: String(recipientId),
+            recipientKey: rec.recipientKey || eff.recipientKey || "",
+            name: eff.name || eff.fullName || eff.recipientName || rec.name || "Participant",
+            email: eff.email || eff.emailAddress || rec.email || "",
+            status: item.status,
+            firstClaimAt: item.firstClaimAt,
+            lastClaimAt: item.lastClaimAt,
+          };
+        });
+        setRecipients(mapped);
         setRecipientTotal(data.total || 0);
       }
     } catch {
       // Ignore background error
     }
-  }, [portal?._id, recPage, recSearch, recStatusFilter]);
+  }, [portalId, recPage, recSearch, recStatusFilter]);
 
   useEffect(() => {
     if (activeTab === "recipients") {
@@ -153,16 +202,16 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   }, [activeTab, loadRecipients]);
 
   // Lifecycle action handlers
-  const handleActivate = async () => {
+  const handleActivate = async (ackExclusions = true) => {
     const res = await fetch(`/api/claim-portals/${portal._id}/activate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ expectedVersion: portal.version }),
+      body: JSON.stringify({ expectedVersion: portal.version, ackExclusions }),
     });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Activation failed");
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || "Activation failed");
     }
     toast.success("Portal Activated", "Participants can now access the portal.");
     await loadData();
@@ -202,10 +251,11 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       credentials: "include",
     });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.message || "Failed to generate tokens");
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || "Failed to generate tokens");
     }
     const data = await res.json();
+    setCredentialSetStatus("awaiting_export_ack");
     return data.exportTokens || [];
   };
 
@@ -216,7 +266,11 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       credentials: "include",
       body: JSON.stringify({ revision }),
     });
-    if (!res.ok) throw new Error("Failed to acknowledge export");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || "Failed to acknowledge export");
+    }
+    setCredentialSetStatus("ready");
     await loadData();
   };
 
@@ -225,9 +279,57 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       method: "POST",
       credentials: "include",
     });
-    if (!res.ok) throw new Error("Revocation failed");
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || "Revocation failed");
+    }
     toast.success("Recipient Revoked");
     await loadRecipients();
+  };
+
+  const handleConfigureImport = async () => {
+    if (!portal?._id || !primaryFieldKey) return;
+    try {
+      setIsSavingImport(true);
+      setImportConfigError(null);
+      setWeakReasons([]);
+      const res = await fetch(`/api/claim-portals/${portal._id}/credentials/import-config`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          primaryFieldKey,
+          secondaryFieldKey: secondaryFieldKey || undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        if (res.status === 400 && (err.code === "WEAK_CREDENTIAL" || err.reasons)) {
+          const reasons = Array.isArray(err.reasons) ? err.reasons : [];
+          setWeakReasons(reasons);
+          setImportConfigError(err.error || "Weak credential: secondary factor required");
+          setStrengthReport({
+            strong: false,
+            reason: err.error,
+            collisions: reasons,
+          });
+          return;
+        }
+        if (res.status === 409) {
+          setImportConfigError(err.error || "Duplicate credential collisions detected");
+          return;
+        }
+        throw new Error(err.error || err.message || "Failed to configure imported credentials");
+      }
+
+      toast.success("Credential Mapping Saved", "Imported credentials configured successfully.");
+      await loadData();
+    } catch (err: any) {
+      setImportConfigError(err.message || "Failed to configure credentials");
+    } finally {
+      setIsSavingImport(false);
+    }
   };
 
   return (
@@ -251,6 +353,28 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
             portal={portal}
             batchName={batch?.name || "Batch"}
           />
+        )}
+
+        {/* Ready to launch alert */}
+        {portal?.status === "ready" && (
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800">
+            <div className="text-xs">
+              <span className="font-bold text-blue-900 dark:text-blue-100 block">
+                Portal is Ready to Launch
+              </span>
+              <span className="text-blue-700 dark:text-blue-300 block">
+                Your credentials have been set up. Click Activate Portal to make this link live for participants.
+              </span>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => handleActivate(true)}
+              className="text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Activate Portal Now</span>
+            </Button>
+          </div>
         )}
 
         {/* Tab Navigation */}
@@ -279,6 +403,10 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
               status={portal.status}
               isReady={preflight?.isReady ?? false}
               hasBlockers={(preflight?.blockers?.length ?? 0) > 0}
+              missingOutputCount={preflight?.missingOutputCount || 0}
+              fatalBlockers={(preflight?.blockers || []).filter(
+                (b: string) => !/missing generated certificate outputs/i.test(b)
+              )}
               onActivate={handleActivate}
               onPause={handlePause}
               onResume={handleResume}
@@ -293,7 +421,11 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
           <div className="space-y-6">
             <CredentialModeSelector
               mode={portal.credentialMode || "generated_token"}
-              onChange={(m) => setModeSwitchTarget(m)}
+              onChange={(m) => {
+                if (m !== (portal.credentialMode || "generated_token")) {
+                  setModeSwitchTarget(m);
+                }
+              }}
               isExistingPortal={portal.status !== "draft"}
             />
 
@@ -301,7 +433,7 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
               <GeneratedTokenExportPanel
                 portalId={portal._id}
                 revision={portal.credentialSetRevision || 1}
-                status={portal.credentialSetStatus || "preparing"}
+                status={credentialSetStatus}
                 onGenerate={handleGenerateTokens}
                 onAcknowledge={handleAcknowledgeExport}
                 onRotatePrompt={() => setRotationDialogOpen(true)}
@@ -312,10 +444,41 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
                   availableColumns={availableColumns}
                   primaryFieldKey={primaryFieldKey}
                   secondaryFieldKey={secondaryFieldKey}
-                  onPrimaryChange={setPrimaryFieldKey}
-                  onSecondaryChange={setSecondaryFieldKey}
+                  onPrimaryChange={(f) => {
+                    setPrimaryFieldKey(f);
+                    setImportConfigError(null);
+                    setWeakReasons([]);
+                  }}
+                  onSecondaryChange={(f) => {
+                    setSecondaryFieldKey(f);
+                    setImportConfigError(null);
+                    setWeakReasons([]);
+                  }}
                   requiresSecondary={strengthReport && !strengthReport.strong}
                 />
+                <div className="flex justify-end">
+                  <Button
+                    onClick={handleConfigureImport}
+                    disabled={!primaryFieldKey || isSavingImport}
+                    size="sm"
+                    className="text-xs font-bold gap-2 cursor-pointer"
+                  >
+                    {isSavingImport && <Spinner size="sm" />}
+                    <span>Save Credential Mapping</span>
+                  </Button>
+                </div>
+                {importConfigError && (
+                  <Alert variant="error" title="Credential Configuration Error">
+                    <p className="text-xs">{importConfigError}</p>
+                    {weakReasons.length > 0 && (
+                      <ul className="list-disc pl-4 mt-1.5 space-y-0.5 text-xs">
+                        {weakReasons.map((r, i) => (
+                          <li key={i}>{r}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </Alert>
+                )}
                 <CredentialStrengthReport
                   strength={strengthReport}
                   hasSecondaryField={!!secondaryFieldKey}
@@ -341,6 +504,22 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
             {preflight?.excludedRecipients && (
               <ExcludedRecipientReviewTable excludedRecipients={preflight.excludedRecipients} />
             )}
+            {portal && (
+              <ClaimPortalLifecycleControls
+                status={portal.status}
+                isReady={preflight?.isReady ?? false}
+                hasBlockers={(preflight?.blockers?.length ?? 0) > 0}
+                missingOutputCount={preflight?.missingOutputCount || 0}
+                fatalBlockers={(preflight?.blockers || []).filter(
+                  (b: string) => !/missing generated certificate outputs/i.test(b)
+                )}
+                onActivate={handleActivate}
+                onPause={handlePause}
+                onResume={handleResume}
+                onDisable={handleDisable}
+                onClose={handleClose}
+              />
+            )}
           </div>
         )}
 
@@ -363,27 +542,12 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
 
         {/* Settings Tab */}
         {activeTab === "settings" && portal && (
-          <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-              Portal Metadata &amp; Instructions
-            </h4>
-            <div className="space-y-2 text-xs">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
-                Portal Title / Safe Label:
-              </label>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono">
-                {portal.label}
-              </div>
-            </div>
-            <div className="space-y-2 text-xs">
-              <label className="font-semibold text-slate-700 dark:text-slate-300">
-                Retention Expiry (Inherited from Batch):
-              </label>
-              <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 font-mono">
-                {portal.expiresAt ? new Date(portal.expiresAt).toLocaleString() : "—"}
-              </div>
-            </div>
-          </div>
+          <ClaimPortalSettingsPanel
+            portal={portal}
+            onUpdatePortal={(updatedPortal) => {
+              setPortal(updatedPortal);
+            }}
+          />
         )}
 
         {/* Rotation Dialog */}
@@ -399,6 +563,7 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
             });
             if (!res.ok) throw new Error("Rotation failed");
             toast.success("Tokens Rotated", "Old credentials invalidated.");
+            setCredentialSetStatus("preparing");
             await loadData();
           }}
         />
@@ -419,6 +584,7 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
               if (!res.ok) throw new Error("Mode switch failed");
               toast.success("Mode Switched", "Portal paused for configuration.");
               setModeSwitchTarget(null);
+              setCredentialSetStatus("preparing");
               await loadData();
             }}
           />

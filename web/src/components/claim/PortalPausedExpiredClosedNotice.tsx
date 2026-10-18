@@ -6,7 +6,7 @@
 import { Pause, Lock, Clock, WarningOctagon } from "@phosphor-icons/react";
 
 export interface PortalPausedExpiredClosedNoticeProps {
-  status: "paused" | "disabled" | "closed" | "expired";
+  status: "draft" | "ready" | "paused" | "disabled" | "closed" | "expired";
   portalLabel?: string;
   expiresAt?: string | Date;
 }
@@ -18,6 +18,14 @@ export function PortalPausedExpiredClosedNotice({
 }: PortalPausedExpiredClosedNoticeProps) {
   const getContent = () => {
     switch (status) {
+      case "draft":
+      case "ready":
+        return {
+          icon: <Clock className="w-8 h-8 text-blue-500" weight="fill" />,
+          title: "Portal Not Yet Active",
+          message:
+            "This certificate claim portal has been configured but is not yet active. If you are an organizer, log into your EmitDocs dashboard and click 'Activate Portal'. If you are a participant, please check back soon.",
+        };
       case "paused":
         return {
           icon: <Pause className="w-8 h-8 text-amber-500" weight="fill" />,
