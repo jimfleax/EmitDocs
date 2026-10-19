@@ -30,7 +30,6 @@ EmitDocs is a bulk document personalization and issuance platform. It takes exis
 9. [Automated Verification & Acceptance Suites](#automated-verification--acceptance-suites)
 10. [Batch Lifecycle & Domain Invariants](#batch-lifecycle--domain-invariants)
 11. [Security, Tenant Isolation & Retention](#security-tenant-isolation--retention)
-12. [Release Boundary & Roadmap](#release-boundary--roadmap)
 13. [Comprehensive Documentation Index](#comprehensive-documentation-index)
 14. [License](#license)
 
