@@ -28,8 +28,6 @@ import { ClaimPortal } from '../api/src/models/ClaimPortal.js';
 import { ClaimCredential } from '../api/src/models/ClaimCredential.js';
 import { ClaimSession } from '../api/src/models/ClaimSession.js';
 import { ClaimRecipientState } from '../api/src/models/ClaimRecipientState.js';
-import { ApprovedRecipient } from '../api/src/models/ApprovedRecipient.js';
-import { DraftRow } from '../api/src/models/DraftRow.js';
 import { RetentionPruner } from '../api/src/services/retention-pruner.js';
 
 /**
@@ -186,7 +184,7 @@ async function run() {
     const testPortalId = new mongoose.Types.ObjectId();
     const past = new Date(Date.now() - 100000);
 
-    const batch = await Batch.create({
+    await Batch.create({
       _id: testBatchId,
       name: 'Prune Test Batch',
       ownerId: 'owner_prune_test',
@@ -197,7 +195,7 @@ async function run() {
       retentionHours: 24,
     });
 
-    const portal = await ClaimPortal.create({
+    await ClaimPortal.create({
       _id: testPortalId,
       publicSlug: `prune-slug-${Date.now()}`,
       ownerId: 'owner_prune_test',

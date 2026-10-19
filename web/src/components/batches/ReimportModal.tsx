@@ -71,7 +71,9 @@ export function ReimportModal({
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [isSubmittingReconcile, setIsSubmittingReconcile] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgressText, setUploadProgressText] = useState<string | undefined>();
+  const [uploadProgressText, setUploadProgressText] = useState<
+    string | undefined
+  >();
 
   // Resolutions
   const [conflictDecisions, setConflictDecisions] = useState<

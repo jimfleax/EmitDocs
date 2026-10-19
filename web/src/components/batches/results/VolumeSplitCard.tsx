@@ -83,7 +83,10 @@ export function VolumeSplitCard({
       <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800/80">
         <div className="flex items-center gap-1.5 font-mono">
           <HardDrives className="w-3.5 h-3.5 text-slate-400" />
-          <span>Rows {(volume.startIndex + 1).toLocaleString()}–{volume.endIndex.toLocaleString()}</span>
+          <span>
+            Rows {(volume.startIndex + 1).toLocaleString()}–
+            {volume.endIndex.toLocaleString()}
+          </span>
         </div>
         <span className="font-mono text-slate-400">
           Part {volume.volumeIndex}/{volume.totalVolumes}

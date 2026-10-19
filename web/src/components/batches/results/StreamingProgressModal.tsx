@@ -86,7 +86,8 @@ export function StreamingProgressModal({
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs">
             <span className="font-semibold text-slate-700 dark:text-slate-300">
-              {progress.current.toLocaleString()} of {progress.total.toLocaleString()} docs
+              {progress.current.toLocaleString()} of{" "}
+              {progress.total.toLocaleString()} docs
             </span>
             <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400 text-sm">
               {progress.percent}%

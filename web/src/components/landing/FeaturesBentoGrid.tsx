@@ -42,11 +42,17 @@ async function computeSha256(text: string): Promise<string> {
  */
 export function FeaturesBentoGrid() {
   // Card 1 State: Sub-Pixel Coordinate & Fit-Then-Flag Engine
-  const [alignment, setAlignment] = useState<"left" | "center" | "right">("center");
-  const [testTextMode, setTestTextMode] = useState<"standard" | "overlong">("overlong");
+  const [alignment, setAlignment] = useState<"left" | "center" | "right">(
+    "center",
+  );
+  const [testTextMode, setTestTextMode] = useState<"standard" | "overlong">(
+    "overlong",
+  );
 
   // Card 2 State: Spreadsheet Intake Filter
-  const [intakeFilter, setIntakeFilter] = useState<"all" | "valid" | "quarantine">("all");
+  const [intakeFilter, setIntakeFilter] = useState<
+    "all" | "valid" | "quarantine"
+  >("all");
 
   // Card 3 State: Non-destructive Override Diff
   const [overrideValue, setOverrideValue] = useState("Marcus Chen, Ph.D.");
@@ -79,11 +85,14 @@ export function FeaturesBentoGrid() {
   } | null>(null);
 
   // Card 6 State: Retention Preset
-  const [retentionPeriod, setRetentionPeriod] = useState<"24h" | "7d" | "30d">("7d");
+  const [retentionPeriod, setRetentionPeriod] = useState<"24h" | "7d" | "30d">(
+    "7d",
+  );
 
   // Card 4 Actions
   const handleSimulateTamper = async () => {
-    const mutated = "Marcus Vance (Unauthorized Mod) | Track: Distributed Systems";
+    const mutated =
+      "Marcus Vance (Unauthorized Mod) | Track: Distributed Systems";
     const rawPayload = JSON.stringify({
       version: snapshotState.templateVersion,
       rows: snapshotState.rowsCount,
@@ -177,7 +186,8 @@ export function FeaturesBentoGrid() {
       ? "Marcus Aurelius Montgomery Vance"
       : "Dr. Elena Rostova";
   const currentFontSize = testTextMode === "overlong" ? 20 : 28;
-  const currentXPoint = alignment === "left" ? 72 : alignment === "center" ? 146 : 220;
+  const currentXPoint =
+    alignment === "left" ? 72 : alignment === "center" ? 146 : 220;
 
   return (
     <section id="features" className="py-20 sm:py-28 relative scroll-mt-20">
@@ -189,7 +199,9 @@ export function FeaturesBentoGrid() {
             <span className="text-blue-600">Built without compromise.</span>
           </h2>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-            EmitDocs solves the real hazards of bulk issuance: broken coordinate transformations, silent text clipping, corrupted spreadsheets, and unrecoverable errors.
+            EmitDocs solves the real hazards of bulk issuance: broken coordinate
+            transformations, silent text clipping, corrupted spreadsheets, and
+            unrecoverable errors.
           </p>
         </div>
 
@@ -212,7 +224,10 @@ export function FeaturesBentoGrid() {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
-                Automatic placeholder token detection with interactive alignment snappers across rotated, multi-page PDFs. Our Fit-Then-Flag algorithm clamps font sizing to safe minimums and raises blocking flags before silent clipping occurs.
+                Automatic placeholder token detection with interactive alignment
+                snappers across rotated, multi-page PDFs. Our Fit-Then-Flag
+                algorithm clamps font sizing to safe minimums and raises
+                blocking flags before silent clipping occurs.
               </p>
             </div>
 
@@ -245,7 +260,9 @@ export function FeaturesBentoGrid() {
                 {/* Interactive Alignment & Text Length Controls */}
                 <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 bg-black/20 backdrop-blur-md p-2.5 rounded-xl border border-white/15 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-100/70 font-sans">Snapper Alignment:</span>
+                    <span className="text-blue-100/70 font-sans">
+                      Snapper Alignment:
+                    </span>
                     <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-lg border border-white/15">
                       {(["left", "center", "right"] as const).map((mode) => (
                         <button
@@ -265,7 +282,9 @@ export function FeaturesBentoGrid() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-blue-100/70 font-sans">Simulate Text Length:</span>
+                    <span className="text-blue-100/70 font-sans">
+                      Simulate Text Length:
+                    </span>
                     <div className="flex items-center gap-1 bg-white/10 p-0.5 rounded-lg border border-white/15">
                       <button
                         type="button"
@@ -330,16 +349,26 @@ export function FeaturesBentoGrid() {
                 <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 text-xs">
                   {testTextMode === "overlong" ? (
                     <span className="text-amber-300 flex items-center gap-1.5 font-medium">
-                      <WarningCircle size={15} weight="fill" className="text-amber-400" />
+                      <WarningCircle
+                        size={15}
+                        weight="fill"
+                        className="text-amber-400"
+                      />
                       <span>
-                        Fit-Then-Flag Active: Auto-scaled font from 28pt to 20pt to prevent boundary clipping.
+                        Fit-Then-Flag Active: Auto-scaled font from 28pt to 20pt
+                        to prevent boundary clipping.
                       </span>
                     </span>
                   ) : (
                     <span className="text-emerald-300 flex items-center gap-1.5 font-medium">
-                      <CheckCircle size={15} weight="fill" className="text-emerald-400" />
+                      <CheckCircle
+                        size={15}
+                        weight="fill"
+                        className="text-emerald-400"
+                      />
                       <span>
-                        Font size 28pt verified: Fits safely within coordinate margins.
+                        Font size 28pt verified: Fits safely within coordinate
+                        margins.
                       </span>
                     </span>
                   )}
@@ -368,7 +397,9 @@ export function FeaturesBentoGrid() {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Chunked CSV &amp; XLSX ingestion parses 5,000+ rows seamlessly. Duplicate fingerprinting quarantines anomalies while valid records proceed without obstruction.
+                Chunked CSV &amp; XLSX ingestion parses 5,000+ rows seamlessly.
+                Duplicate fingerprinting quarantines anomalies while valid
+                records proceed without obstruction.
               </p>
             </div>
 
@@ -379,7 +410,9 @@ export function FeaturesBentoGrid() {
                   type="button"
                   onClick={() => setIntakeFilter("all")}
                   className={`flex-1 py-1 rounded-lg transition-all cursor-pointer ${
-                    intakeFilter === "all" ? "bg-white text-slate-900 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    intakeFilter === "all"
+                      ? "bg-white text-slate-900 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
                   All (5,000)
@@ -388,7 +421,9 @@ export function FeaturesBentoGrid() {
                   type="button"
                   onClick={() => setIntakeFilter("valid")}
                   className={`flex-1 py-1 rounded-lg transition-all cursor-pointer ${
-                    intakeFilter === "valid" ? "bg-white text-emerald-600 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    intakeFilter === "valid"
+                      ? "bg-white text-emerald-600 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
                   Valid (4,992)
@@ -397,7 +432,9 @@ export function FeaturesBentoGrid() {
                   type="button"
                   onClick={() => setIntakeFilter("quarantine")}
                   className={`flex-1 py-1 rounded-lg transition-all cursor-pointer ${
-                    intakeFilter === "quarantine" ? "bg-white text-amber-600 shadow-2xs" : "text-slate-500 hover:text-slate-800"
+                    intakeFilter === "quarantine"
+                      ? "bg-white text-amber-600 shadow-2xs"
+                      : "text-slate-500 hover:text-slate-800"
                   }`}
                 >
                   Quarantine (8)
@@ -408,13 +445,16 @@ export function FeaturesBentoGrid() {
                 {intakeFilter === "all" && (
                   <div className="flex items-center justify-between text-slate-700">
                     <span className="font-medium">Total Ingestion State</span>
-                    <span className="font-mono font-bold text-blue-600">100% Parsed</span>
+                    <span className="font-mono font-bold text-blue-600">
+                      100% Parsed
+                    </span>
                   </div>
                 )}
                 {intakeFilter === "valid" && (
                   <div className="flex items-center justify-between text-emerald-700">
                     <span className="font-medium flex items-center gap-1">
-                      <CheckCircle size={14} weight="fill" /> Ready for PDF generation
+                      <CheckCircle size={14} weight="fill" /> Ready for PDF
+                      generation
                     </span>
                     <span className="font-mono font-bold">4,992 Rows</span>
                   </div>
@@ -422,13 +462,15 @@ export function FeaturesBentoGrid() {
                 {intakeFilter === "quarantine" && (
                   <div className="flex items-center justify-between text-amber-700">
                     <span className="font-medium flex items-center gap-1">
-                      <WarningCircle size={14} weight="fill" /> Duplicate Fingerprint
+                      <WarningCircle size={14} weight="fill" /> Duplicate
+                      Fingerprint
                     </span>
                     <span className="font-mono font-bold">8 Non-blocking</span>
                   </div>
                 )}
                 <div className="text-[11px] text-slate-500">
-                  Zero row dropping: duplicate warnings never block generation of valid rows.
+                  Zero row dropping: duplicate warnings never block generation
+                  of valid rows.
                 </div>
               </div>
             </div>
@@ -451,7 +493,9 @@ export function FeaturesBentoGrid() {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Review every recipient draft. Edit typos or add formal titles inline without altering raw CSV reference rows, safeguarded by optimistic CAS concurrency.
+                Review every recipient draft. Edit typos or add formal titles
+                inline without altering raw CSV reference rows, safeguarded by
+                optimistic CAS concurrency.
               </p>
             </div>
 
@@ -517,8 +561,12 @@ export function FeaturesBentoGrid() {
                       className="p-2 rounded-lg bg-white/15 border border-white/20 font-mono text-xs text-white flex items-center justify-between cursor-pointer hover:bg-white/20 transition-colors"
                       title="Click to edit inline"
                     >
-                      <span className="font-semibold text-emerald-300">{overrideValue}</span>
-                      <span className="text-[10px] text-blue-200 font-sans underline">Click to edit</span>
+                      <span className="font-semibold text-emerald-300">
+                        {overrideValue}
+                      </span>
+                      <span className="text-[10px] text-blue-200 font-sans underline">
+                        Click to edit
+                      </span>
                     </div>
                   )}
                 </div>
@@ -548,7 +596,9 @@ export function FeaturesBentoGrid() {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Prior to generation, approve an immutable snapshot sealed with a canonical SHA-256 hash. Any upstream mutation automatically invalidates stale approval states.
+                Prior to generation, approve an immutable snapshot sealed with a
+                canonical SHA-256 hash. Any upstream mutation automatically
+                invalidates stale approval states.
               </p>
             </div>
 
@@ -563,7 +613,11 @@ export function FeaturesBentoGrid() {
 
                 <div className="relative z-10 flex items-center justify-between">
                   <span className="font-bold text-xs flex items-center gap-1.5">
-                    <ShieldCheck size={16} weight="fill" className="text-emerald-400" />
+                    <ShieldCheck
+                      size={16}
+                      weight="fill"
+                      className="text-emerald-400"
+                    />
                     <span>ApprovedSnapshot Seal</span>
                   </span>
                   <span
@@ -573,13 +627,17 @@ export function FeaturesBentoGrid() {
                         : "text-amber-300 bg-amber-400/20 border border-amber-400/40"
                     }`}
                   >
-                    {snapshotState.status === "sealed" ? "IMMUTABLE & SEALED" : "SEAL INVALIDATED"}
+                    {snapshotState.status === "sealed"
+                      ? "IMMUTABLE & SEALED"
+                      : "SEAL INVALIDATED"}
                   </span>
                 </div>
 
                 <div className="relative z-10 flex items-center justify-between p-2 rounded-lg bg-black/30 border border-white/15 font-mono text-[11px] text-white">
                   <span className="truncate max-w-[190px]">
-                    {snapshotState.hash ? snapshotState.hash.slice(0, 26) + "..." : "Computing SHA-256..."}
+                    {snapshotState.hash
+                      ? snapshotState.hash.slice(0, 26) + "..."
+                      : "Computing SHA-256..."}
                   </span>
                   <button
                     type="button"
@@ -643,7 +701,9 @@ export function FeaturesBentoGrid() {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed">
-                Dual client-side and cloud worker rendering engine powered by pdf-lib &amp; fontkit. Stream thousands of individualized documents into a single organized ZIP archive.
+                Dual client-side and cloud worker rendering engine powered by
+                pdf-lib &amp; fontkit. Stream thousands of individualized
+                documents into a single organized ZIP archive.
               </p>
             </div>
 
@@ -694,7 +754,9 @@ export function FeaturesBentoGrid() {
                       : "Engine: pdf-lib (client-side)"}
                   </span>
                   <span className="font-mono text-emerald-300">
-                    {benchmarkResult ? `${benchmarkResult.elapsedMs}ms total` : "Zero Memory Bloat"}
+                    {benchmarkResult
+                      ? `${benchmarkResult.elapsedMs}ms total`
+                      : "Zero Memory Bloat"}
                   </span>
                 </div>
               </div>
@@ -718,7 +780,11 @@ export function FeaturesBentoGrid() {
                 </h3>
               </div>
               <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
-                Confidentiality by design. Your document designs, recipient names, and personal identification are <strong>never</strong> used to train machine learning models. Set automated 24-hour, 7-day, or 30-day lifecycle policies with guaranteed physical deletion.
+                Confidentiality by design. Your document designs, recipient
+                names, and personal identification are <strong>never</strong>{" "}
+                used to train machine learning models. Set automated 24-hour,
+                7-day, or 30-day lifecycle policies with guaranteed physical
+                deletion.
               </p>
             </div>
 
@@ -746,7 +812,11 @@ export function FeaturesBentoGrid() {
                             : "text-slate-600 hover:text-slate-900"
                         }`}
                       >
-                        {period === "24h" ? "24 Hours" : period === "7d" ? "7 Days (Default)" : "30 Days (Max)"}
+                        {period === "24h"
+                          ? "24 Hours"
+                          : period === "7d"
+                            ? "7 Days (Default)"
+                            : "30 Days (Max)"}
                       </button>
                     ))}
                   </div>
@@ -754,7 +824,9 @@ export function FeaturesBentoGrid() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
                   <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                    <span className="text-[10px] font-mono uppercase text-slate-400">Step 1</span>
+                    <span className="text-[10px] font-mono uppercase text-slate-400">
+                      Step 1
+                    </span>
                     <div className="font-semibold text-slate-800 flex items-center gap-1">
                       <Clock size={13} className="text-blue-600" />
                       <span>Logical Expiry</span>
@@ -764,17 +836,22 @@ export function FeaturesBentoGrid() {
                     </p>
                   </div>
                   <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                    <span className="text-[10px] font-mono uppercase text-slate-400">Step 2</span>
+                    <span className="text-[10px] font-mono uppercase text-slate-400">
+                      Step 2
+                    </span>
                     <div className="font-semibold text-slate-800 flex items-center gap-1">
                       <ShieldCheck size={13} className="text-emerald-600" />
                       <span>Physical Erasure</span>
                     </div>
                     <p className="text-[11px] text-slate-500">
-                      Cloudflare R2 and MongoDB recipient rows permanently shredded.
+                      Cloudflare R2 and MongoDB recipient rows permanently
+                      shredded.
                     </p>
                   </div>
                   <div className="p-3 rounded-xl bg-white border border-slate-200/60 space-y-1">
-                    <span className="text-[10px] font-mono uppercase text-slate-400">Step 3</span>
+                    <span className="text-[10px] font-mono uppercase text-slate-400">
+                      Step 3
+                    </span>
                     <div className="font-semibold text-slate-800 flex items-center gap-1">
                       <Check size={13} className="text-blue-600" />
                       <span>Audit Verification</span>

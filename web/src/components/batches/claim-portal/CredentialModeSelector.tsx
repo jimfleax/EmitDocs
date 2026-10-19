@@ -40,12 +40,17 @@ export function CredentialModeSelector({
         <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-xs text-amber-800 dark:text-amber-300">
           <Warning className="w-4 h-4 shrink-0 text-amber-500" />
           <span>
-            Switching mode increments credential revision, pauses the portal, and revokes previously distributed secrets.
+            Switching mode increments credential revision, pauses the portal,
+            and revokes previously distributed secrets.
           </span>
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" role="radiogroup" aria-label="Credential Mode">
+      <div
+        className="grid grid-cols-1 md:grid-cols-2 gap-4"
+        role="radiogroup"
+        aria-label="Credential Mode"
+      >
         {/* Generated Token Option */}
         <button
           type="button"
@@ -58,7 +63,7 @@ export function CredentialModeSelector({
             mode === "generated_token"
               ? "border-blue-600 bg-blue-50/40 dark:bg-blue-950/20 shadow-xs"
               : "border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900",
-            disabled && "opacity-50 cursor-not-allowed"
+            disabled && "opacity-50 cursor-not-allowed",
           )}
         >
           <div className="space-y-2">
@@ -76,7 +81,8 @@ export function CredentialModeSelector({
               </Badge>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              EmitDocs produces 256-bit CSPRNG random tokens. Export once as CSV to merge into your bulk mailer or distribution system.
+              EmitDocs produces 256-bit CSPRNG random tokens. Export once as CSV
+              to merge into your bulk mailer or distribution system.
             </p>
           </div>
 
@@ -98,7 +104,7 @@ export function CredentialModeSelector({
             mode === "imported_credential"
               ? "border-blue-600 bg-blue-50/40 dark:bg-blue-950/20 shadow-xs"
               : "border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900",
-            disabled && "opacity-50 cursor-not-allowed"
+            disabled && "opacity-50 cursor-not-allowed",
           )}
         >
           <div className="space-y-2">
@@ -116,7 +122,8 @@ export function CredentialModeSelector({
               </Badge>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              Map participant identifiers from your approved batch list (e.g., Student ID or Employee Number) with optional secondary factor.
+              Map participant identifiers from your approved batch list (e.g.,
+              Student ID or Employee Number) with optional secondary factor.
             </p>
           </div>
 

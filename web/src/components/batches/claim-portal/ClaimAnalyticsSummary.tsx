@@ -42,7 +42,12 @@ export function ClaimAnalyticsSummary({
     );
   }
 
-  const { totalEligible, uniqueClaimedCount, unclaimedCount, claimRatePercent } = analytics;
+  const {
+    totalEligible,
+    uniqueClaimedCount,
+    unclaimedCount,
+    claimRatePercent,
+  } = analytics;
 
   return (
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -57,7 +62,9 @@ export function ClaimAnalyticsSummary({
         <div className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
           {totalEligible.toLocaleString()}
         </div>
-        <span className="text-[11px] text-slate-500 block">Participants configured</span>
+        <span className="text-[11px] text-slate-500 block">
+          Participants configured
+        </span>
       </div>
 
       {/* Claimed */}
@@ -71,7 +78,9 @@ export function ClaimAnalyticsSummary({
         <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
           {uniqueClaimedCount.toLocaleString()}
         </div>
-        <span className="text-[11px] text-slate-500 block">Verified &amp; accessed</span>
+        <span className="text-[11px] text-slate-500 block">
+          Verified &amp; accessed
+        </span>
       </div>
 
       {/* Unclaimed */}
@@ -102,7 +111,9 @@ export function ClaimAnalyticsSummary({
         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
           <div
             className="bg-blue-600 h-full rounded-full transition-all duration-300"
-            style={{ width: `${Math.min(100, Math.max(0, claimRatePercent))}%` }}
+            style={{
+              width: `${Math.min(100, Math.max(0, claimRatePercent))}%`,
+            }}
           />
         </div>
       </div>

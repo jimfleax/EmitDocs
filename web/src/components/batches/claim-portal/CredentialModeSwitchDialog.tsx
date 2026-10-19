@@ -58,16 +58,19 @@ export function CredentialModeSwitchDialog({
           </div>
           <DialogTitle>Switch Authentication Mode to {modeLabel}?</DialogTitle>
           <DialogDescription>
-            Switching mode increments the portal credential revision and temporarily pauses public claims.
+            Switching mode increments the portal credential revision and
+            temporarily pauses public claims.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-2 py-2 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
           <p>
-            1. All previously configured credential verifiers and active participant sessions will be immediately invalidated.
+            1. All previously configured credential verifiers and active
+            participant sessions will be immediately invalidated.
           </p>
           <p>
-            2. The portal will transition to <strong>Paused</strong> status until the new credential configuration is locked and tested.
+            2. The portal will transition to <strong>Paused</strong> status
+            until the new credential configuration is locked and tested.
           </p>
         </div>
 

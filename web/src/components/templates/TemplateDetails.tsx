@@ -96,7 +96,8 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
           ? batchData.batches
           : [];
       const associated = list.filter((b: any) => {
-        const bTid = typeof b.templateId === "object" ? b.templateId?._id : b.templateId;
+        const bTid =
+          typeof b.templateId === "object" ? b.templateId?._id : b.templateId;
         return bTid === templateId;
       });
       setBatches(associated);
@@ -437,7 +438,8 @@ export function TemplateDetails({ templateId }: { templateId: string }) {
                             </Link>
                             <p className="text-slate-400 text-[11px]">
                               {new Date(b.createdAt).toLocaleDateString()} ·{" "}
-                              {docsCount.toLocaleString()} {docsCount === 1 ? "document" : "documents"}
+                              {docsCount.toLocaleString()}{" "}
+                              {docsCount === 1 ? "document" : "documents"}
                             </p>
                           </div>
                         </div>

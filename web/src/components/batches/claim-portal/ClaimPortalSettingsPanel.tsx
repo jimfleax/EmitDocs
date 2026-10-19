@@ -5,8 +5,15 @@
  * @agent_note Provides dirty-state detection, input reset, and patch updates to /api/claim-portals/:portalId.
  */
 
-import { useState, useEffect } from "react";
-import { Copy, Check, ArrowSquareOut, Clock, FloppyDisk, ArrowCounterClockwise } from "@phosphor-icons/react";
+import { useState } from "react";
+import {
+  Copy,
+  Check,
+  ArrowSquareOut,
+  Clock,
+  FloppyDisk,
+  ArrowCounterClockwise,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -53,15 +60,23 @@ export function ClaimPortalSettingsPanel({
 }: ClaimPortalSettingsPanelProps) {
   const [label, setLabel] = useState(portal.label || "");
   const [instructions, setInstructions] = useState(portal.instructions || "");
+  const [prevPortal, setPrevPortal] = useState({
+    label: portal.label,
+    instructions: portal.instructions,
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
+  if (
+    portal.label !== prevPortal.label ||
+    portal.instructions !== prevPortal.instructions
+  ) {
+    setPrevPortal({ label: portal.label, instructions: portal.instructions });
     setLabel(portal.label || "");
     setInstructions(portal.instructions || "");
     setError(null);
-  }, [portal.label, portal.instructions]);
+  }
 
   const isDirty =
     label.trim() !== (portal.label || "").trim() ||
@@ -82,7 +97,10 @@ export function ClaimPortalSettingsPanel({
     try {
       await navigator.clipboard.writeText(fullPublicUrl);
       setCopied(true);
-      toast.success("Link Copied", "Public claim portal URL copied to clipboard.");
+      toast.success(
+        "Link Copied",
+        "Public claim portal URL copied to clipboard.",
+      );
       setTimeout(() => setCopied(false), 2000);
     } catch {
       toast.error("Copy Failed", "Failed to copy URL to clipboard.");
@@ -113,17 +131,27 @@ export function ClaimPortalSettingsPanel({
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || errData.message || "Failed to update portal settings");
+        throw new Error(
+          errData.error ||
+            errData.message ||
+            "Failed to update portal settings",
+        );
       }
 
       const data = await res.json();
-      toast.success("Settings Saved", "Claim portal metadata and instructions have been updated.");
+      toast.success(
+        "Settings Saved",
+        "Claim portal metadata and instructions have been updated.",
+      );
       if (data.portal) {
         onUpdatePortal(data.portal);
       }
     } catch (err: any) {
       setError(err.message || "Failed to save settings");
-      toast.error("Save Failed", err.message || "Failed to update portal settings");
+      toast.error(
+        "Save Failed",
+        err.message || "Failed to update portal settings",
+      );
     } finally {
       setIsSaving(false);
     }
@@ -139,7 +167,8 @@ export function ClaimPortalSettingsPanel({
           Portal Metadata &amp; Customization
         </h4>
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          Configure the public event title, participant claiming instructions, and view portal distribution details.
+          Configure the public event title, participant claiming instructions,
+          and view portal distribution details.
         </p>
       </div>
 
@@ -152,8 +181,12 @@ export function ClaimPortalSettingsPanel({
       {/* Portal Title / Safe Label */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label htmlFor="portal-label" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-            Portal Title / Safe Event Name <span className="text-rose-500">*</span>
+          <label
+            htmlFor="portal-label"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
+            Portal Title / Safe Event Name{" "}
+            <span className="text-rose-500">*</span>
           </label>
           <span className="text-[10px] text-slate-400">Required</span>
         </div>
@@ -170,14 +203,18 @@ export function ClaimPortalSettingsPanel({
           className="h-10 text-xs bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800"
         />
         <p className="text-[11px] text-slate-400">
-          Displayed on the public claim page header, document confirmation card, and browser tab.
+          Displayed on the public claim page header, document confirmation card,
+          and browser tab.
         </p>
       </div>
 
       {/* Participant Instructions */}
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label htmlFor="portal-instructions" className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+          <label
+            htmlFor="portal-instructions"
+            className="text-xs font-semibold text-slate-700 dark:text-slate-300"
+          >
             Participant Instructions (Optional)
           </label>
           <span className="text-[10px] font-mono text-slate-400">
@@ -197,7 +234,8 @@ export function ClaimPortalSettingsPanel({
           className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-xs shadow-xs transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none focus:outline-none focus:border-blue-500 dark:focus:border-blue-400 disabled:cursor-not-allowed disabled:opacity-50 resize-y"
         />
         <p className="text-[11px] text-slate-400">
-          Custom instructions shown to recipients on the claim portal page before claiming.
+          Custom instructions shown to recipients on the claim portal page
+          before claiming.
         </p>
       </div>
 
@@ -240,7 +278,8 @@ export function ClaimPortalSettingsPanel({
           </a>
         </div>
         <p className="text-[11px] text-slate-400">
-          Public routing link for participants. Credentials and Turnstile bot protection are verified on submission.
+          Public routing link for participants. Credentials and Turnstile bot
+          protection are verified on submission.
         </p>
       </div>
 
@@ -249,10 +288,14 @@ export function ClaimPortalSettingsPanel({
         <Clock className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
         <div className="space-y-0.5 text-xs">
           <div className="font-semibold text-slate-800 dark:text-slate-200">
-            Retention Expiry: {portal.expiresAt ? new Date(portal.expiresAt).toLocaleString() : "—"}
+            Retention Expiry:{" "}
+            {portal.expiresAt
+              ? new Date(portal.expiresAt).toLocaleString()
+              : "—"}
           </div>
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
-            Bound to batch retention policy. The claim portal automatically closes and credential verifiers are purged when retention expires.
+            Bound to batch retention policy. The claim portal automatically
+            closes and credential verifiers are purged when retention expires.
           </p>
         </div>
       </div>

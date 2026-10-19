@@ -631,10 +631,7 @@ export const TechText: FC<TechTextProps> = ({
           const [x, y] = perimeterPoint(head - i * 6, w, h);
           const size = i === 0 ? 3 : 2;
           const alphas = [0.95, 0.55, 0.32, 0.16];
-          ctx.fillStyle = rgba(
-            s.accentColor,
-            a * (alphas[i] ?? 0.16),
-          );
+          ctx.fillStyle = rgba(s.accentColor, a * (alphas[i] ?? 0.16));
           ctx.fillRect(
             Math.round(x - size / 2),
             Math.round(y - size / 2),

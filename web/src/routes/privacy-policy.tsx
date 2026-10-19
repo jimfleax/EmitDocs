@@ -15,4 +15,3 @@ import { PrivacyPage } from "./privacy";
 export const Route = createFileRoute("/privacy-policy")({
   component: PrivacyPage,
 });
-

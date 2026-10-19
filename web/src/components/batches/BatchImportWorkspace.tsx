@@ -264,7 +264,10 @@ export function BatchImportWorkspace({ batchId }: BatchImportWorkspaceProps) {
       );
     } catch (err: any) {
       setApiError(err.message || "Failed to switch worksheet");
-      toast.error("Worksheet Selection Failed", err.message || "Failed to switch worksheet");
+      toast.error(
+        "Worksheet Selection Failed",
+        err.message || "Failed to switch worksheet",
+      );
     }
   };
 

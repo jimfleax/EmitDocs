@@ -90,7 +90,10 @@ export function ClaimPortalLifecycleControls({
       setActionInProgress(name);
       await fn();
     } catch (err: any) {
-      toast.error("Action Failed", err?.message || `Failed to ${name} claim portal`);
+      toast.error(
+        "Action Failed",
+        err?.message || `Failed to ${name} claim portal`,
+      );
     } finally {
       setActionInProgress(null);
     }
@@ -104,7 +107,8 @@ export function ClaimPortalLifecycleControls({
       <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 flex items-center gap-2">
         <Lock className="w-4 h-4 text-slate-400 shrink-0" />
         <span>
-          This claim portal is {status}. Public claim access is permanently terminated.
+          This claim portal is {status}. Public claim access is permanently
+          terminated.
         </span>
       </div>
     );
@@ -118,7 +122,8 @@ export function ClaimPortalLifecycleControls({
             Portal Lifecycle State
           </span>
           <span className="text-slate-500 dark:text-slate-400 block">
-            Current status: <strong className="uppercase font-mono">{status}</strong>
+            Current status:{" "}
+            <strong className="uppercase font-mono">{status}</strong>
           </span>
         </div>
 
@@ -130,7 +135,11 @@ export function ClaimPortalLifecycleControls({
               disabled={hasFatalBlockers || isLoading || !!actionInProgress}
               className="text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
             >
-              {actionInProgress === "activate" ? <Spinner size="sm" /> : <ShieldCheck className="w-4 h-4" />}
+              {actionInProgress === "activate" ? (
+                <Spinner size="sm" />
+              ) : (
+                <ShieldCheck className="w-4 h-4" />
+              )}
               <span>Activate Portal</span>
             </Button>
           )}
@@ -143,7 +152,11 @@ export function ClaimPortalLifecycleControls({
               disabled={isLoading || !!actionInProgress}
               className="text-xs font-bold gap-1.5 text-amber-600 border-amber-200 hover:bg-amber-50"
             >
-              {actionInProgress === "pause" ? <Spinner size="sm" /> : <Pause className="w-4 h-4" weight="fill" />}
+              {actionInProgress === "pause" ? (
+                <Spinner size="sm" />
+              ) : (
+                <Pause className="w-4 h-4" weight="fill" />
+              )}
               <span>Pause Claims</span>
             </Button>
           )}
@@ -155,7 +168,11 @@ export function ClaimPortalLifecycleControls({
               disabled={isLoading || !!actionInProgress}
               className="text-xs font-bold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
             >
-              {actionInProgress === "resume" ? <Spinner size="sm" /> : <Play className="w-4 h-4" weight="fill" />}
+              {actionInProgress === "resume" ? (
+                <Spinner size="sm" />
+              ) : (
+                <Play className="w-4 h-4" weight="fill" />
+              )}
               <span>Resume Portal</span>
             </Button>
           )}
@@ -188,24 +205,33 @@ export function ClaimPortalLifecycleControls({
       </div>
 
       {/* Acknowledge Missing Outputs Dialog */}
-      <Dialog open={ackExclusionsModalOpen} onOpenChange={setAckExclusionsModalOpen}>
+      <Dialog
+        open={ackExclusionsModalOpen}
+        onOpenChange={setAckExclusionsModalOpen}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Activate Portal with Dynamic Generation?</DialogTitle>
             <DialogDescription className="space-y-2 pt-1 text-xs">
               <p>
-                <strong>{missingOutputCount} recipient(s)</strong> do not have pre-generated certificate output files.
+                <strong>{missingOutputCount} recipient(s)</strong> do not have
+                pre-generated certificate output files.
               </p>
               <p>
-                EmitDocs will synthesize valid certificates on-demand when recipients complete their claim.
+                EmitDocs will synthesize valid certificates on-demand when
+                recipients complete their claim.
               </p>
               <p>
-                Proceeding will publish this portal and allow participants with valid credentials to claim their certificates.
+                Proceeding will publish this portal and allow participants with
+                valid credentials to claim their certificates.
               </p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setAckExclusionsModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setAckExclusionsModalOpen(false)}
+            >
               Cancel
             </Button>
             <Button
@@ -227,11 +253,16 @@ export function ClaimPortalLifecycleControls({
           <DialogHeader>
             <DialogTitle>Permanently Close Claim Portal?</DialogTitle>
             <DialogDescription>
-              Closing the portal is irreversible. All credential verifiers will be marked revoked, active sessions killed, and no further claims accepted.
+              Closing the portal is irreversible. All credential verifiers will
+              be marked revoked, active sessions killed, and no further claims
+              accepted.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCloseConfirmOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setCloseConfirmOpen(false)}
+            >
               Cancel
             </Button>
             <Button

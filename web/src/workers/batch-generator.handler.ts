@@ -176,7 +176,9 @@ export type WorkerOutboundMessage =
  * @param {Record<string, any>} effectiveData - Raw field value map.
  * @returns {Record<string, string>} Stringified data map.
  */
-export function toDataRecord(effectiveData: Record<string, any>): Record<string, string> {
+export function toDataRecord(
+  effectiveData: Record<string, any>,
+): Record<string, string> {
   const result: Record<string, string> = {};
   if (effectiveData && typeof effectiveData === "object") {
     for (const [key, val] of Object.entries(effectiveData)) {
@@ -210,14 +212,14 @@ export class BatchGeneratorHandler {
 
   private postMessageFn?: (
     message: WorkerOutboundMessage,
-    transfer?: Transferable[]
+    transfer?: Transferable[],
   ) => void;
 
   constructor(
     postMessageFn?: (
       message: WorkerOutboundMessage,
-      transfer?: Transferable[]
-    ) => void
+      transfer?: Transferable[],
+    ) => void,
   ) {
     this.postMessageFn = postMessageFn;
   }
@@ -289,7 +291,7 @@ export class BatchGeneratorHandler {
             this.cachedBasePdfBytes,
             this.cachedFieldMappings,
             stringData,
-            { drawDebugBoxes: false }
+            { drawDebugBoxes: false },
           );
           const durationMs = performance.now() - start;
 
@@ -304,7 +306,7 @@ export class BatchGeneratorHandler {
                 requestId,
               },
             },
-            [pdfBytes.buffer as ArrayBuffer]
+            [pdfBytes.buffer as ArrayBuffer],
           );
         } catch (err: any) {
           this.emit({
@@ -361,11 +363,17 @@ export class BatchGeneratorHandler {
           return;
         }
 
-        const { recipients, volumeIndex, totalVolumes, zipFilename } = msg.payload;
+        const { recipients, volumeIndex, totalVolumes, zipFilename } =
+          msg.payload;
         this.isZipping = true;
         this.zipCancelled = false;
 
-        void this.runZipExport(recipients, volumeIndex, totalVolumes, zipFilename);
+        void this.runZipExport(
+          recipients,
+          volumeIndex,
+          totalVolumes,
+          zipFilename,
+        );
         break;
       }
 
@@ -379,7 +387,8 @@ export class BatchGeneratorHandler {
       case "RESUME": {
         if (this.isPaused) {
           if (this.pauseStartTime > 0) {
-            this.totalPausedDurationMs += performance.now() - this.pauseStartTime;
+            this.totalPausedDurationMs +=
+              performance.now() - this.pauseStartTime;
             this.pauseStartTime = 0;
           }
           this.isPaused = false;
@@ -398,7 +407,11 @@ export class BatchGeneratorHandler {
         this.pauseStartTime = 0;
         if (!this.isGenerating) {
           this.currentRecipients = [];
-          this.emit({ type: "CANCELLED", scope: "batch", payload: { scope: "batch" } });
+          this.emit({
+            type: "CANCELLED",
+            scope: "batch",
+            payload: { scope: "batch" },
+          });
         }
         break;
       }
@@ -406,7 +419,11 @@ export class BatchGeneratorHandler {
       case "CANCEL_ZIP": {
         this.zipCancelled = true;
         if (!this.isZipping) {
-          this.emit({ type: "CANCELLED", scope: "zip", payload: { scope: "zip" } });
+          this.emit({
+            type: "CANCELLED",
+            scope: "zip",
+            payload: { scope: "zip" },
+          });
         }
         break;
       }
@@ -418,7 +435,11 @@ export class BatchGeneratorHandler {
       if (this.isCancelled) {
         this.isGenerating = false;
         this.currentRecipients = [];
-        this.emit({ type: "CANCELLED", scope: "batch", payload: { scope: "batch" } });
+        this.emit({
+          type: "CANCELLED",
+          scope: "batch",
+          payload: { scope: "batch" },
+        });
         return;
       }
 
@@ -443,7 +464,7 @@ export class BatchGeneratorHandler {
           this.cachedBasePdfBytes!,
           this.cachedFieldMappings,
           stringData,
-          { drawDebugBoxes: false }
+          { drawDebugBoxes: false },
         );
 
         if (warnings.length > 0) {
@@ -466,7 +487,7 @@ export class BatchGeneratorHandler {
         const percent = total > 0 ? Math.round((current / total) * 100) : 0;
         const elapsedMs = Math.max(
           1,
-          performance.now() - this.startTime - this.totalPausedDurationMs
+          performance.now() - this.startTime - this.totalPausedDurationMs,
         );
         const itemsPerSec = current / (elapsedMs / 1000);
         const remainingItems = total - current;
@@ -507,7 +528,7 @@ export class BatchGeneratorHandler {
         const percent = total > 0 ? Math.round((current / total) * 100) : 0;
         const elapsedMs = Math.max(
           1,
-          performance.now() - this.startTime - this.totalPausedDurationMs
+          performance.now() - this.startTime - this.totalPausedDurationMs,
         );
         const itemsPerSec = current / (elapsedMs / 1000);
         const remainingItems = total - current;
@@ -537,7 +558,11 @@ export class BatchGeneratorHandler {
 
     if (this.isCancelled) {
       this.currentRecipients = [];
-      this.emit({ type: "CANCELLED", scope: "batch", payload: { scope: "batch" } });
+      this.emit({
+        type: "CANCELLED",
+        scope: "batch",
+        payload: { scope: "batch" },
+      });
       return;
     }
 
@@ -546,14 +571,14 @@ export class BatchGeneratorHandler {
     }
 
     const durationMs = Math.round(
-      performance.now() - this.startTime - this.totalPausedDurationMs
+      performance.now() - this.startTime - this.totalPausedDurationMs,
     );
     this.emit({
       type: "BATCH_COMPLETE",
       payload: {
         totalGenerated: Math.max(
           0,
-          this.currentRecipients.length - this.failedCount
+          this.currentRecipients.length - this.failedCount,
         ),
         totalWarnings: this.totalWarnings,
         durationMs,
@@ -565,7 +590,7 @@ export class BatchGeneratorHandler {
     recipients: RecipientBatchItem[],
     volumeIndex: number,
     _totalVolumes: number,
-    zipFilename: string
+    zipFilename: string,
   ): Promise<void> {
     const total = recipients.length;
     const startTime = performance.now();
@@ -588,19 +613,29 @@ export class BatchGeneratorHandler {
         let pdfBytes: Uint8Array;
         try {
           const stringData = toDataRecord(item.effectiveData);
-          const res = await generatePdfWithOverlay(baseBytes, fieldMappings, stringData, {
-            drawDebugBoxes: false,
-          });
+          const res = await generatePdfWithOverlay(
+            baseBytes,
+            fieldMappings,
+            stringData,
+            {
+              drawDebugBoxes: false,
+            },
+          );
           pdfBytes = res.pdfBytes;
         } catch {
           failedRecipientKeys.push(item.recipientKey);
 
           const processed = i + 1;
           const elapsedMs = Math.max(1, performance.now() - startTime);
-          const itemsPerSec = Math.round((processed / (elapsedMs / 1000)) * 10) / 10;
+          const itemsPerSec =
+            Math.round((processed / (elapsedMs / 1000)) * 10) / 10;
           const remainingItems = total - processed;
-          const etaSeconds = itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
-          const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+          const etaSeconds =
+            itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
+          const percent =
+            total > 0
+              ? Math.min(100, Math.round((processed / total) * 100))
+              : 0;
 
           self.emit({
             type: "ZIP_PROGRESS",
@@ -623,13 +658,19 @@ export class BatchGeneratorHandler {
         }
 
         current++;
-        const filename = sanitizeRecipientFilename(item.effectiveData, item.recipientKey);
+        const filename = sanitizeRecipientFilename(
+          item.effectiveData,
+          item.recipientKey,
+        );
         const processed = i + 1;
         const elapsedMs = Math.max(1, performance.now() - startTime);
-        const itemsPerSec = Math.round((processed / (elapsedMs / 1000)) * 10) / 10;
+        const itemsPerSec =
+          Math.round((processed / (elapsedMs / 1000)) * 10) / 10;
         const remainingItems = total - processed;
-        const etaSeconds = itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
-        const percent = total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
+        const etaSeconds =
+          itemsPerSec > 0 ? Math.ceil(remainingItems / itemsPerSec) : 0;
+        const percent =
+          total > 0 ? Math.min(100, Math.round((processed / total) * 100)) : 0;
 
         self.emit({
           type: "ZIP_PROGRESS",
@@ -666,7 +707,11 @@ export class BatchGeneratorHandler {
         if (this.zipCancelled) {
           await reader.cancel();
           this.isZipping = false;
-          this.emit({ type: "CANCELLED", scope: "zip", payload: { scope: "zip" } });
+          this.emit({
+            type: "CANCELLED",
+            scope: "zip",
+            payload: { scope: "zip" },
+          });
           return;
         }
 
@@ -685,14 +730,18 @@ export class BatchGeneratorHandler {
                 volumeIndex,
               },
             },
-            [chunk.buffer as ArrayBuffer]
+            [chunk.buffer as ArrayBuffer],
           );
         }
       }
 
       if (this.zipCancelled) {
         this.isZipping = false;
-        this.emit({ type: "CANCELLED", scope: "zip", payload: { scope: "zip" } });
+        this.emit({
+          type: "CANCELLED",
+          scope: "zip",
+          payload: { scope: "zip" },
+        });
         return;
       }
 

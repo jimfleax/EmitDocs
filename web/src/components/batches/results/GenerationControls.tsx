@@ -138,7 +138,7 @@ export function GenerationControls({
             disabled={disabled}
             className={cn(
               "flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm shadow-blue-500/20 cursor-pointer active:scale-[0.98]",
-              "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              "bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white disabled:opacity-40 disabled:cursor-not-allowed",
             )}
           >
             {isCompleted || isCancelled ? (
@@ -146,7 +146,11 @@ export function GenerationControls({
             ) : (
               <Play className="w-3.5 h-3.5" weight="fill" />
             )}
-            {isCompleted ? "Re-generate Batch" : isCancelled ? "Restart Generation" : "Start Generation"}
+            {isCompleted
+              ? "Re-generate Batch"
+              : isCancelled
+                ? "Restart Generation"
+                : "Start Generation"}
           </button>
         )}
 

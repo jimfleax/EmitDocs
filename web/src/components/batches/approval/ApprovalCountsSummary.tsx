@@ -5,7 +5,12 @@
  * @agent_note Displays four metric tiles: Total Ingested, Valid (Ready to Seal), Invalid (Skipped), and Duplicates.
  */
 
-import { CheckCircle, Warning, WarningCircle, Users } from "@phosphor-icons/react";
+import {
+  CheckCircle,
+  Warning,
+  WarningCircle,
+  Users,
+} from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 
 interface ApprovalCountsSummaryProps {

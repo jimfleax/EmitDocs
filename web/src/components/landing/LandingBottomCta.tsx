@@ -6,7 +6,12 @@
  */
 
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, ShieldCheck, CheckCircle, House } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  ShieldCheck,
+  CheckCircle,
+  House,
+} from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
@@ -39,7 +44,9 @@ export function LandingBottomCta() {
                 <span className="text-blue-200">Ready to go.</span>
               </h2>
               <p className="text-base sm:text-lg text-blue-100/80 max-w-xl mx-auto leading-relaxed">
-                Connect your existing PDF template, upload your spreadsheet, and generate high-fidelity, verified documents with zero manual busywork.
+                Connect your existing PDF template, upload your spreadsheet, and
+                generate high-fidelity, verified documents with zero manual
+                busywork.
               </p>
             </div>
 
@@ -83,15 +90,27 @@ export function LandingBottomCta() {
             {/* Trust Markers */}
             <div className="pt-6 border-t border-white/15 flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs text-blue-100/70 font-medium">
               <span className="flex items-center gap-1.5">
-                <CheckCircle size={15} weight="fill" className="text-blue-300" />
+                <CheckCircle
+                  size={15}
+                  weight="fill"
+                  className="text-blue-300"
+                />
                 <span>No credit card required</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <ShieldCheck size={15} weight="fill" className="text-blue-300" />
+                <ShieldCheck
+                  size={15}
+                  weight="fill"
+                  className="text-blue-300"
+                />
                 <span>Zero AI model training</span>
               </span>
               <span className="flex items-center gap-1.5">
-                <CheckCircle size={15} weight="fill" className="text-blue-300" />
+                <CheckCircle
+                  size={15}
+                  weight="fill"
+                  className="text-blue-300"
+                />
                 <span>Automated 24h/7d/30d retention purge</span>
               </span>
             </div>

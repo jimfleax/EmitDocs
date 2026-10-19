@@ -58,7 +58,8 @@ export function RetentionPresetSelector({
       </div>
 
       <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-        Once document generation is completed, batch outputs and recipient data expire strictly after the selected window.
+        Once document generation is completed, batch outputs and recipient data
+        expire strictly after the selected window.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -72,10 +73,12 @@ export function RetentionPresetSelector({
               onClick={() => onChange(preset.hours)}
               className={cn(
                 "p-3.5 rounded-xl border text-left transition-all relative flex flex-col justify-between",
-                disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer hover:border-slate-300 dark:hover:border-slate-700",
+                disabled
+                  ? "opacity-60 cursor-not-allowed"
+                  : "cursor-pointer hover:border-slate-300 dark:hover:border-slate-700",
                 isSelected
                   ? "border-indigo-600 dark:border-indigo-500 bg-indigo-50/40 dark:bg-indigo-950/20 ring-2 ring-indigo-500/20"
-                  : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40"
+                  : "border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40",
               )}
             >
               <div>
@@ -83,7 +86,9 @@ export function RetentionPresetSelector({
                   <span
                     className={cn(
                       "text-sm font-bold",
-                      isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-800 dark:text-slate-200"
+                      isSelected
+                        ? "text-indigo-600 dark:text-indigo-400"
+                        : "text-slate-800 dark:text-slate-200",
                     )}
                   >
                     {preset.label}
@@ -93,14 +98,17 @@ export function RetentionPresetSelector({
                       "w-3.5 h-3.5 rounded-full border flex items-center justify-center",
                       isSelected
                         ? "border-indigo-600 dark:border-indigo-400 bg-indigo-600 dark:bg-indigo-400"
-                        : "border-slate-300 dark:border-slate-700"
+                        : "border-slate-300 dark:border-slate-700",
                     )}
                   >
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-950" />}
+                    {isSelected && (
+                      <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-950" />
+                    )}
                   </div>
                 </div>
                 <p className="text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                  {descriptions[preset.hours] || `Data retained for ${preset.hours} hours.`}
+                  {descriptions[preset.hours] ||
+                    `Data retained for ${preset.hours} hours.`}
                 </p>
               </div>
             </button>

@@ -760,8 +760,8 @@ async function runTests() {
     // Verify currentVersionId is populated
     const foundTMapped = allTestOwnerTemplates.find((t) => t._id.toString() === tMapped._id.toString());
     assert.ok(foundTMapped?.currentVersionId, 'currentVersionId must be populated');
-    assert.strictEqual((foundTMapped?.currentVersionId as any).version, 1);
-    assert.strictEqual((foundTMapped?.currentVersionId as any).sourceObjectKey, 'templates/owner/doc1.pdf');
+    assert.strictEqual((foundTMapped!.currentVersionId as any).version, 1);
+    assert.strictEqual((foundTMapped!.currentVersionId as any).sourceObjectKey, 'templates/owner/doc1.pdf');
 
     // Verify auto-healing occurred on thumbnail URL
     assert.ok(

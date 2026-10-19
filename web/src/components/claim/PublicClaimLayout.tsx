@@ -28,7 +28,11 @@ export function PublicClaimLayout({
   maxWidth = "xl",
 }: PublicClaimLayoutProps) {
   const maxWidthClass =
-    maxWidth === "3xl" ? "max-w-3xl" : maxWidth === "2xl" ? "max-w-2xl" : "max-w-xl";
+    maxWidth === "3xl"
+      ? "max-w-3xl"
+      : maxWidth === "2xl"
+        ? "max-w-2xl"
+        : "max-w-xl";
 
   return (
     <div className="relative min-h-screen bg-slate-50/80 dark:bg-slate-950 flex flex-col justify-between p-4 sm:p-6 overflow-hidden">
@@ -43,10 +47,16 @@ export function PublicClaimLayout({
       />
 
       {/* Brand Header */}
-      <header className={`${maxWidthClass} w-full mx-auto flex items-center justify-center pt-4 sm:pt-7 pb-6 sm:pb-8 z-10`}>
+      <header
+        className={`${maxWidthClass} w-full mx-auto flex items-center justify-center pt-4 sm:pt-7 pb-6 sm:pb-8 z-10`}
+      >
         <div className="inline-flex items-center gap-3 sm:gap-3.5 select-none">
           <div className="p-2 sm:p-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-sm shadow-blue-500/5 flex-none transition-transform hover:scale-105">
-            <img src="/favicon.svg" alt="EmitDocs" className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl" />
+            <img
+              src="/favicon.svg"
+              alt="EmitDocs"
+              className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl"
+            />
           </div>
           <span className="font-black text-2xl sm:text-3xl tracking-tight text-slate-900 dark:text-slate-100">
             Emit<span className="text-blue-600 dark:text-blue-500">Docs</span>
@@ -75,10 +85,14 @@ export function PublicClaimLayout({
       </main>
 
       {/* Footer */}
-      <footer className={`${maxWidthClass} w-full mx-auto text-center pt-8 pb-4 text-xs text-slate-400 dark:text-slate-500 space-y-1 z-10`}>
+      <footer
+        className={`${maxWidthClass} w-full mx-auto text-center pt-8 pb-4 text-xs text-slate-400 dark:text-slate-500 space-y-1 z-10`}
+      >
         <p className="flex items-center justify-center gap-1.5">
           <span>Powered by</span>
-          <span className="font-bold text-slate-600 dark:text-slate-300">EmitDocs</span>
+          <span className="font-bold text-slate-600 dark:text-slate-300">
+            EmitDocs
+          </span>
           <span>·</span>
           <span>Instant Document Delivery</span>
         </p>

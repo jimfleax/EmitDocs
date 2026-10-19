@@ -37,7 +37,9 @@ export function GoogleSignInButton({
         typeof window !== "undefined" ? window.location.origin : "";
       const targetCallbackURL =
         callbackURL || (origin ? `${origin}/app` : "/app");
-      const targetErrorCallbackURL = origin ? `${origin}/sign-in?error=auth_failed` : undefined;
+      const targetErrorCallbackURL = origin
+        ? `${origin}/sign-in?error=auth_failed`
+        : undefined;
 
       await authClient.signIn.social({
         provider: "google",

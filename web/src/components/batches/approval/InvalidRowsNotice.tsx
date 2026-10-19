@@ -20,7 +20,10 @@ interface InvalidRowsNoticeProps {
  * @param {number} props.validRows - Number of valid rows proceeding to issuance.
  * @returns {JSX.Element | null} Banner element if invalid rows exist, otherwise null.
  */
-export function InvalidRowsNotice({ invalidRows, validRows }: InvalidRowsNoticeProps) {
+export function InvalidRowsNotice({
+  invalidRows,
+  validRows,
+}: InvalidRowsNoticeProps) {
   if (invalidRows === 0) return null;
 
   return (
@@ -31,12 +34,22 @@ export function InvalidRowsNotice({ invalidRows, validRows }: InvalidRowsNoticeP
           Partial Issuance Notice
         </h4>
         <p className="text-xs text-amber-700 dark:text-amber-300 mt-1 leading-relaxed">
-          <strong>{invalidRows} invalid row{invalidRows > 1 ? "s" : ""}</strong> failed data format checks and will be <strong>excluded</strong> from this snapshot.
-          The remaining <strong>{validRows} valid recipient{validRows > 1 ? "s" : ""}</strong> will proceed to document generation without interruption.
+          <strong>
+            {invalidRows} invalid row{invalidRows > 1 ? "s" : ""}
+          </strong>{" "}
+          failed data format checks and will be <strong>excluded</strong> from
+          this snapshot. The remaining{" "}
+          <strong>
+            {validRows} valid recipient{validRows > 1 ? "s" : ""}
+          </strong>{" "}
+          will proceed to document generation without interruption.
         </p>
         <div className="flex items-center gap-1.5 mt-2 text-[11px] font-medium text-amber-800/80 dark:text-amber-200/80">
           <CheckSquareOffset className="w-3.5 h-3.5" />
-          <span>Excluded rows can be corrected later by re-importing an updated spreadsheet revision.</span>
+          <span>
+            Excluded rows can be corrected later by re-importing an updated
+            spreadsheet revision.
+          </span>
         </div>
       </div>
     </div>

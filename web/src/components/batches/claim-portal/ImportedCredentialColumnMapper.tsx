@@ -5,7 +5,13 @@
  * @agent_note Allows selecting primary and secondary column keys from approved batch spreadsheet headers with validation alerts.
  */
 
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/Badge";
 import { Info } from "@phosphor-icons/react";
 
@@ -46,8 +52,9 @@ export function ImportedCredentialColumnMapper({
       <div className="flex items-start gap-2.5">
         <Info className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
         <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-          Select columns from your imported batch data. Credentials are case-sensitive and preserve leading zeroes.
-          If the primary identifier is short or predictable, a secondary factor is required.
+          Select columns from your imported batch data. Credentials are
+          case-sensitive and preserve leading zeroes. If the primary identifier
+          is short or predictable, a secondary factor is required.
         </p>
       </div>
 
@@ -58,10 +65,7 @@ export function ImportedCredentialColumnMapper({
             <span>Primary Credential Column</span>
             <span className="text-rose-500">*</span>
           </label>
-          <Select
-            value={primaryFieldKey}
-            onValueChange={onPrimaryChange}
-          >
+          <Select value={primaryFieldKey} onValueChange={onPrimaryChange}>
             <SelectTrigger disabled={disabled} className="h-9 text-xs">
               <SelectValue placeholder="Select primary field..." />
             </SelectTrigger>
@@ -96,7 +100,9 @@ export function ImportedCredentialColumnMapper({
           </div>
           <Select
             value={secondaryFieldKey || "__none__"}
-            onValueChange={(val) => onSecondaryChange(val === "__none__" ? undefined : val)}
+            onValueChange={(val) =>
+              onSecondaryChange(val === "__none__" ? undefined : val)
+            }
           >
             <SelectTrigger disabled={disabled} className="h-9 text-xs">
               <SelectValue placeholder="Select secondary field (optional)..." />

@@ -21,13 +21,10 @@ import { ApprovedRecipient } from '../api/src/models/ApprovedRecipient.js';
 import { ClaimPortal } from '../api/src/models/ClaimPortal.js';
 import { ClaimCredentialSet } from '../api/src/models/ClaimCredentialSet.js';
 import { ClaimCredential } from '../api/src/models/ClaimCredential.js';
-import { ClaimRecipientState } from '../api/src/models/ClaimRecipientState.js';
-import { ClaimSession } from '../api/src/models/ClaimSession.js';
 import {
   ClaimPortalLifecycle,
   PortalConflictError,
   PortalNotFoundError,
-  BatchNotEligibleError,
   ExportAlreadyAcknowledgedError,
   InvalidStateTransitionError,
   WeakCredentialError,
@@ -105,7 +102,7 @@ async function run() {
       outputKey: 'certs/rec_A.pdf',
     });
 
-    const recipientB = await ApprovedRecipient.create({
+    await ApprovedRecipient.create({
       snapshotId: snapshot._id,
       batchId: batch._id,
       ownerId,
@@ -122,7 +119,7 @@ async function run() {
       outputKey: 'certs/rec_B.pdf',
     });
 
-    const recipientC = await ApprovedRecipient.create({
+    await ApprovedRecipient.create({
       snapshotId: snapshot._id,
       batchId: batch._id,
       ownerId,

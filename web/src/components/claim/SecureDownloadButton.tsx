@@ -39,7 +39,10 @@ export function SecureDownloadButton({
       setDownloading(true);
       await onDownload();
     } catch (err: any) {
-      toast.error("Download Failed", err.message || "Failed to retrieve certificate");
+      toast.error(
+        "Download Failed",
+        err.message || "Failed to retrieve certificate",
+      );
     } finally {
       setDownloading(false);
     }
@@ -53,7 +56,11 @@ export function SecureDownloadButton({
       disabled={disabled || busy}
       className="w-full h-11 text-xs font-bold gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-md shadow-emerald-600/20"
     >
-      {busy ? <Spinner size="sm" /> : <DownloadSimple className="w-4 h-4" weight="bold" />}
+      {busy ? (
+        <Spinner size="sm" />
+      ) : (
+        <DownloadSimple className="w-4 h-4" weight="bold" />
+      )}
       <span>Download PDF Certificate</span>
     </Button>
   );

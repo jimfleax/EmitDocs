@@ -61,18 +61,21 @@ export function TokenRotationConfirmDialog({
           </div>
           <DialogTitle>Rotate Claim Portal Credentials?</DialogTitle>
           <DialogDescription>
-            Rotating credentials invalidates all previously generated tokens and terminates active participant sessions immediately.
+            Rotating credentials invalidates all previously generated tokens and
+            terminates active participant sessions immediately.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 py-2 text-xs text-slate-600 dark:text-slate-400">
           <p>
-            Any participant attempting to claim certificates with older tokens will be rejected.
-            You must re-export the new CSV and distribute fresh tokens to all recipients.
+            Any participant attempting to claim certificates with older tokens
+            will be rejected. You must re-export the new CSV and distribute
+            fresh tokens to all recipients.
           </p>
           <div className="space-y-1.5 pt-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Type <span className="text-rose-600 font-mono">ROTATE</span> to confirm:
+              Type <span className="text-rose-600 font-mono">ROTATE</span> to
+              confirm:
             </label>
             <Input
               value={confirmText}

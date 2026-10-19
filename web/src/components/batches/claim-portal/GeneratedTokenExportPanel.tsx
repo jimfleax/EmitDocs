@@ -6,7 +6,12 @@
  */
 
 import { useState } from "react";
-import { Download, Lock, CheckCircle, ArrowClockwise } from "@phosphor-icons/react";
+import {
+  Download,
+  Lock,
+  CheckCircle,
+  ArrowClockwise,
+} from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Alert } from "@/components/ui/Alert";
 import { Spinner } from "@/components/ui/Spinner";
@@ -17,7 +22,9 @@ export interface GeneratedTokenExportPanelProps {
   portalId: string;
   revision: number;
   status: "preparing" | "awaiting_export_ack" | "ready" | "revoked" | "expired";
-  onGenerate: () => Promise<Array<{ recipientKey: string; name: string; email: string; token: string }>>;
+  onGenerate: () => Promise<
+    Array<{ recipientKey: string; name: string; email: string; token: string }>
+  >;
   onAcknowledge: (revision: number) => Promise<void>;
   onRotatePrompt?: () => void;
   disabled?: boolean;
@@ -67,10 +74,12 @@ export function GeneratedTokenExportPanel({
       const rows = tokens
         .map(
           (t) =>
-            `${escapeCsvCell(t.recipientKey)},${escapeCsvCell(t.name)},${escapeCsvCell(t.email)},${escapeCsvCell(t.token, true)}`
+            `${escapeCsvCell(t.recipientKey)},${escapeCsvCell(t.name)},${escapeCsvCell(t.email)},${escapeCsvCell(t.token, true)}`,
         )
         .join("\n");
-      const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob([headers + rows], {
+        type: "text/csv;charset=utf-8;",
+      });
       const url = URL.createObjectURL(blob);
       setDownloadBlobUrl(url);
 
@@ -84,7 +93,10 @@ export function GeneratedTokenExportPanel({
 
       toast.success("Tokens generated and CSV downloaded");
     } catch (err: any) {
-      toast.error("Token Generation Failed", err.message || "Failed to generate tokens");
+      toast.error(
+        "Token Generation Failed",
+        err.message || "Failed to generate tokens",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -95,9 +107,15 @@ export function GeneratedTokenExportPanel({
     try {
       setIsAcknowledging(true);
       await onAcknowledge(revision);
-      toast.success("Token Export Acknowledged", "Credential set is now ready for portal activation.");
+      toast.success(
+        "Token Export Acknowledged",
+        "Credential set is now ready for portal activation.",
+      );
     } catch (err: any) {
-      toast.error("Acknowledgment Failed", err.message || "Could not lock token export");
+      toast.error(
+        "Acknowledgment Failed",
+        err.message || "Could not lock token export",
+      );
     } finally {
       setIsAcknowledging(false);
     }
@@ -114,7 +132,8 @@ export function GeneratedTokenExportPanel({
                 Generated Tokens Active (Revision {revision})
               </h4>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Raw secrets have been purged from memory and export is locked. Verifiers are active.
+                Raw secrets have been purged from memory and export is locked.
+                Verifiers are active.
               </p>
             </div>
           </div>
@@ -146,7 +165,9 @@ export function GeneratedTokenExportPanel({
             One-Time Cryptographic Token Export
           </h4>
           <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-            EmitDocs adheres strictly to zero plaintext credential persistence. When you generate tokens, you must download and securely store the CSV. Once acknowledged, raw tokens can never be re-exported.
+            EmitDocs adheres strictly to zero plaintext credential persistence.
+            When you generate tokens, you must download and securely store the
+            CSV. Once acknowledged, raw tokens can never be re-exported.
           </p>
         </div>
       </div>
@@ -158,7 +179,11 @@ export function GeneratedTokenExportPanel({
             disabled={disabled || isGenerating}
             className="text-xs gap-2 font-bold"
           >
-            {isGenerating ? <Spinner size="sm" /> : <Download className="w-4 h-4" />}
+            {isGenerating ? (
+              <Spinner size="sm" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
             <span>Generate &amp; Download Token CSV</span>
           </Button>
         </div>
@@ -168,7 +193,8 @@ export function GeneratedTokenExportPanel({
         <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
           <Alert variant="warning" title="Export Acknowledgment Required">
             <p className="text-xs">
-              Ensure you have downloaded and backed up the token CSV. If lost, you must rotate credentials and invalidate all tokens.
+              Ensure you have downloaded and backed up the token CSV. If lost,
+              you must rotate credentials and invalidate all tokens.
             </p>
           </Alert>
 
@@ -195,7 +221,9 @@ export function GeneratedTokenExportPanel({
               htmlFor="confirmExportSaved"
               className="text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none leading-relaxed"
             >
-              I confirm I have downloaded and safely stored this token CSV. I understand EmitDocs will never display or export these secrets again.
+              I confirm I have downloaded and safely stored this token CSV. I
+              understand EmitDocs will never display or export these secrets
+              again.
             </label>
           </div>
 

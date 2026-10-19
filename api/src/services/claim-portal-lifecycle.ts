@@ -7,9 +7,7 @@
  */
 
 import crypto from 'node:crypto';
-import mongoose from 'mongoose';
 import { Batch } from '../models/Batch.js';
-import { ApprovedSnapshot } from '../models/ApprovedSnapshot.js';
 import { ApprovedRecipient } from '../models/ApprovedRecipient.js';
 import { ClaimPortal, IClaimPortal, ClaimCredentialMode } from '../models/ClaimPortal.js';
 import { ClaimCredentialSet, IClaimCredentialSet } from '../models/ClaimCredentialSet.js';

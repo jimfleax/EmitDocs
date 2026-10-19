@@ -49,7 +49,9 @@ export function PublicClaimCredentialForm({
 }: PublicClaimCredentialFormProps) {
   const [primary, setPrimary] = useState("");
   const [secondary, setSecondary] = useState("");
-  const [turnstileToken, setTurnstileToken] = useState<string | undefined>(undefined);
+  const [turnstileToken, setTurnstileToken] = useState<string | undefined>(
+    undefined,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,10 +137,16 @@ export function PublicClaimCredentialForm({
 
       <Button
         type="submit"
-        disabled={!primary.trim() || (requiresTurnstile && !turnstileToken) || isLoading}
+        disabled={
+          !primary.trim() || (requiresTurnstile && !turnstileToken) || isLoading
+        }
         className="w-full h-11 text-xs font-bold gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/20 rounded-xl transition-all cursor-pointer"
       >
-        {isLoading ? <Spinner size="sm" /> : <ShieldCheck className="w-4 h-4" />}
+        {isLoading ? (
+          <Spinner size="sm" />
+        ) : (
+          <ShieldCheck className="w-4 h-4" />
+        )}
         <span>Verify &amp; Access Certificate</span>
         <ArrowRight className="w-3.5 h-3.5" />
       </Button>

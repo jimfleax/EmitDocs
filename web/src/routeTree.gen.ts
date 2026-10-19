@@ -8,539 +8,539 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProtectedRouteImport } from './routes/_protected'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PrivacyPolicyRouteImport } from './routes/privacy-policy'
-import { Route as SignInRouteImport } from './routes/sign-in'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as TermsOfServiceRouteImport } from './routes/terms-of-service'
-import { Route as ProtectedAppRouteImport } from './routes/_protected/app'
-import { Route as ClaimPublicSlugRouteImport } from './routes/claim/$publicSlug'
-import { Route as DebugErrorsRouteImport } from './routes/debug.errors'
-import { Route as ProtectedAppIndexRouteImport } from './routes/_protected/app/index'
-import { Route as ProtectedAppBatchesIndexRouteImport } from './routes/_protected/app/batches/index'
-import { Route as ProtectedAppBatchesNewRouteImport } from './routes/_protected/app/batches/new'
-import { Route as ProtectedAppSettingsAccountRouteImport } from './routes/_protected/app/settings/account'
-import { Route as ProtectedAppSettingsRetentionRouteImport } from './routes/_protected/app/settings/retention'
-import { Route as ProtectedAppTemplatesIndexRouteImport } from './routes/_protected/app/templates/index'
-import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from './routes/_protected/app/templates/$templateId'
-import { Route as ProtectedAppTemplatesNewRouteImport } from './routes/_protected/app/templates/new'
-import { Route as ProtectedAppBatchesBatchIdApproveRouteImport } from './routes/_protected/app/batches/$batchId_.approve'
-import { Route as ProtectedAppBatchesBatchIdClaimPortalRouteImport } from './routes/_protected/app/batches/$batchId_.claim-portal'
-import { Route as ProtectedAppBatchesBatchIdImportRouteImport } from './routes/_protected/app/batches/$batchId_.import'
-import { Route as ProtectedAppBatchesBatchIdProgressRouteImport } from './routes/_protected/app/batches/$batchId_.progress'
-import { Route as ProtectedAppBatchesBatchIdResultsRouteImport } from './routes/_protected/app/batches/$batchId_.results'
-import { Route as ProtectedAppBatchesBatchIdReviewRouteImport } from './routes/_protected/app/batches/$batchId_.review'
-import { Route as ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport } from './routes/_protected/app/templates/$templateId_.versions.$versionId'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as IndexRouteImport } from "./routes/index";
+import { Route as ProtectedRouteImport } from "./routes/_protected";
+import { Route as PrivacyRouteImport } from "./routes/privacy";
+import { Route as PrivacyPolicyRouteImport } from "./routes/privacy-policy";
+import { Route as SignInRouteImport } from "./routes/sign-in";
+import { Route as TermsRouteImport } from "./routes/terms";
+import { Route as TermsOfServiceRouteImport } from "./routes/terms-of-service";
+import { Route as ProtectedAppRouteImport } from "./routes/_protected/app";
+import { Route as ClaimPublicSlugRouteImport } from "./routes/claim/$publicSlug";
+import { Route as DebugErrorsRouteImport } from "./routes/debug.errors";
+import { Route as ProtectedAppIndexRouteImport } from "./routes/_protected/app/index";
+import { Route as ProtectedAppBatchesIndexRouteImport } from "./routes/_protected/app/batches/index";
+import { Route as ProtectedAppBatchesNewRouteImport } from "./routes/_protected/app/batches/new";
+import { Route as ProtectedAppSettingsAccountRouteImport } from "./routes/_protected/app/settings/account";
+import { Route as ProtectedAppSettingsRetentionRouteImport } from "./routes/_protected/app/settings/retention";
+import { Route as ProtectedAppTemplatesIndexRouteImport } from "./routes/_protected/app/templates/index";
+import { Route as ProtectedAppTemplatesTemplateIdRouteImport } from "./routes/_protected/app/templates/$templateId";
+import { Route as ProtectedAppTemplatesNewRouteImport } from "./routes/_protected/app/templates/new";
+import { Route as ProtectedAppBatchesBatchIdApproveRouteImport } from "./routes/_protected/app/batches/$batchId_.approve";
+import { Route as ProtectedAppBatchesBatchIdClaimPortalRouteImport } from "./routes/_protected/app/batches/$batchId_.claim-portal";
+import { Route as ProtectedAppBatchesBatchIdImportRouteImport } from "./routes/_protected/app/batches/$batchId_.import";
+import { Route as ProtectedAppBatchesBatchIdProgressRouteImport } from "./routes/_protected/app/batches/$batchId_.progress";
+import { Route as ProtectedAppBatchesBatchIdResultsRouteImport } from "./routes/_protected/app/batches/$batchId_.results";
+import { Route as ProtectedAppBatchesBatchIdReviewRouteImport } from "./routes/_protected/app/batches/$batchId_.review";
+import { Route as ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport } from "./routes/_protected/app/templates/$templateId_.versions.$versionId";
 
 const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ProtectedRoute = ProtectedRouteImport.update({
-  id: '/_protected',
+  id: "/_protected",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
+  id: "/privacy",
+  path: "/privacy",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PrivacyPolicyRoute = PrivacyPolicyRouteImport.update({
-  id: '/privacy-policy',
-  path: '/privacy-policy',
+  id: "/privacy-policy",
+  path: "/privacy-policy",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SignInRoute = SignInRouteImport.update({
-  id: '/sign-in',
-  path: '/sign-in',
+  id: "/sign-in",
+  path: "/sign-in",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
+  id: "/terms",
+  path: "/terms",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const TermsOfServiceRoute = TermsOfServiceRouteImport.update({
-  id: '/terms-of-service',
-  path: '/terms-of-service',
+  id: "/terms-of-service",
+  path: "/terms-of-service",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ProtectedAppRoute = ProtectedAppRouteImport.update({
-  id: '/app',
-  path: '/app',
+  id: "/app",
+  path: "/app",
   getParentRoute: () => ProtectedRoute,
-} as any)
+} as any);
 const ClaimPublicSlugRoute = ClaimPublicSlugRouteImport.update({
-  id: '/claim/$publicSlug',
-  path: '/claim/$publicSlug',
+  id: "/claim/$publicSlug",
+  path: "/claim/$publicSlug",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const DebugErrorsRoute = DebugErrorsRouteImport.update({
-  id: '/debug/errors',
-  path: '/debug/errors',
+  id: "/debug/errors",
+  path: "/debug/errors",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const ProtectedAppIndexRoute = ProtectedAppIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => ProtectedAppRoute,
-} as any)
+} as any);
 const ProtectedAppBatchesIndexRoute =
   ProtectedAppBatchesIndexRouteImport.update({
-    id: '/batches/',
-    path: '/batches/',
+    id: "/batches/",
+    path: "/batches/",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesNewRoute = ProtectedAppBatchesNewRouteImport.update({
-  id: '/batches/new',
-  path: '/batches/new',
+  id: "/batches/new",
+  path: "/batches/new",
   getParentRoute: () => ProtectedAppRoute,
-} as any)
+} as any);
 const ProtectedAppSettingsAccountRoute =
   ProtectedAppSettingsAccountRouteImport.update({
-    id: '/settings/account',
-    path: '/settings/account',
+    id: "/settings/account",
+    path: "/settings/account",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppSettingsRetentionRoute =
   ProtectedAppSettingsRetentionRouteImport.update({
-    id: '/settings/retention',
-    path: '/settings/retention',
+    id: "/settings/retention",
+    path: "/settings/retention",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppTemplatesIndexRoute =
   ProtectedAppTemplatesIndexRouteImport.update({
-    id: '/templates/',
-    path: '/templates/',
+    id: "/templates/",
+    path: "/templates/",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppTemplatesTemplateIdRoute =
   ProtectedAppTemplatesTemplateIdRouteImport.update({
-    id: '/templates/$templateId',
-    path: '/templates/$templateId',
+    id: "/templates/$templateId",
+    path: "/templates/$templateId",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppTemplatesNewRoute =
   ProtectedAppTemplatesNewRouteImport.update({
-    id: '/templates/new',
-    path: '/templates/new',
+    id: "/templates/new",
+    path: "/templates/new",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesBatchIdApproveRoute =
   ProtectedAppBatchesBatchIdApproveRouteImport.update({
-    id: '/batches/$batchId_/approve',
-    path: '/batches/$batchId/approve',
+    id: "/batches/$batchId_/approve",
+    path: "/batches/$batchId/approve",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesBatchIdClaimPortalRoute =
   ProtectedAppBatchesBatchIdClaimPortalRouteImport.update({
-    id: '/batches/$batchId_/claim-portal',
-    path: '/batches/$batchId/claim-portal',
+    id: "/batches/$batchId_/claim-portal",
+    path: "/batches/$batchId/claim-portal",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesBatchIdImportRoute =
   ProtectedAppBatchesBatchIdImportRouteImport.update({
-    id: '/batches/$batchId_/import',
-    path: '/batches/$batchId/import',
+    id: "/batches/$batchId_/import",
+    path: "/batches/$batchId/import",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesBatchIdProgressRoute =
   ProtectedAppBatchesBatchIdProgressRouteImport.update({
-    id: '/batches/$batchId_/progress',
-    path: '/batches/$batchId/progress',
+    id: "/batches/$batchId_/progress",
+    path: "/batches/$batchId/progress",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesBatchIdResultsRoute =
   ProtectedAppBatchesBatchIdResultsRouteImport.update({
-    id: '/batches/$batchId_/results',
-    path: '/batches/$batchId/results',
+    id: "/batches/$batchId_/results",
+    path: "/batches/$batchId/results",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppBatchesBatchIdReviewRoute =
   ProtectedAppBatchesBatchIdReviewRouteImport.update({
-    id: '/batches/$batchId_/review',
-    path: '/batches/$batchId/review',
+    id: "/batches/$batchId_/review",
+    path: "/batches/$batchId/review",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 const ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute =
   ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport.update({
-    id: '/templates/$templateId_/versions/$versionId',
-    path: '/templates/$templateId/versions/$versionId',
+    id: "/templates/$templateId_/versions/$versionId",
+    path: "/templates/$templateId/versions/$versionId",
     getParentRoute: () => ProtectedAppRoute,
-  } as any)
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/privacy': typeof PrivacyRoute
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/sign-in': typeof SignInRoute
-  '/terms': typeof TermsRoute
-  '/terms-of-service': typeof TermsOfServiceRoute
-  '/app': typeof ProtectedAppRouteWithChildren
-  '/claim/$publicSlug': typeof ClaimPublicSlugRoute
-  '/debug/errors': typeof DebugErrorsRoute
-  '/app/': typeof ProtectedAppIndexRoute
-  '/app/batches/new': typeof ProtectedAppBatchesNewRoute
-  '/app/settings/account': typeof ProtectedAppSettingsAccountRoute
-  '/app/settings/retention': typeof ProtectedAppSettingsRetentionRoute
-  '/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
-  '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
-  '/app/batches/': typeof ProtectedAppBatchesIndexRoute
-  '/app/templates/': typeof ProtectedAppTemplatesIndexRoute
-  '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
-  '/app/batches/$batchId/claim-portal': typeof ProtectedAppBatchesBatchIdClaimPortalRoute
-  '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
-  '/app/batches/$batchId/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
-  '/app/batches/$batchId/results': typeof ProtectedAppBatchesBatchIdResultsRoute
-  '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
-  '/app/templates/$templateId/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
+  "/": typeof IndexRoute;
+  "/privacy": typeof PrivacyRoute;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
+  "/sign-in": typeof SignInRoute;
+  "/terms": typeof TermsRoute;
+  "/terms-of-service": typeof TermsOfServiceRoute;
+  "/app": typeof ProtectedAppRouteWithChildren;
+  "/claim/$publicSlug": typeof ClaimPublicSlugRoute;
+  "/debug/errors": typeof DebugErrorsRoute;
+  "/app/": typeof ProtectedAppIndexRoute;
+  "/app/batches/new": typeof ProtectedAppBatchesNewRoute;
+  "/app/settings/account": typeof ProtectedAppSettingsAccountRoute;
+  "/app/settings/retention": typeof ProtectedAppSettingsRetentionRoute;
+  "/app/templates/$templateId": typeof ProtectedAppTemplatesTemplateIdRoute;
+  "/app/templates/new": typeof ProtectedAppTemplatesNewRoute;
+  "/app/batches/": typeof ProtectedAppBatchesIndexRoute;
+  "/app/templates/": typeof ProtectedAppTemplatesIndexRoute;
+  "/app/batches/$batchId/approve": typeof ProtectedAppBatchesBatchIdApproveRoute;
+  "/app/batches/$batchId/claim-portal": typeof ProtectedAppBatchesBatchIdClaimPortalRoute;
+  "/app/batches/$batchId/import": typeof ProtectedAppBatchesBatchIdImportRoute;
+  "/app/batches/$batchId/progress": typeof ProtectedAppBatchesBatchIdProgressRoute;
+  "/app/batches/$batchId/results": typeof ProtectedAppBatchesBatchIdResultsRoute;
+  "/app/batches/$batchId/review": typeof ProtectedAppBatchesBatchIdReviewRoute;
+  "/app/templates/$templateId/versions/$versionId": typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute;
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/privacy': typeof PrivacyRoute
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/sign-in': typeof SignInRoute
-  '/terms': typeof TermsRoute
-  '/terms-of-service': typeof TermsOfServiceRoute
-  '/claim/$publicSlug': typeof ClaimPublicSlugRoute
-  '/debug/errors': typeof DebugErrorsRoute
-  '/app': typeof ProtectedAppIndexRoute
-  '/app/batches/new': typeof ProtectedAppBatchesNewRoute
-  '/app/settings/account': typeof ProtectedAppSettingsAccountRoute
-  '/app/settings/retention': typeof ProtectedAppSettingsRetentionRoute
-  '/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
-  '/app/templates/new': typeof ProtectedAppTemplatesNewRoute
-  '/app/batches': typeof ProtectedAppBatchesIndexRoute
-  '/app/templates': typeof ProtectedAppTemplatesIndexRoute
-  '/app/batches/$batchId/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
-  '/app/batches/$batchId/claim-portal': typeof ProtectedAppBatchesBatchIdClaimPortalRoute
-  '/app/batches/$batchId/import': typeof ProtectedAppBatchesBatchIdImportRoute
-  '/app/batches/$batchId/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
-  '/app/batches/$batchId/results': typeof ProtectedAppBatchesBatchIdResultsRoute
-  '/app/batches/$batchId/review': typeof ProtectedAppBatchesBatchIdReviewRoute
-  '/app/templates/$templateId/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
+  "/": typeof IndexRoute;
+  "/privacy": typeof PrivacyRoute;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
+  "/sign-in": typeof SignInRoute;
+  "/terms": typeof TermsRoute;
+  "/terms-of-service": typeof TermsOfServiceRoute;
+  "/claim/$publicSlug": typeof ClaimPublicSlugRoute;
+  "/debug/errors": typeof DebugErrorsRoute;
+  "/app": typeof ProtectedAppIndexRoute;
+  "/app/batches/new": typeof ProtectedAppBatchesNewRoute;
+  "/app/settings/account": typeof ProtectedAppSettingsAccountRoute;
+  "/app/settings/retention": typeof ProtectedAppSettingsRetentionRoute;
+  "/app/templates/$templateId": typeof ProtectedAppTemplatesTemplateIdRoute;
+  "/app/templates/new": typeof ProtectedAppTemplatesNewRoute;
+  "/app/batches": typeof ProtectedAppBatchesIndexRoute;
+  "/app/templates": typeof ProtectedAppTemplatesIndexRoute;
+  "/app/batches/$batchId/approve": typeof ProtectedAppBatchesBatchIdApproveRoute;
+  "/app/batches/$batchId/claim-portal": typeof ProtectedAppBatchesBatchIdClaimPortalRoute;
+  "/app/batches/$batchId/import": typeof ProtectedAppBatchesBatchIdImportRoute;
+  "/app/batches/$batchId/progress": typeof ProtectedAppBatchesBatchIdProgressRoute;
+  "/app/batches/$batchId/results": typeof ProtectedAppBatchesBatchIdResultsRoute;
+  "/app/batches/$batchId/review": typeof ProtectedAppBatchesBatchIdReviewRoute;
+  "/app/templates/$templateId/versions/$versionId": typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_protected': typeof ProtectedRouteWithChildren
-  '/privacy': typeof PrivacyRoute
-  '/privacy-policy': typeof PrivacyPolicyRoute
-  '/sign-in': typeof SignInRoute
-  '/terms': typeof TermsRoute
-  '/terms-of-service': typeof TermsOfServiceRoute
-  '/_protected/app': typeof ProtectedAppRouteWithChildren
-  '/claim/$publicSlug': typeof ClaimPublicSlugRoute
-  '/debug/errors': typeof DebugErrorsRoute
-  '/_protected/app/': typeof ProtectedAppIndexRoute
-  '/_protected/app/batches/new': typeof ProtectedAppBatchesNewRoute
-  '/_protected/app/settings/account': typeof ProtectedAppSettingsAccountRoute
-  '/_protected/app/settings/retention': typeof ProtectedAppSettingsRetentionRoute
-  '/_protected/app/templates/$templateId': typeof ProtectedAppTemplatesTemplateIdRoute
-  '/_protected/app/templates/new': typeof ProtectedAppTemplatesNewRoute
-  '/_protected/app/batches/': typeof ProtectedAppBatchesIndexRoute
-  '/_protected/app/templates/': typeof ProtectedAppTemplatesIndexRoute
-  '/_protected/app/batches/$batchId_/approve': typeof ProtectedAppBatchesBatchIdApproveRoute
-  '/_protected/app/batches/$batchId_/claim-portal': typeof ProtectedAppBatchesBatchIdClaimPortalRoute
-  '/_protected/app/batches/$batchId_/import': typeof ProtectedAppBatchesBatchIdImportRoute
-  '/_protected/app/batches/$batchId_/progress': typeof ProtectedAppBatchesBatchIdProgressRoute
-  '/_protected/app/batches/$batchId_/results': typeof ProtectedAppBatchesBatchIdResultsRoute
-  '/_protected/app/batches/$batchId_/review': typeof ProtectedAppBatchesBatchIdReviewRoute
-  '/_protected/app/templates/$templateId_/versions/$versionId': typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
+  __root__: typeof rootRouteImport;
+  "/": typeof IndexRoute;
+  "/_protected": typeof ProtectedRouteWithChildren;
+  "/privacy": typeof PrivacyRoute;
+  "/privacy-policy": typeof PrivacyPolicyRoute;
+  "/sign-in": typeof SignInRoute;
+  "/terms": typeof TermsRoute;
+  "/terms-of-service": typeof TermsOfServiceRoute;
+  "/_protected/app": typeof ProtectedAppRouteWithChildren;
+  "/claim/$publicSlug": typeof ClaimPublicSlugRoute;
+  "/debug/errors": typeof DebugErrorsRoute;
+  "/_protected/app/": typeof ProtectedAppIndexRoute;
+  "/_protected/app/batches/new": typeof ProtectedAppBatchesNewRoute;
+  "/_protected/app/settings/account": typeof ProtectedAppSettingsAccountRoute;
+  "/_protected/app/settings/retention": typeof ProtectedAppSettingsRetentionRoute;
+  "/_protected/app/templates/$templateId": typeof ProtectedAppTemplatesTemplateIdRoute;
+  "/_protected/app/templates/new": typeof ProtectedAppTemplatesNewRoute;
+  "/_protected/app/batches/": typeof ProtectedAppBatchesIndexRoute;
+  "/_protected/app/templates/": typeof ProtectedAppTemplatesIndexRoute;
+  "/_protected/app/batches/$batchId_/approve": typeof ProtectedAppBatchesBatchIdApproveRoute;
+  "/_protected/app/batches/$batchId_/claim-portal": typeof ProtectedAppBatchesBatchIdClaimPortalRoute;
+  "/_protected/app/batches/$batchId_/import": typeof ProtectedAppBatchesBatchIdImportRoute;
+  "/_protected/app/batches/$batchId_/progress": typeof ProtectedAppBatchesBatchIdProgressRoute;
+  "/_protected/app/batches/$batchId_/results": typeof ProtectedAppBatchesBatchIdResultsRoute;
+  "/_protected/app/batches/$batchId_/review": typeof ProtectedAppBatchesBatchIdReviewRoute;
+  "/_protected/app/templates/$templateId_/versions/$versionId": typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/'
-    | '/privacy'
-    | '/privacy-policy'
-    | '/sign-in'
-    | '/terms'
-    | '/terms-of-service'
-    | '/app'
-    | '/claim/$publicSlug'
-    | '/debug/errors'
-    | '/app/'
-    | '/app/batches/new'
-    | '/app/settings/account'
-    | '/app/settings/retention'
-    | '/app/templates/$templateId'
-    | '/app/templates/new'
-    | '/app/batches/'
-    | '/app/templates/'
-    | '/app/batches/$batchId/approve'
-    | '/app/batches/$batchId/claim-portal'
-    | '/app/batches/$batchId/import'
-    | '/app/batches/$batchId/progress'
-    | '/app/batches/$batchId/results'
-    | '/app/batches/$batchId/review'
-    | '/app/templates/$templateId/versions/$versionId'
-  fileRoutesByTo: FileRoutesByTo
+    | "/"
+    | "/privacy"
+    | "/privacy-policy"
+    | "/sign-in"
+    | "/terms"
+    | "/terms-of-service"
+    | "/app"
+    | "/claim/$publicSlug"
+    | "/debug/errors"
+    | "/app/"
+    | "/app/batches/new"
+    | "/app/settings/account"
+    | "/app/settings/retention"
+    | "/app/templates/$templateId"
+    | "/app/templates/new"
+    | "/app/batches/"
+    | "/app/templates/"
+    | "/app/batches/$batchId/approve"
+    | "/app/batches/$batchId/claim-portal"
+    | "/app/batches/$batchId/import"
+    | "/app/batches/$batchId/progress"
+    | "/app/batches/$batchId/results"
+    | "/app/batches/$batchId/review"
+    | "/app/templates/$templateId/versions/$versionId";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/'
-    | '/privacy'
-    | '/privacy-policy'
-    | '/sign-in'
-    | '/terms'
-    | '/terms-of-service'
-    | '/claim/$publicSlug'
-    | '/debug/errors'
-    | '/app'
-    | '/app/batches/new'
-    | '/app/settings/account'
-    | '/app/settings/retention'
-    | '/app/templates/$templateId'
-    | '/app/templates/new'
-    | '/app/batches'
-    | '/app/templates'
-    | '/app/batches/$batchId/approve'
-    | '/app/batches/$batchId/claim-portal'
-    | '/app/batches/$batchId/import'
-    | '/app/batches/$batchId/progress'
-    | '/app/batches/$batchId/results'
-    | '/app/batches/$batchId/review'
-    | '/app/templates/$templateId/versions/$versionId'
+    | "/"
+    | "/privacy"
+    | "/privacy-policy"
+    | "/sign-in"
+    | "/terms"
+    | "/terms-of-service"
+    | "/claim/$publicSlug"
+    | "/debug/errors"
+    | "/app"
+    | "/app/batches/new"
+    | "/app/settings/account"
+    | "/app/settings/retention"
+    | "/app/templates/$templateId"
+    | "/app/templates/new"
+    | "/app/batches"
+    | "/app/templates"
+    | "/app/batches/$batchId/approve"
+    | "/app/batches/$batchId/claim-portal"
+    | "/app/batches/$batchId/import"
+    | "/app/batches/$batchId/progress"
+    | "/app/batches/$batchId/results"
+    | "/app/batches/$batchId/review"
+    | "/app/templates/$templateId/versions/$versionId";
   id:
-    | '__root__'
-    | '/'
-    | '/_protected'
-    | '/privacy'
-    | '/privacy-policy'
-    | '/sign-in'
-    | '/terms'
-    | '/terms-of-service'
-    | '/_protected/app'
-    | '/claim/$publicSlug'
-    | '/debug/errors'
-    | '/_protected/app/'
-    | '/_protected/app/batches/new'
-    | '/_protected/app/settings/account'
-    | '/_protected/app/settings/retention'
-    | '/_protected/app/templates/$templateId'
-    | '/_protected/app/templates/new'
-    | '/_protected/app/batches/'
-    | '/_protected/app/templates/'
-    | '/_protected/app/batches/$batchId_/approve'
-    | '/_protected/app/batches/$batchId_/claim-portal'
-    | '/_protected/app/batches/$batchId_/import'
-    | '/_protected/app/batches/$batchId_/progress'
-    | '/_protected/app/batches/$batchId_/results'
-    | '/_protected/app/batches/$batchId_/review'
-    | '/_protected/app/templates/$templateId_/versions/$versionId'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/"
+    | "/_protected"
+    | "/privacy"
+    | "/privacy-policy"
+    | "/sign-in"
+    | "/terms"
+    | "/terms-of-service"
+    | "/_protected/app"
+    | "/claim/$publicSlug"
+    | "/debug/errors"
+    | "/_protected/app/"
+    | "/_protected/app/batches/new"
+    | "/_protected/app/settings/account"
+    | "/_protected/app/settings/retention"
+    | "/_protected/app/templates/$templateId"
+    | "/_protected/app/templates/new"
+    | "/_protected/app/batches/"
+    | "/_protected/app/templates/"
+    | "/_protected/app/batches/$batchId_/approve"
+    | "/_protected/app/batches/$batchId_/claim-portal"
+    | "/_protected/app/batches/$batchId_/import"
+    | "/_protected/app/batches/$batchId_/progress"
+    | "/_protected/app/batches/$batchId_/results"
+    | "/_protected/app/batches/$batchId_/review"
+    | "/_protected/app/templates/$templateId_/versions/$versionId";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ProtectedRoute: typeof ProtectedRouteWithChildren
-  PrivacyRoute: typeof PrivacyRoute
-  PrivacyPolicyRoute: typeof PrivacyPolicyRoute
-  SignInRoute: typeof SignInRoute
-  TermsRoute: typeof TermsRoute
-  TermsOfServiceRoute: typeof TermsOfServiceRoute
-  ClaimPublicSlugRoute: typeof ClaimPublicSlugRoute
-  DebugErrorsRoute: typeof DebugErrorsRoute
+  IndexRoute: typeof IndexRoute;
+  ProtectedRoute: typeof ProtectedRouteWithChildren;
+  PrivacyRoute: typeof PrivacyRoute;
+  PrivacyPolicyRoute: typeof PrivacyPolicyRoute;
+  SignInRoute: typeof SignInRoute;
+  TermsRoute: typeof TermsRoute;
+  TermsOfServiceRoute: typeof TermsOfServiceRoute;
+  ClaimPublicSlugRoute: typeof ClaimPublicSlugRoute;
+  DebugErrorsRoute: typeof DebugErrorsRoute;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected': {
-      id: '/_protected'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ProtectedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy-policy': {
-      id: '/privacy-policy'
-      path: '/privacy-policy'
-      fullPath: '/privacy-policy'
-      preLoaderRoute: typeof PrivacyPolicyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sign-in': {
-      id: '/sign-in'
-      path: '/sign-in'
-      fullPath: '/sign-in'
-      preLoaderRoute: typeof SignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms-of-service': {
-      id: '/terms-of-service'
-      path: '/terms-of-service'
-      fullPath: '/terms-of-service'
-      preLoaderRoute: typeof TermsOfServiceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/app': {
-      id: '/_protected/app'
-      path: '/app'
-      fullPath: '/app'
-      preLoaderRoute: typeof ProtectedAppRouteImport
-      parentRoute: typeof ProtectedRoute
-    }
-    '/claim/$publicSlug': {
-      id: '/claim/$publicSlug'
-      path: '/claim/$publicSlug'
-      fullPath: '/claim/$publicSlug'
-      preLoaderRoute: typeof ClaimPublicSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/debug/errors': {
-      id: '/debug/errors'
-      path: '/debug/errors'
-      fullPath: '/debug/errors'
-      preLoaderRoute: typeof DebugErrorsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_protected/app/': {
-      id: '/_protected/app/'
-      path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof ProtectedAppIndexRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/': {
-      id: '/_protected/app/batches/'
-      path: '/batches'
-      fullPath: '/app/batches/'
-      preLoaderRoute: typeof ProtectedAppBatchesIndexRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/new': {
-      id: '/_protected/app/batches/new'
-      path: '/batches/new'
-      fullPath: '/app/batches/new'
-      preLoaderRoute: typeof ProtectedAppBatchesNewRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/settings/account': {
-      id: '/_protected/app/settings/account'
-      path: '/settings/account'
-      fullPath: '/app/settings/account'
-      preLoaderRoute: typeof ProtectedAppSettingsAccountRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/settings/retention': {
-      id: '/_protected/app/settings/retention'
-      path: '/settings/retention'
-      fullPath: '/app/settings/retention'
-      preLoaderRoute: typeof ProtectedAppSettingsRetentionRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/templates/': {
-      id: '/_protected/app/templates/'
-      path: '/templates'
-      fullPath: '/app/templates/'
-      preLoaderRoute: typeof ProtectedAppTemplatesIndexRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/templates/$templateId': {
-      id: '/_protected/app/templates/$templateId'
-      path: '/templates/$templateId'
-      fullPath: '/app/templates/$templateId'
-      preLoaderRoute: typeof ProtectedAppTemplatesTemplateIdRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/templates/new': {
-      id: '/_protected/app/templates/new'
-      path: '/templates/new'
-      fullPath: '/app/templates/new'
-      preLoaderRoute: typeof ProtectedAppTemplatesNewRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/$batchId_/approve': {
-      id: '/_protected/app/batches/$batchId_/approve'
-      path: '/batches/$batchId/approve'
-      fullPath: '/app/batches/$batchId/approve'
-      preLoaderRoute: typeof ProtectedAppBatchesBatchIdApproveRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/$batchId_/claim-portal': {
-      id: '/_protected/app/batches/$batchId_/claim-portal'
-      path: '/batches/$batchId/claim-portal'
-      fullPath: '/app/batches/$batchId/claim-portal'
-      preLoaderRoute: typeof ProtectedAppBatchesBatchIdClaimPortalRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/$batchId_/import': {
-      id: '/_protected/app/batches/$batchId_/import'
-      path: '/batches/$batchId/import'
-      fullPath: '/app/batches/$batchId/import'
-      preLoaderRoute: typeof ProtectedAppBatchesBatchIdImportRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/$batchId_/progress': {
-      id: '/_protected/app/batches/$batchId_/progress'
-      path: '/batches/$batchId/progress'
-      fullPath: '/app/batches/$batchId/progress'
-      preLoaderRoute: typeof ProtectedAppBatchesBatchIdProgressRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/$batchId_/results': {
-      id: '/_protected/app/batches/$batchId_/results'
-      path: '/batches/$batchId/results'
-      fullPath: '/app/batches/$batchId/results'
-      preLoaderRoute: typeof ProtectedAppBatchesBatchIdResultsRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/batches/$batchId_/review': {
-      id: '/_protected/app/batches/$batchId_/review'
-      path: '/batches/$batchId/review'
-      fullPath: '/app/batches/$batchId/review'
-      preLoaderRoute: typeof ProtectedAppBatchesBatchIdReviewRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
-    '/_protected/app/templates/$templateId_/versions/$versionId': {
-      id: '/_protected/app/templates/$templateId_/versions/$versionId'
-      path: '/templates/$templateId/versions/$versionId'
-      fullPath: '/app/templates/$templateId/versions/$versionId'
-      preLoaderRoute: typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport
-      parentRoute: typeof ProtectedAppRoute
-    }
+    "/": {
+      id: "/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof IndexRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_protected": {
+      id: "/_protected";
+      path: "";
+      fullPath: "/";
+      preLoaderRoute: typeof ProtectedRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/privacy": {
+      id: "/privacy";
+      path: "/privacy";
+      fullPath: "/privacy";
+      preLoaderRoute: typeof PrivacyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/privacy-policy": {
+      id: "/privacy-policy";
+      path: "/privacy-policy";
+      fullPath: "/privacy-policy";
+      preLoaderRoute: typeof PrivacyPolicyRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/sign-in": {
+      id: "/sign-in";
+      path: "/sign-in";
+      fullPath: "/sign-in";
+      preLoaderRoute: typeof SignInRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/terms": {
+      id: "/terms";
+      path: "/terms";
+      fullPath: "/terms";
+      preLoaderRoute: typeof TermsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/terms-of-service": {
+      id: "/terms-of-service";
+      path: "/terms-of-service";
+      fullPath: "/terms-of-service";
+      preLoaderRoute: typeof TermsOfServiceRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_protected/app": {
+      id: "/_protected/app";
+      path: "/app";
+      fullPath: "/app";
+      preLoaderRoute: typeof ProtectedAppRouteImport;
+      parentRoute: typeof ProtectedRoute;
+    };
+    "/claim/$publicSlug": {
+      id: "/claim/$publicSlug";
+      path: "/claim/$publicSlug";
+      fullPath: "/claim/$publicSlug";
+      preLoaderRoute: typeof ClaimPublicSlugRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/debug/errors": {
+      id: "/debug/errors";
+      path: "/debug/errors";
+      fullPath: "/debug/errors";
+      preLoaderRoute: typeof DebugErrorsRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_protected/app/": {
+      id: "/_protected/app/";
+      path: "/";
+      fullPath: "/app/";
+      preLoaderRoute: typeof ProtectedAppIndexRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/": {
+      id: "/_protected/app/batches/";
+      path: "/batches";
+      fullPath: "/app/batches/";
+      preLoaderRoute: typeof ProtectedAppBatchesIndexRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/new": {
+      id: "/_protected/app/batches/new";
+      path: "/batches/new";
+      fullPath: "/app/batches/new";
+      preLoaderRoute: typeof ProtectedAppBatchesNewRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/settings/account": {
+      id: "/_protected/app/settings/account";
+      path: "/settings/account";
+      fullPath: "/app/settings/account";
+      preLoaderRoute: typeof ProtectedAppSettingsAccountRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/settings/retention": {
+      id: "/_protected/app/settings/retention";
+      path: "/settings/retention";
+      fullPath: "/app/settings/retention";
+      preLoaderRoute: typeof ProtectedAppSettingsRetentionRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/templates/": {
+      id: "/_protected/app/templates/";
+      path: "/templates";
+      fullPath: "/app/templates/";
+      preLoaderRoute: typeof ProtectedAppTemplatesIndexRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/templates/$templateId": {
+      id: "/_protected/app/templates/$templateId";
+      path: "/templates/$templateId";
+      fullPath: "/app/templates/$templateId";
+      preLoaderRoute: typeof ProtectedAppTemplatesTemplateIdRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/templates/new": {
+      id: "/_protected/app/templates/new";
+      path: "/templates/new";
+      fullPath: "/app/templates/new";
+      preLoaderRoute: typeof ProtectedAppTemplatesNewRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/$batchId_/approve": {
+      id: "/_protected/app/batches/$batchId_/approve";
+      path: "/batches/$batchId/approve";
+      fullPath: "/app/batches/$batchId/approve";
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdApproveRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/$batchId_/claim-portal": {
+      id: "/_protected/app/batches/$batchId_/claim-portal";
+      path: "/batches/$batchId/claim-portal";
+      fullPath: "/app/batches/$batchId/claim-portal";
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdClaimPortalRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/$batchId_/import": {
+      id: "/_protected/app/batches/$batchId_/import";
+      path: "/batches/$batchId/import";
+      fullPath: "/app/batches/$batchId/import";
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdImportRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/$batchId_/progress": {
+      id: "/_protected/app/batches/$batchId_/progress";
+      path: "/batches/$batchId/progress";
+      fullPath: "/app/batches/$batchId/progress";
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdProgressRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/$batchId_/results": {
+      id: "/_protected/app/batches/$batchId_/results";
+      path: "/batches/$batchId/results";
+      fullPath: "/app/batches/$batchId/results";
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdResultsRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/batches/$batchId_/review": {
+      id: "/_protected/app/batches/$batchId_/review";
+      path: "/batches/$batchId/review";
+      fullPath: "/app/batches/$batchId/review";
+      preLoaderRoute: typeof ProtectedAppBatchesBatchIdReviewRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
+    "/_protected/app/templates/$templateId_/versions/$versionId": {
+      id: "/_protected/app/templates/$templateId_/versions/$versionId";
+      path: "/templates/$templateId/versions/$versionId";
+      fullPath: "/app/templates/$templateId/versions/$versionId";
+      preLoaderRoute: typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRouteImport;
+      parentRoute: typeof ProtectedAppRoute;
+    };
   }
 }
 
 interface ProtectedAppRouteChildren {
-  ProtectedAppIndexRoute: typeof ProtectedAppIndexRoute
-  ProtectedAppBatchesNewRoute: typeof ProtectedAppBatchesNewRoute
-  ProtectedAppSettingsAccountRoute: typeof ProtectedAppSettingsAccountRoute
-  ProtectedAppSettingsRetentionRoute: typeof ProtectedAppSettingsRetentionRoute
-  ProtectedAppTemplatesTemplateIdRoute: typeof ProtectedAppTemplatesTemplateIdRoute
-  ProtectedAppTemplatesNewRoute: typeof ProtectedAppTemplatesNewRoute
-  ProtectedAppBatchesIndexRoute: typeof ProtectedAppBatchesIndexRoute
-  ProtectedAppTemplatesIndexRoute: typeof ProtectedAppTemplatesIndexRoute
-  ProtectedAppBatchesBatchIdApproveRoute: typeof ProtectedAppBatchesBatchIdApproveRoute
-  ProtectedAppBatchesBatchIdClaimPortalRoute: typeof ProtectedAppBatchesBatchIdClaimPortalRoute
-  ProtectedAppBatchesBatchIdImportRoute: typeof ProtectedAppBatchesBatchIdImportRoute
-  ProtectedAppBatchesBatchIdProgressRoute: typeof ProtectedAppBatchesBatchIdProgressRoute
-  ProtectedAppBatchesBatchIdResultsRoute: typeof ProtectedAppBatchesBatchIdResultsRoute
-  ProtectedAppBatchesBatchIdReviewRoute: typeof ProtectedAppBatchesBatchIdReviewRoute
-  ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute: typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute
+  ProtectedAppIndexRoute: typeof ProtectedAppIndexRoute;
+  ProtectedAppBatchesNewRoute: typeof ProtectedAppBatchesNewRoute;
+  ProtectedAppSettingsAccountRoute: typeof ProtectedAppSettingsAccountRoute;
+  ProtectedAppSettingsRetentionRoute: typeof ProtectedAppSettingsRetentionRoute;
+  ProtectedAppTemplatesTemplateIdRoute: typeof ProtectedAppTemplatesTemplateIdRoute;
+  ProtectedAppTemplatesNewRoute: typeof ProtectedAppTemplatesNewRoute;
+  ProtectedAppBatchesIndexRoute: typeof ProtectedAppBatchesIndexRoute;
+  ProtectedAppTemplatesIndexRoute: typeof ProtectedAppTemplatesIndexRoute;
+  ProtectedAppBatchesBatchIdApproveRoute: typeof ProtectedAppBatchesBatchIdApproveRoute;
+  ProtectedAppBatchesBatchIdClaimPortalRoute: typeof ProtectedAppBatchesBatchIdClaimPortalRoute;
+  ProtectedAppBatchesBatchIdImportRoute: typeof ProtectedAppBatchesBatchIdImportRoute;
+  ProtectedAppBatchesBatchIdProgressRoute: typeof ProtectedAppBatchesBatchIdProgressRoute;
+  ProtectedAppBatchesBatchIdResultsRoute: typeof ProtectedAppBatchesBatchIdResultsRoute;
+  ProtectedAppBatchesBatchIdReviewRoute: typeof ProtectedAppBatchesBatchIdReviewRoute;
+  ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute: typeof ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute;
 }
 
 const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
@@ -564,23 +564,23 @@ const ProtectedAppRouteChildren: ProtectedAppRouteChildren = {
   ProtectedAppBatchesBatchIdReviewRoute: ProtectedAppBatchesBatchIdReviewRoute,
   ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute:
     ProtectedAppTemplatesTemplateIdVersionsVersionIdRoute,
-}
+};
 
 const ProtectedAppRouteWithChildren = ProtectedAppRoute._addFileChildren(
   ProtectedAppRouteChildren,
-)
+);
 
 interface ProtectedRouteChildren {
-  ProtectedAppRoute: typeof ProtectedAppRouteWithChildren
+  ProtectedAppRoute: typeof ProtectedAppRouteWithChildren;
 }
 
 const ProtectedRouteChildren: ProtectedRouteChildren = {
   ProtectedAppRoute: ProtectedAppRouteWithChildren,
-}
+};
 
 const ProtectedRouteWithChildren = ProtectedRoute._addFileChildren(
   ProtectedRouteChildren,
-)
+);
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -592,7 +592,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsOfServiceRoute: TermsOfServiceRoute,
   ClaimPublicSlugRoute: ClaimPublicSlugRoute,
   DebugErrorsRoute: DebugErrorsRoute,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();

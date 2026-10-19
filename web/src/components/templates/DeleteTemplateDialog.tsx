@@ -57,7 +57,9 @@ export function DeleteTemplateDialog({
   } | null>(null);
 
   const currentTemplateId = template?._id ?? null;
-  const [prevTemplateId, setPrevTemplateId] = useState<string | null>(currentTemplateId);
+  const [prevTemplateId, setPrevTemplateId] = useState<string | null>(
+    currentTemplateId,
+  );
 
   if (currentTemplateId !== prevTemplateId) {
     setPrevTemplateId(currentTemplateId);
@@ -67,7 +69,7 @@ export function DeleteTemplateDialog({
   }
 
   const hasCascadeWarning = Boolean(
-    cascadeWarning && template && cascadeWarning.templateId === template._id
+    cascadeWarning && template && cascadeWarning.templateId === template._id,
   );
 
   const handleClose = () => {
@@ -81,7 +83,8 @@ export function DeleteTemplateDialog({
 
     try {
       setIsDeleting(true);
-      const shouldForce = forceCascade && cascadeWarning?.templateId === template._id;
+      const shouldForce =
+        forceCascade && cascadeWarning?.templateId === template._id;
       const url = shouldForce
         ? `/api/templates/${template._id}?confirmCascade=true&force=true`
         : `/api/templates/${template._id}`;
@@ -105,12 +108,14 @@ export function DeleteTemplateDialog({
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || errData.message || "Failed to delete template");
+        throw new Error(
+          errData.error || errData.message || "Failed to delete template",
+        );
       }
 
       toast.success(
         "Template deleted",
-        `"${template.name}" was permanently removed.`
+        `"${template.name}" was permanently removed.`,
       );
       onDeleted?.(template._id);
       handleClose();
@@ -147,13 +152,18 @@ export function DeleteTemplateDialog({
             <span className="font-semibold text-slate-800">
               "{template.name}"
             </span>
-            ? This template and its associated versions will be permanently removed.
+            ? This template and its associated versions will be permanently
+            removed.
           </p>
 
           {hasCascadeWarning && cascadeWarning && (
             <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
               <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
-                <Warning size={16} weight="bold" className="text-amber-600 shrink-0" />
+                <Warning
+                  size={16}
+                  weight="bold"
+                  className="text-amber-600 shrink-0"
+                />
                 <span>Orphaned Batches Warning</span>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
@@ -162,10 +172,12 @@ export function DeleteTemplateDialog({
                 <span className="font-medium text-amber-950">
                   {cascadeWarning.batches.map((b) => b.name).join(", ")}
                 </span>
-                . Deleting this template will also permanently delete all associated batches and recipient draft records.
+                . Deleting this template will also permanently delete all
+                associated batches and recipient draft records.
               </p>
               <p className="text-xs font-semibold text-amber-900">
-                Do you want to proceed and delete the template along with these batches?
+                Do you want to proceed and delete the template along with these
+                batches?
               </p>
             </div>
           )}

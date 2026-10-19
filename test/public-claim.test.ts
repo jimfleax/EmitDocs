@@ -30,8 +30,6 @@ import { ClaimPortal } from '../api/src/models/ClaimPortal.js';
 import { ClaimCredentialSet } from '../api/src/models/ClaimCredentialSet.js';
 import { ClaimCredential } from '../api/src/models/ClaimCredential.js';
 import { ClaimRecipientState } from '../api/src/models/ClaimRecipientState.js';
-import { ClaimSession } from '../api/src/models/ClaimSession.js';
-import { ClaimRateLimit } from '../api/src/models/ClaimRateLimit.js';
 import { ApprovedRecipient } from '../api/src/models/ApprovedRecipient.js';
 import {
   computeCredentialVerifier,
@@ -46,7 +44,6 @@ import {
 import {
   validateClaimSession,
   getAuthorizedDownloadPayload,
-  revokeClaimSession,
 } from '../api/src/services/claim-delivery.js';
 import {
   checkAndIncrementRateLimit,

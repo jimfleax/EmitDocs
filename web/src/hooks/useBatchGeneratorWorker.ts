@@ -12,7 +12,10 @@ import type {
 } from "@/lib/pdf-engine/pdf-preview-engine";
 import { generatePdfWithOverlay } from "@/lib/pdf-engine/pdf-preview-engine";
 import { sanitizeRecipientFilename } from "@/lib/pdf-engine/filename-sanitizer";
-import { createStreamingZip, saveZipChunksAsBlob } from "@/lib/pdf-engine/streaming-zip";
+import {
+  createStreamingZip,
+  saveZipChunksAsBlob,
+} from "@/lib/pdf-engine/streaming-zip";
 import type {
   WorkerInboundMessage,
   WorkerOutboundMessage,
@@ -92,7 +95,7 @@ export interface UseBatchGeneratorWorkerReturn {
     volumeIndex?: number,
     totalVolumes?: number,
     zipFilename?: string,
-    fileHandleOrWritable?: any
+    fileHandleOrWritable?: any,
   ) => Promise<ZipExportResult>;
   cancelZipExport: () => void;
 }
@@ -133,20 +136,23 @@ export interface UseBatchGeneratorWorkerOptions {
  * @sideeffects Spawns dedicated Web Worker, subscribes to postMessage events, handles chunked streams, and falls back to main-thread processing in SSR/Node.
  */
 export function useBatchGeneratorWorker(
-  options?: UseBatchGeneratorWorkerOptions
+  options?: UseBatchGeneratorWorkerOptions,
 ): UseBatchGeneratorWorkerReturn {
   const isExpired = options?.isExpired ?? false;
   const [status, setStatus] = useState<WorkerStatus>("idle");
   const [progress, setProgress] = useState<GenerationProgress>(initialProgress);
   const [error, setError] = useState<string | null>(null);
-  const [warningsMap, setWarningsMap] = useState<Record<string, EngineWarning[]>>({});
+  const [warningsMap, setWarningsMap] = useState<
+    Record<string, EngineWarning[]>
+  >({});
   const [generatedMap, setGeneratedMap] = useState<
     Record<string, { byteLength: number; generatedAt: number }>
   >({});
   const [errorsMap, setErrorsMap] = useState<Record<string, string>>({});
   const [isZipping, setIsZipping] = useState(false);
   const isZippingRef = useRef(false);
-  const [zipProgress, setZipProgress] = useState<ZipExportProgress>(initialZipProgress);
+  const [zipProgress, setZipProgress] =
+    useState<ZipExportProgress>(initialZipProgress);
 
   const zipChunksRef = useRef<Uint8Array[]>([]);
   const zipWritableRef = useRef<any>(null);
@@ -213,7 +219,8 @@ export function useBatchGeneratorWorker(
           }
 
           case "SINGLE_COMPLETE": {
-            const { recipientKey, pdfBytes, warnings, durationMs, requestId } = msg.payload;
+            const { recipientKey, pdfBytes, warnings, durationMs, requestId } =
+              msg.payload;
             const resolverKey = requestId || recipientKey;
             const resolver = pendingSingleResolvers.current.get(resolverKey);
             if (resolver) {
@@ -252,7 +259,10 @@ export function useBatchGeneratorWorker(
               },
             }));
             if (r.warnings && r.warnings.length > 0) {
-              setWarningsMap((prev) => ({ ...prev, [r.recipientKey]: r.warnings }));
+              setWarningsMap((prev) => ({
+                ...prev,
+                [r.recipientKey]: r.warnings,
+              }));
             }
             break;
           }
@@ -310,11 +320,19 @@ export function useBatchGeneratorWorker(
           }
 
           case "ZIP_COMPLETE": {
-            const { totalBytes, durationMs, zipFilename, failedCount, failedRecipientKeys, failedKeys } = msg.payload;
+            const {
+              totalBytes,
+              durationMs,
+              zipFilename,
+              failedCount,
+              failedRecipientKeys,
+              failedKeys,
+            } = msg.payload;
             isZippingRef.current = false;
             setIsZipping(false);
             const resolvedFailedKeys = failedRecipientKeys || failedKeys || [];
-            const resolvedFailedCount = failedCount ?? resolvedFailedKeys.length;
+            const resolvedFailedCount =
+              failedCount ?? resolvedFailedKeys.length;
             if (zipWritableRef.current) {
               const writable = zipWritableRef.current;
               void (async () => {
@@ -399,7 +417,9 @@ export function useBatchGeneratorWorker(
 
           case "ERROR": {
             const { message, fatal, recipientKey, requestId } = msg.payload;
-            const isZipError = (msg as any).scope === "zip" || (msg.payload as any)?.scope === "zip";
+            const isZipError =
+              (msg as any).scope === "zip" ||
+              (msg.payload as any)?.scope === "zip";
             const resolverKey = requestId || recipientKey;
             if (resolverKey) {
               const resolver = pendingSingleResolvers.current.get(resolverKey);
@@ -516,7 +536,9 @@ export function useBatchGeneratorWorker(
   );
 
   const generateSingle = useCallback(
-    async (recipient: SingleRecipientItem): Promise<{
+    async (
+      recipient: SingleRecipientItem,
+    ): Promise<{
       pdfBytes: Uint8Array;
       warnings: EngineWarning[];
       durationMs: number;
@@ -577,7 +599,9 @@ export function useBatchGeneratorWorker(
   const startBatch = useCallback(
     (recipients: RecipientBatchItem[], startIndex = 0): void => {
       if (isExpired) {
-        throw new Error("BATCH_EXPIRED: Cannot generate documents for an expired batch.");
+        throw new Error(
+          "BATCH_EXPIRED: Cannot generate documents for an expired batch.",
+        );
       }
       if (!workerRef.current) {
         // Fallback simulated execution for headless tests
@@ -628,7 +652,10 @@ export function useBatchGeneratorWorker(
               },
             }));
             if (warnings.length > 0) {
-              setWarningsMap((prev) => ({ ...prev, [r.recipientKey]: warnings }));
+              setWarningsMap((prev) => ({
+                ...prev,
+                [r.recipientKey]: warnings,
+              }));
             }
           } catch (err: any) {
             console.warn("Fallback generation error:", err);
@@ -737,10 +764,14 @@ export function useBatchGeneratorWorker(
       volumeIndex = 1,
       totalVolumes = 1,
       zipFilename = "documents.zip",
-      fileHandleOrWritable?: any
+      fileHandleOrWritable?: any,
     ): Promise<ZipExportResult> => {
       if (isExpired) {
-        return Promise.reject(new Error("BATCH_EXPIRED: Cannot generate documents for an expired batch."));
+        return Promise.reject(
+          new Error(
+            "BATCH_EXPIRED: Cannot generate documents for an expired batch.",
+          ),
+        );
       }
       isZippingRef.current = true;
       setIsZipping(true);
@@ -758,7 +789,8 @@ export function useBatchGeneratorWorker(
         if (fileHandleOrWritable) {
           if (typeof fileHandleOrWritable.createWritable === "function") {
             try {
-              zipWritableRef.current = await fileHandleOrWritable.createWritable();
+              zipWritableRef.current =
+                await fileHandleOrWritable.createWritable();
             } catch (err: any) {
               isZippingRef.current = false;
               setIsZipping(false);
@@ -808,7 +840,8 @@ export function useBatchGeneratorWorker(
             try {
               const baseBytes = fallbackBasePdfBytes.current;
               const fieldMappings = fallbackFieldMappings.current || [];
-              if (!baseBytes) throw new Error("Worker not initialized with template");
+              if (!baseBytes)
+                throw new Error("Worker not initialized with template");
               const nonNullBase = baseBytes;
 
               const failedRecipientKeys: string[] = [];
@@ -816,13 +849,22 @@ export function useBatchGeneratorWorker(
                 for (const r of recipients) {
                   const stringData: Record<string, string> = {};
                   for (const [k, v] of Object.entries(r.effectiveData || {})) {
-                    stringData[k] = v !== null && v !== undefined ? String(v) : "";
+                    stringData[k] =
+                      v !== null && v !== undefined ? String(v) : "";
                   }
                   try {
-                    const res = await generatePdfWithOverlay(nonNullBase, fieldMappings, stringData, {
-                      drawDebugBoxes: false,
-                    });
-                    const fname = sanitizeRecipientFilename(r.effectiveData, r.recipientKey);
+                    const res = await generatePdfWithOverlay(
+                      nonNullBase,
+                      fieldMappings,
+                      stringData,
+                      {
+                        drawDebugBoxes: false,
+                      },
+                    );
+                    const fname = sanitizeRecipientFilename(
+                      r.effectiveData,
+                      r.recipientKey,
+                    );
                     yield { name: fname, input: res.pdfBytes };
                   } catch {
                     failedRecipientKeys.push(r.recipientKey);

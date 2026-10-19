@@ -24,7 +24,8 @@ const KNOWN_NAME_KEYS = [
   "clientName",
 ];
 
-const WINDOWS_RESERVED_PATTERN = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$/i;
+const WINDOWS_RESERVED_PATTERN =
+  /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])(\..*)?$/i;
 
 /**
  * @desc    Sanitizes a raw name string by normalizing Unicode, stripping directory traversal sequences,
@@ -67,7 +68,10 @@ export function sanitizeFilenameBase(rawName: string, maxLength = 120): string {
 
   // 8. Clamp length respecting multi-byte characters
   if (clean.length > maxLength) {
-    clean = Array.from(clean).slice(0, maxLength).join("").replace(/[._]+$/, "");
+    clean = Array.from(clean)
+      .slice(0, maxLength)
+      .join("")
+      .replace(/[._]+$/, "");
     if (!clean) clean = "document";
   }
 
@@ -85,7 +89,7 @@ export function sanitizeFilenameBase(rawName: string, maxLength = 120): string {
 export function sanitizeRecipientFilename(
   effectiveData: Record<string, unknown> | null | undefined,
   recipientKey: string,
-  fallbackDocName = "document"
+  fallbackDocName = "document",
 ): string {
   let detectedName: string | null = null;
 
@@ -102,11 +106,7 @@ export function sanitizeRecipientFilename(
     // If still not found, check case-insensitive match for name keys
     if (!detectedName) {
       for (const [k, v] of Object.entries(effectiveData)) {
-        if (
-          typeof v === "string" &&
-          v.trim().length > 0 &&
-          /name/i.test(k)
-        ) {
+        if (typeof v === "string" && v.trim().length > 0 && /name/i.test(k)) {
           detectedName = v.trim();
           break;
         }
@@ -125,7 +125,8 @@ export function sanitizeRecipientFilename(
   }
 
   const baseName = sanitizeFilenameBase(detectedName || fallbackDocName);
-  const cleanKey = String(recipientKey || "").replace(/[^a-zA-Z0-9_-]/g, "_") || "item";
+  const cleanKey =
+    String(recipientKey || "").replace(/[^a-zA-Z0-9_-]/g, "_") || "item";
 
   return `${baseName}_${cleanKey}.pdf`;
 }

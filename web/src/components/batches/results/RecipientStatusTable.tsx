@@ -6,11 +6,7 @@
  */
 
 import { useState, useMemo } from "react";
-import {
-  MagnifyingGlass,
-  CaretLeft,
-  CaretRight,
-} from "@phosphor-icons/react";
+import { MagnifyingGlass, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { SingleRecipientAction } from "./SingleRecipientAction";
 import type { EngineWarning } from "@/lib/pdf-engine/pdf-preview-engine";
@@ -97,7 +93,8 @@ export function RecipientStatusTable({
             Approved Recipients ({totalCount.toLocaleString()})
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Instant preview (&lt;20ms) and direct PDF download available per recipient.
+            Instant preview (&lt;20ms) and direct PDF download available per
+            recipient.
           </p>
         </div>
 
@@ -127,13 +124,19 @@ export function RecipientStatusTable({
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-medium">
             {isLoading ? (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-slate-400 text-xs">
+                <td
+                  colSpan={4}
+                  className="py-8 text-center text-slate-400 text-xs"
+                >
                   Loading recipients...
                 </td>
               </tr>
             ) : filteredRecipients.length === 0 ? (
               <tr>
-                <td colSpan={4} className="py-8 text-center text-slate-400 text-xs">
+                <td
+                  colSpan={4}
+                  className="py-8 text-center text-slate-400 text-xs"
+                >
                   No matching recipient records found.
                 </td>
               </tr>
@@ -183,7 +186,12 @@ export function RecipientStatusTable({
                     <td className="py-3 px-4 align-middle whitespace-nowrap text-center">
                       {rowError ? (
                         <div className="flex flex-col items-center gap-1 justify-center">
-                          <Badge variant="error" size="sm" shape="pill" title={rowError}>
+                          <Badge
+                            variant="error"
+                            size="sm"
+                            shape="pill"
+                            title={rowError}
+                          >
                             Failed
                           </Badge>
                           <span

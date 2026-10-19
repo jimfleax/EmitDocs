@@ -50,7 +50,8 @@ const TOKEN_DETAILS: Record<string, TokenMeta> = {
     fontFamily: "Cinzel Serif",
     clamp: "18pt min · 32pt max",
     status: "Fit-then-flag Active",
-    description: "Personalized recipient full name dynamically bound to spreadsheet rows with automatic typography scaling.",
+    description:
+      "Personalized recipient full name dynamically bound to spreadsheet rows with automatic typography scaling.",
   },
   role: {
     id: "role",
@@ -60,7 +61,8 @@ const TOKEN_DETAILS: Record<string, TokenMeta> = {
     fontFamily: "Inter SemiBold",
     clamp: "12pt min · 18pt max",
     status: "Safe (No clipping)",
-    description: "Curriculum or program title anchored to horizontal center guides.",
+    description:
+      "Curriculum or program title anchored to horizontal center guides.",
   },
   date: {
     id: "date",
@@ -70,7 +72,8 @@ const TOKEN_DETAILS: Record<string, TokenMeta> = {
     fontFamily: "Inter Medium",
     clamp: "10pt fixed",
     status: "Safe (No clipping)",
-    description: "Localized date of document issuance with automated ISO format parse.",
+    description:
+      "Localized date of document issuance with automated ISO format parse.",
   },
   id: {
     id: "id",
@@ -80,7 +83,8 @@ const TOKEN_DETAILS: Record<string, TokenMeta> = {
     fontFamily: "JetBrains Mono",
     clamp: "10pt monospace",
     status: "Safe (No clipping)",
-    description: "Unique credential identifier mapped with anti-collision validation.",
+    description:
+      "Unique credential identifier mapped with anti-collision validation.",
   },
 };
 
@@ -103,7 +107,8 @@ const SAMPLE_RECIPIENTS: RecipientSample[] = [
     date: "November 02, 2026",
     code: "EMIT-8843-AX",
     status: "warning",
-    warningText: "Fit-then-flag: Auto-scaled to 20px to prevent boundary overflow",
+    warningText:
+      "Fit-then-flag: Auto-scaled to 20px to prevent boundary overflow",
     fontSize: "20px",
   },
   {
@@ -288,7 +293,8 @@ export function HeroWorkflowPreview() {
             {/* Dynamic Pin 2: Course Title */}
             <div className="mt-2">
               <p className="text-[11px] sm:text-xs text-slate-500">
-                has successfully completed the curriculum and mastery evaluation for
+                has successfully completed the curriculum and mastery evaluation
+                for
               </p>
               <div
                 role="button"
@@ -446,8 +452,14 @@ export function HeroWorkflowPreview() {
 
             {selectedRecipient.warningText && activePin === "name" && (
               <div className="p-2.5 rounded-xl bg-amber-400/15 border border-amber-400/30 flex items-start gap-2 text-[11px] text-amber-200">
-                <WarningCircle size={16} className="shrink-0 mt-0.5 text-amber-300" weight="fill" />
-                <span className="leading-snug">{selectedRecipient.warningText}</span>
+                <WarningCircle
+                  size={16}
+                  className="shrink-0 mt-0.5 text-amber-300"
+                  weight="fill"
+                />
+                <span className="leading-snug">
+                  {selectedRecipient.warningText}
+                </span>
               </div>
             )}
           </div>
@@ -467,7 +479,11 @@ export function HeroWorkflowPreview() {
             </div>
 
             <p className="text-[11px] text-blue-100/80 leading-snug">
-              Previewing values for <span className="font-mono font-bold text-white">{currentToken.tokenName}</span> across recipient rows:
+              Previewing values for{" "}
+              <span className="font-mono font-bold text-white">
+                {currentToken.tokenName}
+              </span>{" "}
+              across recipient rows:
             </p>
 
             <div className="space-y-2">
@@ -519,7 +535,8 @@ export function HeroWorkflowPreview() {
         <div className="flex items-center gap-2">
           <CheckCircle size={15} weight="fill" className="text-emerald-400" />
           <span>
-            Every recipient draft is inspected prior to approval. Zero silent clipping.
+            Every recipient draft is inspected prior to approval. Zero silent
+            clipping.
           </span>
         </div>
         <div className="flex items-center gap-4 text-[11px] font-mono text-blue-200">

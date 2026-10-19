@@ -62,10 +62,15 @@ export function DeleteAccountDialog({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || data.message || "Failed to delete account");
+        throw new Error(
+          data.error || data.message || "Failed to delete account",
+        );
       }
 
-      toast.success("Account Deleted", "Your account and all associated assets have been permanently deleted.");
+      toast.success(
+        "Account Deleted",
+        "Your account and all associated assets have been permanently deleted.",
+      );
 
       try {
         await authClient.signOut();
@@ -100,11 +105,22 @@ export function DeleteAccountDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <Alert variant="error" icon={<Warning size={20} weight="fill" className="text-rose-500 shrink-0" />}>
+          <Alert
+            variant="error"
+            icon={
+              <Warning
+                size={20}
+                weight="fill"
+                className="text-rose-500 shrink-0"
+              />
+            }
+          >
             <div className="text-xs space-y-1">
               <p className="font-semibold">This action cannot be undone.</p>
               <p>
-                All your templates, certificate assets stored in Cloudinary, batches, recipient data, and sessions will be immediately and irrevocably purged.
+                All your templates, certificate assets stored in Cloudinary,
+                batches, recipient data, and sessions will be immediately and
+                irrevocably purged.
               </p>
             </div>
           </Alert>
@@ -118,7 +134,9 @@ export function DeleteAccountDialog({
               htmlFor="confirm-delete-input"
               className="text-xs font-semibold text-slate-700 dark:text-slate-300 block"
             >
-              Please type <span className="font-mono font-bold text-rose-600">DELETE</span> to confirm:
+              Please type{" "}
+              <span className="font-mono font-bold text-rose-600">DELETE</span>{" "}
+              to confirm:
             </label>
             <Input
               id="confirm-delete-input"

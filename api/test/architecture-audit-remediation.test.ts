@@ -446,7 +446,7 @@ async function runTests() {
   tFallbackOrder.currentVersionId = vFallbackOrder._id as any;
   await tFallbackOrder.save();
 
-  const bFallbackOrder = await Batch.create({
+  await Batch.create({
     ownerId: testOwner,
     templateId: tFallbackOrder._id,
     templateVersionId: vFallbackOrder._id,
@@ -751,7 +751,7 @@ async function runTests() {
   });
 
   const origBatchDeleteOne = Batch.deleteOne;
-  Batch.deleteOne = (async (query: any, opts: any) => {
+  Batch.deleteOne = (async (_query: any, _opts: any) => {
     // Concurrently change status away from 'deleting'
     await Batch.updateOne({ _id: bConcurrent._id }, { $set: { status: 'approved' } });
     throw new Error('SIMULATED_CLEANUP_FAILURE');

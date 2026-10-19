@@ -164,7 +164,7 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
     if (!batch || (batch.validRows === 0 && batch.totalRows > 0)) {
       toast.warning(
         "No Valid Rows",
-        "At least one valid recipient is required to approve the batch."
+        "At least one valid recipient is required to approve the batch.",
       );
       return;
     }
@@ -292,13 +292,17 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
                     Batch Approved & Sealed into Immutable Snapshot
                   </p>
                   <p className="text-emerald-700 text-[11px] mt-0.5">
-                    This batch has been signed off. You can preview single recipients, run Web Worker generation, and download PDFs on the Results page.
+                    This batch has been signed off. You can preview single
+                    recipients, run Web Worker generation, and download PDFs on
+                    the Results page.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => navigate({ to: `/app/batches/${batchId}/results` })}
+                onClick={() =>
+                  navigate({ to: `/app/batches/${batchId}/results` })
+                }
                 className="flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition-all shadow-xs shrink-0 cursor-pointer select-none"
               >
                 <span>Go to Results</span>
@@ -308,100 +312,100 @@ export function DraftReviewWorkspace({ batchId }: DraftReviewWorkspaceProps) {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left Column: Draft Gallery (5 cols) */}
-          <div className="lg:col-span-5 h-[calc(100vh-225px)] min-h-[500px]">
-            <DraftGallery
-              batchId={batchId}
-              selectedRowId={selectedRow?._id || null}
-              onSelectRow={setSelectedRow}
-              refreshTrigger={refreshTrigger}
-            />
-          </div>
+            {/* Left Column: Draft Gallery (5 cols) */}
+            <div className="lg:col-span-5 h-[calc(100vh-225px)] min-h-[500px]">
+              <DraftGallery
+                batchId={batchId}
+                selectedRowId={selectedRow?._id || null}
+                onSelectRow={setSelectedRow}
+                refreshTrigger={refreshTrigger}
+              />
+            </div>
 
-          {/* Right Column: Preview & Inspector (7 cols) */}
-          <div className="lg:col-span-7 h-[calc(100vh-225px)] min-h-[500px] flex flex-col space-y-3 lg:sticky lg:top-4">
-            {/* View Mode Switcher */}
-            <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xs shrink-0">
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setRightPanelMode("preview")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none",
-                    rightPanelMode === "preview"
-                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
-                  )}
-                >
-                  <Eye className="w-3.5 h-3.5" />
-                  PDF Preview
-                </button>
+            {/* Right Column: Preview & Inspector (7 cols) */}
+            <div className="lg:col-span-7 h-[calc(100vh-225px)] min-h-[500px] flex flex-col space-y-3 lg:sticky lg:top-4">
+              {/* View Mode Switcher */}
+              <div className="flex items-center justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-1.5 rounded-2xl shadow-xs shrink-0">
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelMode("preview")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none",
+                      rightPanelMode === "preview"
+                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
+                    )}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                    PDF Preview
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setRightPanelMode("edit")}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none",
-                    rightPanelMode === "edit"
-                      ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs"
-                      : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
-                  )}
-                >
-                  <PencilSimple className="w-3.5 h-3.5" />
-                  Edit Fields & Overrides
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setRightPanelMode("edit")}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer select-none",
+                      rightPanelMode === "edit"
+                        ? "bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs"
+                        : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-200",
+                    )}
+                  >
+                    <PencilSimple className="w-3.5 h-3.5" />
+                    Edit Fields & Overrides
+                  </button>
+                </div>
+
+                {selectedRow && (
+                  <span className="text-xs text-slate-400 px-2 font-mono">
+                    Row #{selectedRow.sourceRowNumber} selected
+                  </span>
+                )}
               </div>
 
-              {selectedRow && (
-                <span className="text-xs text-slate-400 px-2 font-mono">
-                  Row #{selectedRow.sourceRowNumber} selected
-                </span>
-              )}
-            </div>
-
-            {/* Main Panel Viewport */}
-            <div
-              className={cn(
-                "flex-1 min-h-0",
-                rightPanelMode === "preview"
-                  ? "flex flex-col"
-                  : "overflow-y-auto pr-1",
-              )}
-            >
-              {rightPanelMode === "preview" ? (
-                <RecipientPreviewPanel
-                  batch={batch}
-                  templateVersion={templateVersion}
-                  sourcePdfBytes={sourcePdfBytes}
-                  selectedRow={selectedRow}
-                  hasPrev={Boolean(
-                    selectedRow && selectedRow.sourceRowNumber > 1,
-                  )}
-                  hasNext={Boolean(
-                    selectedRow &&
-                    batch &&
-                    selectedRow.sourceRowNumber < batch.totalRows,
-                  )}
-                />
-              ) : selectedRow ? (
-                <RowEditor
-                  batchId={batchId}
-                  batchRevision={batch?.currentImportRevision || 1}
-                  row={selectedRow}
-                  fieldMappings={templateVersion?.fieldMappings || []}
-                  onRowUpdated={handleRowUpdated}
-                  onRefreshBatch={loadBatchDetails}
-                />
-              ) : (
-                <div className="p-12 text-center text-xs text-slate-400">
-                  Select a row on the left to edit fields.
-                </div>
-              )}
+              {/* Main Panel Viewport */}
+              <div
+                className={cn(
+                  "flex-1 min-h-0",
+                  rightPanelMode === "preview"
+                    ? "flex flex-col"
+                    : "overflow-y-auto pr-1",
+                )}
+              >
+                {rightPanelMode === "preview" ? (
+                  <RecipientPreviewPanel
+                    batch={batch}
+                    templateVersion={templateVersion}
+                    sourcePdfBytes={sourcePdfBytes}
+                    selectedRow={selectedRow}
+                    hasPrev={Boolean(
+                      selectedRow && selectedRow.sourceRowNumber > 1,
+                    )}
+                    hasNext={Boolean(
+                      selectedRow &&
+                      batch &&
+                      selectedRow.sourceRowNumber < batch.totalRows,
+                    )}
+                  />
+                ) : selectedRow ? (
+                  <RowEditor
+                    batchId={batchId}
+                    batchRevision={batch?.currentImportRevision || 1}
+                    row={selectedRow}
+                    fieldMappings={templateVersion?.fieldMappings || []}
+                    onRowUpdated={handleRowUpdated}
+                    onRefreshBatch={loadBatchDetails}
+                  />
+                ) : (
+                  <div className="p-12 text-center text-xs text-slate-400">
+                    Select a row on the left to edit fields.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </>
-    )}
+        </>
+      )}
 
       {/* Re-import Modal */}
       {isReimportModalOpen && (

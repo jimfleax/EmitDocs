@@ -74,7 +74,10 @@ export function WorkflowTimeline() {
   ];
 
   return (
-    <section id="workflow" className="py-20 sm:py-28 bg-slate-50/70 border-y border-slate-200/80 relative scroll-mt-20">
+    <section
+      id="workflow"
+      className="py-20 sm:py-28 bg-slate-50/70 border-y border-slate-200/80 relative scroll-mt-20"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-16">
         {/* Section Header */}
         <div className="max-w-3xl mx-auto text-center space-y-4">
@@ -84,10 +87,13 @@ export function WorkflowTimeline() {
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
             How EmitDocs works. <br />
-            <span className="text-blue-600">From raw design to thousands of verified PDFs.</span>
+            <span className="text-blue-600">
+              From raw design to thousands of verified PDFs.
+            </span>
           </h2>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-            A reliable 3-step pipeline designed to prevent issuance errors before they happen.
+            A reliable 3-step pipeline designed to prevent issuance errors
+            before they happen.
           </p>
         </div>
 
@@ -112,7 +118,9 @@ export function WorkflowTimeline() {
                     <span className="font-mono text-3xl sm:text-4xl font-black text-slate-300">
                       {step.number}
                     </span>
-                    <div className={`p-2.5 rounded-2xl border ${step.badgeColor} shadow-2xs`}>
+                    <div
+                      className={`p-2.5 rounded-2xl border ${step.badgeColor} shadow-2xs`}
+                    >
                       {step.icon}
                     </div>
                   </div>
@@ -139,7 +147,11 @@ export function WorkflowTimeline() {
                   <ul className="space-y-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
                     {step.details.map((item, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <CheckCircle size={15} weight="fill" className="text-blue-500 shrink-0 mt-0.5" />
+                        <CheckCircle
+                          size={15}
+                          weight="fill"
+                          className="text-blue-500 shrink-0 mt-0.5"
+                        />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -149,10 +161,16 @@ export function WorkflowTimeline() {
                 {/* Bottom Metric Pill */}
                 <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-medium text-slate-500">
                   <span className="flex items-center gap-1.5 text-slate-700 font-semibold">
-                    <Lightning size={14} className="text-amber-500" weight="fill" />
+                    <Lightning
+                      size={14}
+                      className="text-amber-500"
+                      weight="fill"
+                    />
                     <span>{step.metric}</span>
                   </span>
-                  <span className="text-blue-600 font-semibold">Step {step.number}</span>
+                  <span className="text-blue-600 font-semibold">
+                    Step {step.number}
+                  </span>
                 </div>
               </div>
             );
@@ -181,7 +199,8 @@ export function WorkflowTimeline() {
               Production Performance Under Pressure
             </h3>
             <p className="text-sm text-blue-100/80 leading-relaxed">
-              Tested rigorously against large datasets and complex multi-page layouts.
+              Tested rigorously against large datasets and complex multi-page
+              layouts.
             </p>
           </div>
 

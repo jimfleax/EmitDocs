@@ -21,7 +21,7 @@ export interface ZipInputFile {
  * @returns {ReadableStream<Uint8Array>} ReadableStream emitting raw ZIP bytes in chunks.
  */
 export function createStreamingZip(
-  files: AsyncIterable<ZipInputFile> | Iterable<ZipInputFile>
+  files: AsyncIterable<ZipInputFile> | Iterable<ZipInputFile>,
 ): ReadableStream<Uint8Array> {
   // makeZip takes an iterable or async iterable and returns a ReadableStream<Uint8Array>
   return makeZip(files);
@@ -37,7 +37,7 @@ export function createStreamingZip(
 export async function saveZipStreamWithPicker(
   stream: ReadableStream<Uint8Array>,
   suggestedFilename: string,
-  onProgress?: (bytesWritten: number) => void
+  onProgress?: (bytesWritten: number) => void,
 ): Promise<boolean> {
   if (
     typeof window === "undefined" ||
@@ -90,7 +90,10 @@ export async function saveZipStreamWithPicker(
       return false;
     }
     // Re-throw if it wasn't a clean abort
-    console.warn("Failed to stream ZIP via FileSystem Access API, falling back:", err);
+    console.warn(
+      "Failed to stream ZIP via FileSystem Access API, falling back:",
+      err,
+    );
     return false;
   }
 }
@@ -101,7 +104,10 @@ export async function saveZipStreamWithPicker(
  * @param   {string} filename - File name for the download anchor.
  * @returns {void}
  */
-export function saveZipChunksAsBlob(chunks: Uint8Array[], filename: string): void {
+export function saveZipChunksAsBlob(
+  chunks: Uint8Array[],
+  filename: string,
+): void {
   if (typeof window === "undefined" || typeof document === "undefined") {
     return;
   }

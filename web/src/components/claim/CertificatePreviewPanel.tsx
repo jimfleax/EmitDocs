@@ -7,7 +7,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { FilePdf, ArrowSquareOut } from "@phosphor-icons/react";
-import { pdfjsLib, STANDARD_FONT_DATA_URL } from "@/lib/pdf-engine/worker-setup";
+import {
+  pdfjsLib,
+  STANDARD_FONT_DATA_URL,
+} from "@/lib/pdf-engine/worker-setup";
 import { Spinner } from "@/components/ui/Spinner";
 
 export interface CertificatePreviewPanelProps {
@@ -71,7 +74,8 @@ export function CertificatePreviewPanel({
         const fitScale = (containerWidth - 32) / unscaledViewport.width;
         const effectiveScale = Math.max(0.4, Math.min(fitScale, 1.4));
 
-        const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+        const dpr =
+          typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
         const renderScale = Math.min(4.0, Math.max(2.0, effectiveScale * dpr));
 
         const canonicalViewport = page.getViewport({ scale: effectiveScale });
@@ -101,7 +105,10 @@ export function CertificatePreviewPanel({
         setIsRendering(false);
       } catch (err) {
         if (!isCancelled) {
-          console.warn("Canvas PDF render failed, falling back to viewer:", err);
+          console.warn(
+            "Canvas PDF render failed, falling back to viewer:",
+            err,
+          );
           setRenderError(true);
           setIsRendering(false);
         }

@@ -36,9 +36,13 @@ export function ExcludedRecipientReviewTable({
   if (!excludedRecipients || excludedRecipients.length === 0) {
     return (
       <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex items-center gap-3">
-        <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0" weight="fill" />
+        <CheckCircle
+          className="w-5 h-5 text-emerald-600 shrink-0"
+          weight="fill"
+        />
         <p className="text-xs text-slate-600 dark:text-slate-400">
-          Zero excluded recipients. All snapshot records meet portal eligibility requirements.
+          Zero excluded recipients. All snapshot records meet portal eligibility
+          requirements.
         </p>
       </div>
     );
@@ -49,7 +53,7 @@ export function ExcludedRecipientReviewTable({
       r.recipientKey.toLowerCase().includes(search.toLowerCase()) ||
       (r.name && r.name.toLowerCase().includes(search.toLowerCase())) ||
       (r.email && r.email.toLowerCase().includes(search.toLowerCase())) ||
-      r.reason.toLowerCase().includes(search.toLowerCase())
+      r.reason.toLowerCase().includes(search.toLowerCase()),
   );
 
   return (
@@ -80,7 +84,10 @@ export function ExcludedRecipientReviewTable({
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
             {filtered.slice(0, 50).map((item, idx) => (
-              <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+              <tr
+                key={idx}
+                className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+              >
                 <td className="px-3.5 py-2 font-mono text-slate-600 dark:text-slate-400">
                   {item.recipientKey}
                 </td>
@@ -89,7 +96,9 @@ export function ExcludedRecipientReviewTable({
                     {item.name || "—"}
                   </div>
                   {item.email && (
-                    <div className="text-[11px] text-slate-400">{item.email}</div>
+                    <div className="text-[11px] text-slate-400">
+                      {item.email}
+                    </div>
                   )}
                 </td>
                 <td className="px-3.5 py-2 text-rose-600 font-medium">

@@ -7,7 +7,12 @@
 
 import { useState } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ShieldWarning, Trash, Database, ArrowRight } from "@phosphor-icons/react";
+import {
+  ShieldWarning,
+  Trash,
+  Database,
+  ArrowRight,
+} from "@phosphor-icons/react";
 import { PageShell } from "@/components/layout/PageShell";
 import { Button } from "@/components/ui/button";
 import { DeleteAccountDialog } from "@/components/settings/DeleteAccountDialog";
@@ -61,7 +66,9 @@ function AccountSettingsPage() {
             )}
             <div>
               <h2 className="text-lg font-bold text-slate-900">{userName}</h2>
-              <p className="text-xs text-slate-500 font-mono mt-0.5">{userEmail}</p>
+              <p className="text-xs text-slate-500 font-mono mt-0.5">
+                {userEmail}
+              </p>
             </div>
           </div>
         </div>
@@ -78,7 +85,8 @@ function AccountSettingsPage() {
                 Retention & Data Lifecycle Preferences
               </h3>
               <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
-                Configure default batch expiration windows, automated recipient PII pruning schedules, and zero-storage guarantees.
+                Configure default batch expiration windows, automated recipient
+                PII pruning schedules, and zero-storage guarantees.
               </p>
             </div>
 
@@ -104,7 +112,9 @@ function AccountSettingsPage() {
                 Permanently Delete Account
               </h3>
               <p className="text-xs text-slate-600 max-w-xl leading-relaxed">
-                Irrevocably deletes your user account, all certificate templates in Cloudinary, active batches, recipient records, and active sessions. This action cannot be reversed.
+                Irrevocably deletes your user account, all certificate templates
+                in Cloudinary, active batches, recipient records, and active
+                sessions. This action cannot be reversed.
               </p>
             </div>
 

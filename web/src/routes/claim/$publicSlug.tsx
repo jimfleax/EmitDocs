@@ -40,15 +40,26 @@ function ParticipantClaimRoute() {
   const [portalMeta, setPortalMeta] = useState<any>(null);
   const [requiresTurnstile, setRequiresTurnstile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [session, setSession] = useState<{ valid: boolean; recipientName?: string } | null>(null);
+  const [session, setSession] = useState<{
+    valid: boolean;
+    recipientName?: string;
+  } | null>(null);
 
   // PDF Generation State
   const [isSynthesizing, setIsSynthesizing] = useState(false);
-  const [synthesisStatus, setSynthesisStatus] = useState("Preparing certificate...");
-  const [generatedPdfBytes, setGeneratedPdfBytes] = useState<Uint8Array | null>(null);
+  const [synthesisStatus, setSynthesisStatus] = useState(
+    "Preparing certificate...",
+  );
+  const [generatedPdfBytes, setGeneratedPdfBytes] = useState<Uint8Array | null>(
+    null,
+  );
   const [generatedPdfUrl, setGeneratedPdfUrl] = useState<string | null>(null);
-  const [serverDownloadUrl, setServerDownloadUrl] = useState<string | null>(null);
-  const [certificateFilename, setCertificateFilename] = useState<string | null>(null);
+  const [serverDownloadUrl, setServerDownloadUrl] = useState<string | null>(
+    null,
+  );
+  const [certificateFilename, setCertificateFilename] = useState<string | null>(
+    null,
+  );
 
   const [errorRequestId, setErrorRequestId] = useState<string | null>(null);
   const [hasError, setHasError] = useState(false);
@@ -60,15 +71,20 @@ function ParticipantClaimRoute() {
       setSynthesisStatus("Fetching certificate layout and template...");
 
       // 1. Fetch render payload (mappings & effective data)
-      const payloadRes = await fetch(`/api/public/claim-portals/${publicSlug}/render-payload`);
-      if (!payloadRes.ok) throw new Error("Failed to load certificate mappings");
+      const payloadRes = await fetch(
+        `/api/public/claim-portals/${publicSlug}/render-payload`,
+      );
+      if (!payloadRes.ok)
+        throw new Error("Failed to load certificate mappings");
       const payload = await payloadRes.json();
 
       setCertificateFilename(payload.filename);
 
       // 2. Fetch base template PDF asset
       setSynthesisStatus("Loading base certificate template...");
-      const fileRes = await fetch(`/api/public/claim-portals/${publicSlug}/template-file`);
+      const fileRes = await fetch(
+        `/api/public/claim-portals/${publicSlug}/template-file`,
+      );
       if (!fileRes.ok) throw new Error("Failed to load base certificate asset");
       const fileAb = await fileRes.arrayBuffer();
 
@@ -86,7 +102,7 @@ function ParticipantClaimRoute() {
         new Uint8Array(fileAb),
         payload.fieldMappings || [],
         stringData,
-        { drawDebugBoxes: false }
+        { drawDebugBoxes: false },
       );
 
       const blob = new Blob([pdfBytes as any], { type: "application/pdf" });
@@ -95,16 +111,25 @@ function ParticipantClaimRoute() {
       setGeneratedPdfUrl(blobUrl);
 
       // Also get server download URL as backup
-      const dlRes = await fetch(`/api/public/claim-portals/${publicSlug}/download-url`, { method: "POST" });
+      const dlRes = await fetch(
+        `/api/public/claim-portals/${publicSlug}/download-url`,
+        { method: "POST" },
+      );
       if (dlRes.ok) {
         const dlData = await dlRes.json();
         setServerDownloadUrl(dlData.downloadUrl);
       }
     } catch (err: any) {
-      console.warn("Client synthesis error, falling back to server download URL:", err);
+      console.warn(
+        "Client synthesis error, falling back to server download URL:",
+        err,
+      );
       // Fallback: fetch server download URL
       try {
-        const dlRes = await fetch(`/api/public/claim-portals/${publicSlug}/download-url`, { method: "POST" });
+        const dlRes = await fetch(
+          `/api/public/claim-portals/${publicSlug}/download-url`,
+          { method: "POST" },
+        );
         if (!dlRes.ok) {
           throw new Error("Failed to retrieve download URL");
         }
@@ -118,7 +143,7 @@ function ParticipantClaimRoute() {
         console.error("Fallback download URL error:", fallbackErr);
         toast.error(
           "Certificate Preparation Failed",
-          "Unable to prepare your certificate for download. Please try again."
+          "Unable to prepare your certificate for download. Please try again.",
         );
       }
     } finally {
@@ -146,7 +171,9 @@ function ParticipantClaimRoute() {
       }
 
       // Check existing session
-      const sessRes = await fetch(`/api/public/claim-portals/${publicSlug}/session`);
+      const sessRes = await fetch(
+        `/api/public/claim-portals/${publicSlug}/session`,
+      );
       if (sessRes.ok) {
         const sessData = await sessRes.json();
         if (sessData.valid) {
@@ -162,7 +189,15 @@ function ParticipantClaimRoute() {
   }, [publicSlug, synthesizeCertificate]);
 
   useEffect(() => {
-    void loadPortal();
+    let ignore = false;
+    const run = async () => {
+      await loadPortal();
+      if (ignore) return;
+    };
+    void run();
+    return () => {
+      ignore = true;
+    };
   }, [loadPortal]);
 
   // Handle access token submission
@@ -183,17 +218,21 @@ function ParticipantClaimRoute() {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setErrorRequestId(err.requestId || `req_${Math.random().toString(36).slice(2, 8)}`);
+        setErrorRequestId(
+          err.requestId || `req_${Math.random().toString(36).slice(2, 8)}`,
+        );
 
         if (err.error?.code === "TURNSTILE_REQUIRED") {
           setRequiresTurnstile(true);
         }
 
         if (res.status === 429 || err.error?.code === "RATE_LIMIT_EXCEEDED") {
-          const retryAfter = err.error?.retryAfter ?? res.headers.get("retry-after");
+          const retryAfter =
+            err.error?.retryAfter ?? res.headers.get("retry-after");
           const retryMsg = retryAfter
             ? `Rate limit exceeded. Please wait ${retryAfter} seconds before trying again.`
-            : err.error?.message || "Too many claim attempts. Please wait and try again.";
+            : err.error?.message ||
+              "Too many claim attempts. Please wait and try again.";
           setErrorMessage(retryMsg);
           toast.error("Rate Limit Exceeded", retryMsg);
         }
@@ -221,11 +260,16 @@ function ParticipantClaimRoute() {
     if (generatedPdfUrl) {
       const a = document.createElement("a");
       a.href = generatedPdfUrl;
-      a.download = certificateFilename || `${session?.recipientName || "Participant"}_certificate.pdf`;
+      a.download =
+        certificateFilename ||
+        `${session?.recipientName || "Participant"}_certificate.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      toast.success("Certificate Downloaded", "Your customized PDF certificate has been saved.");
+      toast.success(
+        "Certificate Downloaded",
+        "Your customized PDF certificate has been saved.",
+      );
     } else {
       window.open(url, "_blank");
     }
@@ -255,12 +299,22 @@ function ParticipantClaimRoute() {
   }
 
   const configuredTurnstileSiteKey =
-    portalMeta?.turnstileSiteKey || (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined);
+    portalMeta?.turnstileSiteKey ||
+    (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined);
 
   return (
     <PublicClaimLayout
-      title={session?.valid ? (portalMeta?.label || "Claim Certificate") : (portalMeta?.label || "Claim Certificate")}
-      subtitle={session?.valid ? "Your custom certificate has been verified and synthesized." : (portalMeta?.instructions || "Enter your credentials to download your verified certificate.")}
+      title={
+        session?.valid
+          ? portalMeta?.label || "Claim Certificate"
+          : portalMeta?.label || "Claim Certificate"
+      }
+      subtitle={
+        session?.valid
+          ? "Your custom certificate has been verified and synthesized."
+          : portalMeta?.instructions ||
+            "Enter your credentials to download your verified certificate."
+      }
       maxWidth={session?.valid ? "2xl" : "xl"}
     >
       {isSynthesizing ? (

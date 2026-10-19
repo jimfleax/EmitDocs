@@ -22,7 +22,9 @@ interface BeforeInstallPromptEvent extends Event {
 
 // Module-level shared store for deferred install prompt
 let globalDeferredPrompt: BeforeInstallPromptEvent | null = null;
-const promptListeners = new Set<(prompt: BeforeInstallPromptEvent | null) => void>();
+const promptListeners = new Set<
+  (prompt: BeforeInstallPromptEvent | null) => void
+>();
 
 function setGlobalDeferredPrompt(prompt: BeforeInstallPromptEvent | null) {
   globalDeferredPrompt = prompt;
@@ -46,9 +48,8 @@ if (typeof window !== "undefined") {
  * @returns {Object} PWA state indicators and control functions.
  */
 export function usePwa() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(
-    () => globalDeferredPrompt
-  );
+  const [deferredPrompt, setDeferredPrompt] =
+    useState<BeforeInstallPromptEvent | null>(() => globalDeferredPrompt);
   const [isInstallable, setIsInstallable] = useState<boolean>(() => {
     if (!globalDeferredPrompt) return false;
     try {
@@ -58,18 +59,22 @@ export function usePwa() {
       return true;
     }
   });
-  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(
-    () => getWaitingWorker()
+  const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(() =>
+    getWaitingWorker(),
   );
-  const [updateAvailable, setUpdateAvailable] = useState<boolean>(
-    () => Boolean(getWaitingWorker())
+  const [updateAvailable, setUpdateAvailable] = useState<boolean>(() =>
+    Boolean(getWaitingWorker()),
   );
 
   // Standalone mode detection
   const [isInstalled, setIsInstalled] = useState(() => {
     if (typeof window === "undefined") return false;
-    const isStandalone = window.matchMedia("(display-mode: standalone)").matches;
-    const isIosStandalone = (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+    const isStandalone = window.matchMedia(
+      "(display-mode: standalone)",
+    ).matches;
+    const isIosStandalone =
+      (window.navigator as unknown as { standalone?: boolean }).standalone ===
+      true;
     return isStandalone || isIosStandalone;
   });
 
@@ -97,7 +102,8 @@ export function usePwa() {
       setDeferredPrompt(prompt);
       if (prompt) {
         try {
-          const dismissed = localStorage.getItem(DISMISS_STORAGE_KEY) === "true";
+          const dismissed =
+            localStorage.getItem(DISMISS_STORAGE_KEY) === "true";
           if (!dismissed) {
             setIsInstallable(true);
           }

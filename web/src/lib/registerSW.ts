@@ -59,7 +59,7 @@ export function registerServiceWorker(): void {
             window.dispatchEvent(
               new CustomEvent<SWUpdateEventDetail>(SW_UPDATE_EVENT, {
                 detail: { registration, waitingWorker: newWorker },
-              })
+              }),
             );
           }
         });
@@ -74,16 +74,19 @@ export function registerServiceWorker(): void {
               registration,
               waitingWorker: registration.waiting,
             },
-          })
+          }),
         );
       }
 
       // Check for updates periodically (e.g., every 60 minutes)
-      setInterval(() => {
-        registration.update().catch((err) => {
-          console.warn("SW periodic update check failed:", err);
-        });
-      }, 60 * 60 * 1000);
+      setInterval(
+        () => {
+          registration.update().catch((err) => {
+            console.warn("SW periodic update check failed:", err);
+          });
+        },
+        60 * 60 * 1000,
+      );
     } catch (error) {
       console.warn("Service Worker registration failed:", error);
     }
@@ -105,8 +108,11 @@ export function registerServiceWorker(): void {
 /**
  * Tells the waiting Service Worker to skip waiting and activate immediately.
  */
-export function applyServiceWorkerUpdate(waitingWorker?: ServiceWorker | null): void {
-  const worker = waitingWorker || latestWaitingWorker || swRegistration?.waiting;
+export function applyServiceWorkerUpdate(
+  waitingWorker?: ServiceWorker | null,
+): void {
+  const worker =
+    waitingWorker || latestWaitingWorker || swRegistration?.waiting;
   if (worker) {
     worker.postMessage({ type: "SKIP_WAITING" });
   } else {

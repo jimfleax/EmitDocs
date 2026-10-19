@@ -47,14 +47,21 @@ export function TurnstileChallenge({
   const widgetIdRef = useRef<string | null>(null);
 
   const isDev = Boolean(import.meta.env.DEV);
-  const effectiveSiteKey = siteKey || (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined);
-  const isSimulated = isDev && (!effectiveSiteKey || effectiveSiteKey === "mock" || effectiveSiteKey === "test");
+  const effectiveSiteKey =
+    siteKey || (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined);
+  const isSimulated =
+    isDev &&
+    (!effectiveSiteKey ||
+      effectiveSiteKey === "mock" ||
+      effectiveSiteKey === "test");
 
   useEffect(() => {
     // Development or test environment without real sitekey
     if (isSimulated) {
       const timer = setTimeout(() => {
-        onSuccess("mock-turnstile-token-" + Math.random().toString(36).slice(2));
+        onSuccess(
+          "mock-turnstile-token-" + Math.random().toString(36).slice(2),
+        );
       }, 500);
       return () => clearTimeout(timer);
     }
@@ -68,7 +75,8 @@ export function TurnstileChallenge({
     // Load Turnstile script if not present
     if (!window.turnstile) {
       const script = document.createElement("script");
-      script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
       script.async = true;
       script.defer = true;
       script.onload = () => {

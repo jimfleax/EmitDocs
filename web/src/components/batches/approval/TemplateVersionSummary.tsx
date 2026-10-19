@@ -52,14 +52,18 @@ export function TemplateVersionSummary({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1">
         <div className="flex flex-col">
-          <span className="text-xs text-slate-500 dark:text-slate-400">Target Template</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Target Template
+          </span>
           <span className="text-sm font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
             {templateName || "Active Template"}
           </span>
         </div>
 
         <div className="flex flex-col">
-          <span className="text-xs text-slate-500 dark:text-slate-400">Locked Version & Revision</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Locked Version & Revision
+          </span>
           <div className="flex items-center gap-2 mt-0.5">
             <Badge variant="primary" size="sm" mono>
               Version {templateVersion.version}
@@ -72,7 +76,9 @@ export function TemplateVersionSummary({
         </div>
 
         <div className="flex flex-col">
-          <span className="text-xs text-slate-500 dark:text-slate-400">Canonical Mapping SHA-256</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            Canonical Mapping SHA-256
+          </span>
           <div className="flex items-center gap-1.5 mt-0.5">
             <Hash className="w-3.5 h-3.5 text-slate-400" />
             <code className="text-xs font-mono text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-md">

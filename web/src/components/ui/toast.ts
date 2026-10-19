@@ -63,7 +63,6 @@ export function getActiveToasts(): ToastItem[] {
   return [...activeToasts];
 }
 
-
 /**
  * @function toast
  * @description Triggers a toast notification with the given options or title message.

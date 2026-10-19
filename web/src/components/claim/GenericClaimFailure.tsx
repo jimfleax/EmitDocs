@@ -30,13 +30,17 @@ export function GenericClaimFailure({
   return (
     <div className="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/60 text-xs text-rose-800 dark:text-rose-200 space-y-3">
       <div className="flex items-start gap-2.5">
-        <WarningCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" weight="fill" />
+        <WarningCircle
+          className="w-5 h-5 text-rose-600 shrink-0 mt-0.5"
+          weight="fill"
+        />
         <div className="space-y-1">
           <h4 className="font-bold text-rose-900 dark:text-rose-100">
             Claim Verification Failed
           </h4>
           <p className="leading-relaxed">
-            {message || "We couldn't complete this claim. Check the details and try again, or contact the event organizer."}
+            {message ||
+              "We couldn't complete this claim. Check the details and try again, or contact the event organizer."}
           </p>
         </div>
       </div>

@@ -34,7 +34,8 @@ export function ApprovalProgress({ step }: ApprovalProgressProps) {
         Sealing Immutable Snapshot...
       </h3>
       <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-        Freezing recipient records and calculating cryptographic verification digest. Please do not close this window.
+        Freezing recipient records and calculating cryptographic verification
+        digest. Please do not close this window.
       </p>
 
       <div className="flex items-center justify-center gap-6 mt-6">
@@ -52,10 +53,14 @@ export function ApprovalProgress({ step }: ApprovalProgressProps) {
               >
                 <Icon className="w-3.5 h-3.5" />
               </div>
-              <span className={`text-xs font-medium ${isCurrent ? "text-indigo-600 dark:text-indigo-400 font-bold" : "text-slate-500"}`}>
+              <span
+                className={`text-xs font-medium ${isCurrent ? "text-indigo-600 dark:text-indigo-400 font-bold" : "text-slate-500"}`}
+              >
                 {s.label}
               </span>
-              {idx < steps.length - 1 && <span className="text-slate-300 dark:text-slate-700">→</span>}
+              {idx < steps.length - 1 && (
+                <span className="text-slate-300 dark:text-slate-700">→</span>
+              )}
             </div>
           );
         })}

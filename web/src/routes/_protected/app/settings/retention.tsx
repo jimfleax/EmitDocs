@@ -49,7 +49,10 @@ function RetentionSettingsPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem("emitdocs_default_retention_hours", String(hours));
     }
-    toast.success("Default Retention Updated", `Default batch retention set to ${hours} hours.`);
+    toast.success(
+      "Default Retention Updated",
+      `Default batch retention set to ${hours} hours.`,
+    );
   };
 
   return (
@@ -67,7 +70,8 @@ function RetentionSettingsPage() {
             Default Batch Retention Window
           </h2>
           <p className="text-xs text-slate-500">
-            Choose the default expiration timeline applied to newly approved issuance batches.
+            Choose the default expiration timeline applied to newly approved
+            issuance batches.
           </p>
           <RetentionPresetSelector
             presets={PRESETS}
@@ -82,9 +86,12 @@ function RetentionSettingsPage() {
             <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
               <Database size={18} weight="bold" />
             </div>
-            <h3 className="text-sm font-bold text-slate-800">Automated TTL Pruning</h3>
+            <h3 className="text-sm font-bold text-slate-800">
+              Automated TTL Pruning
+            </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Recipient records are indexed with native MongoDB TTL indexes. The moment a batch expires, recipient PII is irreversibly wiped.
+              Recipient records are indexed with native MongoDB TTL indexes. The
+              moment a batch expires, recipient PII is irreversibly wiped.
             </p>
           </div>
 
@@ -92,9 +99,12 @@ function RetentionSettingsPage() {
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <ShieldCheck size={18} weight="bold" />
             </div>
-            <h3 className="text-sm font-bold text-slate-800">Zero Cloud Storage Leaks</h3>
+            <h3 className="text-sm font-bold text-slate-800">
+              Zero Cloud Storage Leaks
+            </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              PDF certificates are synthesized on-demand in browser client memory via Web Workers. No recipient PDFs ever touch Cloudinary.
+              PDF certificates are synthesized on-demand in browser client
+              memory via Web Workers. No recipient PDFs ever touch Cloudinary.
             </p>
           </div>
 
@@ -102,9 +112,13 @@ function RetentionSettingsPage() {
             <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
               <HardDrives size={18} weight="bold" />
             </div>
-            <h3 className="text-sm font-bold text-slate-800">Preserved Audit History</h3>
+            <h3 className="text-sm font-bold text-slate-800">
+              Preserved Audit History
+            </h3>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Batch summary metadata (name, total count, valid count, issuance dates) is kept for operational auditing while personal data is deleted.
+              Batch summary metadata (name, total count, valid count, issuance
+              dates) is kept for operational auditing while personal data is
+              deleted.
             </p>
           </div>
         </div>

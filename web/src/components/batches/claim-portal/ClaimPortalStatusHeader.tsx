@@ -11,13 +11,7 @@ import { Badge } from "@/components/ui/Badge";
 import { toast } from "@/components/ui/toast";
 
 export type ClaimPortalStatus =
-  | "draft"
-  | "ready"
-  | "active"
-  | "paused"
-  | "disabled"
-  | "closed"
-  | "expired";
+  "draft" | "ready" | "active" | "paused" | "disabled" | "closed" | "expired";
 
 export interface ClaimPortalStatusHeaderProps {
   portal: {

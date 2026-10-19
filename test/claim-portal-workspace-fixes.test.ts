@@ -18,7 +18,6 @@ dotenv.config({ path: path.resolve(__dirname, "../api/.env") });
 import { Batch } from "../api/src/models/Batch.js";
 import { ApprovedSnapshot } from "../api/src/models/ApprovedSnapshot.js";
 import { ApprovedRecipient } from "../api/src/models/ApprovedRecipient.js";
-import { ClaimPortal } from "../api/src/models/ClaimPortal.js";
 import { ClaimCredentialSet } from "../api/src/models/ClaimCredentialSet.js";
 import { ClaimPortalLifecycle } from "../api/src/services/claim-portal-lifecycle.js";
 

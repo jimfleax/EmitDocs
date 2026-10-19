@@ -132,7 +132,8 @@ export function SinglePdfPreviewModal({
         if (isCancelled) return;
 
         const canonicalViewport = page.getViewport({ scale });
-        const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+        const dpr =
+          typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
         const effectiveScale = Math.min(4.0, Math.max(1.5, scale * dpr));
         const renderViewport = page.getViewport({ scale: effectiveScale });
 
@@ -221,7 +222,9 @@ export function SinglePdfPreviewModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const sanitizedName = (recipientName || "recipient").trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+    const sanitizedName = (recipientName || "recipient")
+      .trim()
+      .replace(/[^a-zA-Z0-9_-]/g, "_");
     a.download = `${sanitizedName}_${recipientKey}.pdf`;
     document.body.appendChild(a);
     a.click();
@@ -261,7 +264,8 @@ export function SinglePdfPreviewModal({
                 )}
                 {hasWarnings ? (
                   <Badge variant="warning" size="sm" dot>
-                    {warnings.length} {warnings.length === 1 ? "Warning" : "Warnings"}
+                    {warnings.length}{" "}
+                    {warnings.length === 1 ? "Warning" : "Warnings"}
                   </Badge>
                 ) : (
                   <Badge variant="success" size="sm" dot>
@@ -289,7 +293,9 @@ export function SinglePdfPreviewModal({
           <div className="flex items-center gap-1.5">
             <button
               type="button"
-              onClick={() => setScale((s) => Math.max(0.5, Number((s - 0.25).toFixed(2))))}
+              onClick={() =>
+                setScale((s) => Math.max(0.5, Number((s - 0.25).toFixed(2))))
+              }
               disabled={scale <= 0.5}
               className="p-1.5 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
               title="Zoom Out"
@@ -301,7 +307,9 @@ export function SinglePdfPreviewModal({
             </span>
             <button
               type="button"
-              onClick={() => setScale((s) => Math.min(2.5, Number((s + 0.25).toFixed(2))))}
+              onClick={() =>
+                setScale((s) => Math.min(2.5, Number((s + 0.25).toFixed(2))))
+              }
               disabled={scale >= 2.5}
               className="p-1.5 rounded-md text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40"
               title="Zoom In"
@@ -358,7 +366,11 @@ export function SinglePdfPreviewModal({
         {hasWarnings ? (
           <div className="px-6 py-3 border-t border-amber-200 bg-amber-50/70 dark:bg-amber-950/30 text-xs">
             <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold mb-1.5">
-              <WarningCircle size={16} weight="fill" className="text-amber-600" />
+              <WarningCircle
+                size={16}
+                weight="fill"
+                className="text-amber-600"
+              />
               <span>Diagnostic Warnings ({warnings.length})</span>
             </div>
             <div className="space-y-1 max-h-24 overflow-y-auto">

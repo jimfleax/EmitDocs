@@ -100,7 +100,9 @@ export function SingleRecipientAction({
       });
 
       const rawName = getRecipientName();
-      const sanitizedName = String(rawName).trim().replace(/[^a-zA-Z0-9_-]/g, "_");
+      const sanitizedName = String(rawName)
+        .trim()
+        .replace(/[^a-zA-Z0-9_-]/g, "_");
       const filename = `${sanitizedName}_${recipient.recipientKey}.pdf`;
 
       const blob = new Blob([res.pdfBytes as any], { type: "application/pdf" });

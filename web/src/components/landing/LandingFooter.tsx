@@ -44,7 +44,9 @@ export function LandingFooter() {
             </Link>
 
             <p className="text-slate-500 text-xs sm:text-sm leading-relaxed max-w-sm">
-              Turn existing PDF templates and spreadsheet data into thousands of personalized, review-ready documents at scale. Review every draft, spot clipping before generation, and export with confidence.
+              Turn existing PDF templates and spreadsheet data into thousands of
+              personalized, review-ready documents at scale. Review every draft,
+              spot clipping before generation, and export with confidence.
             </p>
 
             {/* System Status Indicator */}
@@ -52,7 +54,9 @@ export function LandingFooter() {
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               <span>All Systems Operational</span>
               <span className="text-slate-300">·</span>
-              <span className="font-mono text-slate-500 text-[11px]">v1.0.0</span>
+              <span className="font-mono text-slate-500 text-[11px]">
+                v1.0.0
+              </span>
             </div>
           </div>
 
@@ -63,27 +67,42 @@ export function LandingFooter() {
             </h4>
             <ul className="space-y-2.5 text-xs font-medium">
               <li>
-                <a href="#features" className="hover:text-blue-600 transition-colors">
+                <a
+                  href="#features"
+                  className="hover:text-blue-600 transition-colors"
+                >
                   Platform Features
                 </a>
               </li>
               <li>
-                <a href="#workflow" className="hover:text-blue-600 transition-colors">
+                <a
+                  href="#workflow"
+                  className="hover:text-blue-600 transition-colors"
+                >
                   How It Works
                 </a>
               </li>
               <li>
-                <a href="#trust" className="hover:text-blue-600 transition-colors">
+                <a
+                  href="#trust"
+                  className="hover:text-blue-600 transition-colors"
+                >
                   Architecture &amp; Trust
                 </a>
               </li>
               <li>
-                <Link to="/privacy" className="hover:text-blue-600 transition-colors">
+                <Link
+                  to="/privacy"
+                  className="hover:text-blue-600 transition-colors"
+                >
                   Privacy Policy (Zero Model Training)
                 </Link>
               </li>
               <li>
-                <Link to="/terms" className="hover:text-blue-600 transition-colors">
+                <Link
+                  to="/terms"
+                  className="hover:text-blue-600 transition-colors"
+                >
                   Terms of Service
                 </Link>
               </li>
@@ -118,7 +137,9 @@ export function LandingFooter() {
               </div>
 
               <p className="text-xs text-slate-600 leading-relaxed">
-                Creator of EmitDocs. Focused on building high-precision document engines, responsive web systems, and production web applications.
+                Creator of EmitDocs. Focused on building high-precision document
+                engines, responsive web systems, and production web
+                applications.
               </p>
 
               <div className="pt-1 flex flex-wrap items-center gap-2">
@@ -176,14 +197,18 @@ export function LandingFooter() {
 
         {/* Bottom Bar: Copyright & Attribution */}
         <div className="pt-8 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div>
-            © {CURRENT_YEAR} EmitDocs Platform. All rights reserved.
-          </div>
+          <div>© {CURRENT_YEAR} EmitDocs Platform. All rights reserved.</div>
           <div className="flex items-center gap-6">
-            <Link to="/terms" className="hover:text-slate-600 transition-colors">
+            <Link
+              to="/terms"
+              className="hover:text-slate-600 transition-colors"
+            >
               Terms
             </Link>
-            <Link to="/privacy" className="hover:text-slate-600 transition-colors">
+            <Link
+              to="/privacy"
+              className="hover:text-slate-600 transition-colors"
+            >
               Privacy
             </Link>
             <a
@@ -194,7 +219,15 @@ export function LandingFooter() {
             </a>
             <span className="text-slate-300">·</span>
             <span className="text-slate-500">
-              Crafted by <a href="https://jimfleax.in" target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 font-medium">Jim Fleax</a>
+              Crafted by{" "}
+              <a
+                href="https://jimfleax.in"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-blue-600 font-medium"
+              >
+                Jim Fleax
+              </a>
             </span>
           </div>
         </div>

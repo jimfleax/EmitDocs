@@ -55,7 +55,9 @@ export interface NavigableBatch {
  * @param batch Object containing batch ID, status, and optional approvedSnapshotId reference.
  * @returns TanStack Router compatible route target with `to`, `params`, and direct `path`.
  */
-export function getBatchDestinationRoute(batch: NavigableBatch): BatchRouteTarget {
+export function getBatchDestinationRoute(
+  batch: NavigableBatch,
+): BatchRouteTarget {
   const { _id: batchId, status, approvedSnapshotId } = batch;
 
   switch (status) {

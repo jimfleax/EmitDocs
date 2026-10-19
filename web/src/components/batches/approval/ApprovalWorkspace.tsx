@@ -88,7 +88,9 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to load approval preflight metrics");
+        throw new Error(
+          data.error || "Failed to load approval preflight metrics",
+        );
       }
 
       const data: PreflightData = await res.json();
@@ -112,7 +114,15 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
   }, [batchId]);
 
   useEffect(() => {
-    void loadPreflight();
+    let ignore = false;
+    const run = async () => {
+      await loadPreflight();
+      if (ignore) return;
+    };
+    void run();
+    return () => {
+      ignore = true;
+    };
   }, [loadPreflight]);
 
   // Execute approval
@@ -150,11 +160,14 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
       setApprovedSnapshot(data.snapshot);
       toast.success(
         "Batch Approved & Sealed",
-        `Created immutable snapshot ${data.snapshot._id.slice(-8)} with ${data.snapshot.totalRecipients} recipients.`
+        `Created immutable snapshot ${data.snapshot._id.slice(-8)} with ${data.snapshot.totalRecipients} recipients.`,
       );
     } catch (err: any) {
       setError(err.message || "Failed to approve batch");
-      toast.error("Approval Failed", err.message || "Could not freeze batch revision");
+      toast.error(
+        "Approval Failed",
+        err.message || "Could not freeze batch revision",
+      );
     } finally {
       setIsApproving(false);
     }
@@ -174,7 +187,8 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
   const subtitleSlot = (
     <div className="flex flex-wrap items-center gap-2 mt-1">
       <span className="text-xs text-slate-500 dark:text-slate-400">
-        Freeze reviewed template mapping, checksums, and recipient rows into an immutable snapshot.
+        Freeze reviewed template mapping, checksums, and recipient rows into an
+        immutable snapshot.
       </span>
     </div>
   );
@@ -210,30 +224,43 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
                   This batch is locked and protected against mutation.
                 </p>
               </div>
-              <Badge variant="success" size="md" shape="pill" className="ml-auto">
+              <Badge
+                variant="success"
+                size="md"
+                shape="pill"
+                className="ml-auto"
+              >
                 Status: Ready
               </Badge>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-950/50 border border-slate-200/80 dark:border-slate-800/80 mb-6">
               <div>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Snapshot ID</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Snapshot ID
+                </span>
                 <p className="text-xs font-mono font-semibold text-slate-800 dark:text-slate-200 mt-0.5 truncate">
                   {approvedSnapshot._id}
                 </p>
               </div>
 
               <div>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Sealed Recipients</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Sealed Recipients
+                </span>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
-                  {approvedSnapshot.totalRecipients?.toLocaleString()} valid records
+                  {approvedSnapshot.totalRecipients?.toLocaleString()} valid
+                  records
                 </p>
               </div>
 
               <div>
-                <span className="text-xs text-slate-500 dark:text-slate-400">Scheduled Expiry</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  Scheduled Expiry
+                </span>
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 mt-0.5">
-                  {new Date(approvedSnapshot.expiresAt).toLocaleDateString()} ({approvedSnapshot.retentionHours}h)
+                  {new Date(approvedSnapshot.expiresAt).toLocaleDateString()} (
+                  {approvedSnapshot.retentionHours}h)
                 </p>
               </div>
             </div>
@@ -262,7 +289,9 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
 
               <button
                 type="button"
-                onClick={() => navigate({ to: `/app/batches/${batchId}/results` })}
+                onClick={() =>
+                  navigate({ to: `/app/batches/${batchId}/results` })
+                }
                 className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold transition-all shadow-xs shadow-blue-500/20 cursor-pointer"
               >
                 Proceed to Results & Generation
@@ -308,7 +337,10 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
               <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                   <ShieldCheck className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                  <span>Sealing generates an immutable snapshot. Rows cannot be silently altered.</span>
+                  <span>
+                    Sealing generates an immutable snapshot. Rows cannot be
+                    silently altered.
+                  </span>
                 </div>
 
                 <div className="flex items-center gap-2.5">
@@ -331,7 +363,9 @@ export function ApprovalWorkspace({ batchId }: ApprovalWorkspaceProps) {
                     }`}
                   >
                     <LockKey className="w-4 h-4" />
-                    {isApproving ? "Freezing Snapshot..." : "Approve & Seal Snapshot"}
+                    {isApproving
+                      ? "Freezing Snapshot..."
+                      : "Approve & Seal Snapshot"}
                   </button>
                 </div>
               </div>

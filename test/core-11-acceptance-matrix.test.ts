@@ -48,19 +48,13 @@ import { Batch } from '../api/src/models/Batch.js';
 import { ApprovedSnapshot } from '../api/src/models/ApprovedSnapshot.js';
 import { ApprovedRecipient } from '../api/src/models/ApprovedRecipient.js';
 import { ClaimPortal } from '../api/src/models/ClaimPortal.js';
-import { ClaimCredentialSet } from '../api/src/models/ClaimCredentialSet.js';
 import { ClaimCredential } from '../api/src/models/ClaimCredential.js';
-import { ClaimRecipientState } from '../api/src/models/ClaimRecipientState.js';
 import { ClaimSession } from '../api/src/models/ClaimSession.js';
-import { ClaimRateLimit } from '../api/src/models/ClaimRateLimit.js';
 
 import {
   generateSecureTokens,
   canonicalizeCredential,
-  canonicalizePair,
-  computeCredentialVerifier,
   timingSafeEqualStrings,
-  evaluateImportedCredentialStrength,
 } from '../api/src/services/keyed-verifier.js';
 import {
   ClaimPortalLifecycle,
@@ -72,18 +66,14 @@ import {
 import {
   getPublicPortalMetadata,
   authenticateClaim,
-  CLAIM_PORTAL_HMAC_SECRET,
   GENERIC_CLAIM_ERROR_MESSAGE,
 } from '../api/src/services/participant-claim.js';
 import {
   validateClaimSession,
   getAuthorizedDownloadPayload,
-  revokeClaimSession,
 } from '../api/src/services/claim-delivery.js';
 import {
   checkAndIncrementRateLimit,
-  recordFailedAttempt,
-  isTurnstileRequired,
 } from '../api/src/services/claim-rate-limiter.js';
 import { verifyTurnstileToken } from '../api/src/services/turnstile.js';
 import { RetentionPruner } from '../api/src/services/retention-pruner.js';
@@ -172,7 +162,7 @@ async function runAcceptanceMatrix() {
       outputKey: 'certs/rec_01.pdf',
     });
 
-    const rec2 = await ApprovedRecipient.create({
+    await ApprovedRecipient.create({
       snapshotId: snapshot._id,
       batchId: batch._id,
       ownerId,

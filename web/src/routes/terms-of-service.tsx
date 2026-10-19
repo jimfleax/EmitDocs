@@ -15,4 +15,3 @@ import { TermsPage } from "./terms";
 export const Route = createFileRoute("/terms-of-service")({
   component: TermsPage,
 });
-

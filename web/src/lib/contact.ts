@@ -13,7 +13,10 @@ export const CONTACT_EMAIL = "reetabrata.bhandari@gmail.com";
  * @param email - The recipient email address (defaults to CONTACT_EMAIL).
  * @returns Fully formatted `mailto:` URL.
  */
-export function getMailtoUrl(subject: string, email: string = CONTACT_EMAIL): string {
+export function getMailtoUrl(
+  subject: string,
+  email: string = CONTACT_EMAIL,
+): string {
   return `mailto:${email}?subject=${encodeURIComponent(subject)}`;
 }
 

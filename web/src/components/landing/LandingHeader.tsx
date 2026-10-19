@@ -129,7 +129,11 @@ export function LandingHeader() {
             className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 focus:outline-none transition-colors"
             aria-label="Toggle navigation menu"
           >
-            {mobileMenuOpen ? <X size={20} weight="bold" /> : <List size={20} weight="bold" />}
+            {mobileMenuOpen ? (
+              <X size={20} weight="bold" />
+            ) : (
+              <List size={20} weight="bold" />
+            )}
           </button>
         </div>
       </div>

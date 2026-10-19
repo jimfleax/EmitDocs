@@ -6,7 +6,12 @@
  */
 
 import { useState } from "react";
-import { MagnifyingGlass, Prohibit, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import {
+  MagnifyingGlass,
+  Prohibit,
+  CaretLeft,
+  CaretRight,
+} from "@phosphor-icons/react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/button";
@@ -78,7 +83,8 @@ export function RecipientClaimStatusTable({
   onRevokeRecipient,
   isLoading = false,
 }: RecipientClaimStatusTableProps) {
-  const [revokeTarget, setRevokeTarget] = useState<RecipientClaimStatusRow | null>(null);
+  const [revokeTarget, setRevokeTarget] =
+    useState<RecipientClaimStatusRow | null>(null);
   const [isRevoking, setIsRevoking] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
@@ -97,15 +103,35 @@ export function RecipientClaimStatusTable({
   const getStatusBadge = (status: RecipientClaimStatusRow["status"]) => {
     switch (status) {
       case "claimed":
-        return <Badge variant="success" size="sm" shape="pill" dot>Claimed</Badge>;
+        return (
+          <Badge variant="success" size="sm" shape="pill" dot>
+            Claimed
+          </Badge>
+        );
       case "eligible":
-        return <Badge variant="neutral" size="sm" shape="pill">Unclaimed</Badge>;
+        return (
+          <Badge variant="neutral" size="sm" shape="pill">
+            Unclaimed
+          </Badge>
+        );
       case "revoked":
-        return <Badge variant="error" size="sm" shape="pill">Revoked</Badge>;
+        return (
+          <Badge variant="error" size="sm" shape="pill">
+            Revoked
+          </Badge>
+        );
       case "excluded":
-        return <Badge variant="warning" size="sm" shape="pill">Excluded</Badge>;
+        return (
+          <Badge variant="warning" size="sm" shape="pill">
+            Excluded
+          </Badge>
+        );
       default:
-        return <Badge variant="neutral" size="sm" shape="pill">{status}</Badge>;
+        return (
+          <Badge variant="neutral" size="sm" shape="pill">
+            {status}
+          </Badge>
+        );
     }
   };
 
@@ -156,7 +182,9 @@ export function RecipientClaimStatusTable({
                 <th className="px-3.5 py-2.5 font-semibold">Participant</th>
                 <th className="px-3.5 py-2.5 font-semibold">Claim Status</th>
                 <th className="px-3.5 py-2.5 font-semibold">First Claimed</th>
-                <th className="px-3.5 py-2.5 text-right font-semibold">Action</th>
+                <th className="px-3.5 py-2.5 text-right font-semibold">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -168,7 +196,10 @@ export function RecipientClaimStatusTable({
                 </tr>
               ) : (
                 recipients.map((r) => (
-                  <tr key={r._id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
+                  <tr
+                    key={r._id}
+                    className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30"
+                  >
                     <td className="px-3.5 py-2.5 font-mono text-slate-500">
                       {r.recipientKey}
                     </td>
@@ -176,13 +207,17 @@ export function RecipientClaimStatusTable({
                       <div className="font-semibold text-slate-900 dark:text-slate-100">
                         {r.name || "Participant"}
                       </div>
-                      <div className="text-[11px] text-slate-400">{r.email}</div>
+                      <div className="text-[11px] text-slate-400">
+                        {r.email}
+                      </div>
                     </td>
                     <td className="px-3.5 py-2.5">
                       {getStatusBadge(r.status)}
                     </td>
                     <td className="px-3.5 py-2.5 text-slate-500">
-                      {r.firstClaimAt ? new Date(r.firstClaimAt).toLocaleString() : "—"}
+                      {r.firstClaimAt
+                        ? new Date(r.firstClaimAt).toLocaleString()
+                        : "—"}
                     </td>
                     <td className="px-3.5 py-2.5 text-right">
                       {r.status !== "revoked" && (
@@ -232,19 +267,31 @@ export function RecipientClaimStatusTable({
       </div>
 
       {/* Revoke Dialog */}
-      <Dialog open={!!revokeTarget} onOpenChange={(open) => !open && setRevokeTarget(null)}>
+      <Dialog
+        open={!!revokeTarget}
+        onOpenChange={(open) => !open && setRevokeTarget(null)}
+      >
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Revoke Recipient Claim?</DialogTitle>
             <DialogDescription>
-              Revoking {revokeTarget?.name || "this participant"} prevents any further certificate retrieval or session token issuance.
+              Revoking {revokeTarget?.name || "this participant"} prevents any
+              further certificate retrieval or session token issuance.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setRevokeTarget(null)} disabled={isRevoking}>
+            <Button
+              variant="outline"
+              onClick={() => setRevokeTarget(null)}
+              disabled={isRevoking}
+            >
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleRevokeConfirm} disabled={isRevoking}>
+            <Button
+              variant="destructive"
+              onClick={handleRevokeConfirm}
+              disabled={isRevoking}
+            >
               {isRevoking && <Spinner size="sm" />}
               <span>Confirm Revoke</span>
             </Button>

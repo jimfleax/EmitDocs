@@ -24,7 +24,9 @@ export interface DuplicateCredentialTableProps {
  * @param {DuplicateCredentialItem[]} props.collisions - Array of collision records with frequency counts.
  * @returns {JSX.Element | null} Danger alert table showing colliding records, or null if none exist.
  */
-export function DuplicateCredentialTable({ collisions }: DuplicateCredentialTableProps) {
+export function DuplicateCredentialTable({
+  collisions,
+}: DuplicateCredentialTableProps) {
   if (!collisions || collisions.length === 0) return null;
 
   return (
@@ -40,9 +42,13 @@ export function DuplicateCredentialTable({ collisions }: DuplicateCredentialTabl
         <table className="w-full text-xs text-left">
           <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 border-b border-slate-100 dark:border-slate-800">
             <tr>
-              <th className="px-4 py-2.5 font-semibold">Normalized Credential Value</th>
+              <th className="px-4 py-2.5 font-semibold">
+                Normalized Credential Value
+              </th>
               <th className="px-4 py-2.5 font-semibold">Duplicates</th>
-              <th className="px-4 py-2.5 font-semibold">Recipient Rows / Keys</th>
+              <th className="px-4 py-2.5 font-semibold">
+                Recipient Rows / Keys
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

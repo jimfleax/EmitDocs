@@ -107,8 +107,11 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     cancelZipExport,
   } = useBatchGeneratorWorker({ isExpired });
 
-  const [currentZippingVolume, setCurrentZippingVolume] = useState<number | undefined>(undefined);
-  const [currentZippingFilename, setCurrentZippingFilename] = useState<string>("documents.zip");
+  const [currentZippingVolume, setCurrentZippingVolume] = useState<
+    number | undefined
+  >(undefined);
+  const [currentZippingFilename, setCurrentZippingFilename] =
+    useState<string>("documents.zip");
   const [currentZippingLabel, setCurrentZippingLabel] = useState<string>("");
 
   const handleDownloadVolume = async (volume: BatchVolumeInfo) => {
@@ -133,7 +136,10 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
         if (err?.name === "AbortError") {
           return;
         }
-        toast.error("ZIP Export Error", err.message || "Failed to open save file picker");
+        toast.error(
+          "ZIP Export Error",
+          err.message || "Failed to open save file picker",
+        );
         return;
       }
     }
@@ -151,10 +157,12 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       for (let p = startPage; p <= endPage; p++) {
         const res = await fetch(
           `/api/batches/${batchId}/snapshot/recipients?page=${p}&limit=${fetchLimit}`,
-          { credentials: "include" }
+          { credentials: "include" },
         );
         if (!res.ok) {
-          throw new Error(`Failed to load recipients for volume ${volume.volumeIndex}`);
+          throw new Error(
+            `Failed to load recipients for volume ${volume.volumeIndex}`,
+          );
         }
         const data = await res.json();
         const pageRecipients = data.recipients || [];
@@ -167,7 +175,10 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       const targetRecipients = volumeRecipients.slice(sliceStart, sliceEnd);
 
       if (targetRecipients.length === 0) {
-        toast.warning("No Recipients", "No recipients found for this volume partition.");
+        toast.warning(
+          "No Recipients",
+          "No recipients found for this volume partition.",
+        );
         return;
       }
 
@@ -176,7 +187,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
         volume.volumeIndex,
         volume.totalVolumes,
         volume.filename,
-        fileHandleOrWritable
+        fileHandleOrWritable,
       );
 
       if (result.success) {
@@ -186,11 +197,14 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
             : "";
         toast.success(
           "Download Complete",
-          `Successfully packaged ${result.totalBytes ? formatBytes(result.totalBytes) : ""} into ${volume.filename}.${failureDetails}`
+          `Successfully packaged ${result.totalBytes ? formatBytes(result.totalBytes) : ""} into ${volume.filename}.${failureDetails}`,
         );
       }
     } catch (err: any) {
-      toast.error("ZIP Export Error", err.message || "Failed to download ZIP volume");
+      toast.error(
+        "ZIP Export Error",
+        err.message || "Failed to download ZIP volume",
+      );
     } finally {
       setCurrentZippingVolume(undefined);
     }
@@ -212,7 +226,8 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
 
       if (
         batchData.batch.status === "expired" ||
-        (batchData.batch.expiresAt && new Date() >= new Date(batchData.batch.expiresAt))
+        (batchData.batch.expiresAt &&
+          new Date() >= new Date(batchData.batch.expiresAt))
       ) {
         setIsExpired(true);
         setIsLoading(false);
@@ -225,14 +240,14 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       });
       if (!snapRes.ok) {
         throw new Error(
-          "No approved snapshot found. Batch must be approved before generating results."
+          "No approved snapshot found. Batch must be approved before generating results.",
         );
       }
       const snapData = await snapRes.json();
       const activeSnapshot = snapData.snapshot;
       if (!activeSnapshot || activeSnapshot.status !== "ready") {
         throw new Error(
-          "No approved snapshot found. Batch must be approved before generating results."
+          "No approved snapshot found. Batch must be approved before generating results.",
         );
       }
       setSnapshot(activeSnapshot);
@@ -240,9 +255,10 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       // 3. Fetch template version mappings
       const versionRes = await fetch(
         `/api/templates/${activeSnapshot.templateId}/versions/${activeSnapshot.templateVersionId}`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
-      if (!versionRes.ok) throw new Error("Failed to fetch template version details");
+      if (!versionRes.ok)
+        throw new Error("Failed to fetch template version details");
       const versionData = await versionRes.json();
       const version = versionData.version;
       setTemplateVersion(version);
@@ -250,7 +266,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       // 4. Fetch base template PDF file as arrayBuffer
       const fileRes = await fetch(
         `/api/templates/${activeSnapshot.templateId}/versions/${activeSnapshot.templateVersionId}/file`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
       if (!fileRes.ok) throw new Error("Failed to download base template PDF");
       const fileAb = await fileRes.arrayBuffer();
@@ -263,17 +279,22 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       // 6. Fetch approved recipients page 1
       const recRes = await fetch(
         `/api/batches/${batchId}/snapshot/recipients?page=1&limit=${limit}`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
       if (recRes.status === 410) {
         setIsExpired(true);
-        toast.warning("Batch Expired", "This batch has passed its retention window. Recipient data has been pruned.");
+        toast.warning(
+          "Batch Expired",
+          "This batch has passed its retention window. Recipient data has been pruned.",
+        );
         return;
       }
       if (recRes.ok) {
         const recData = await recRes.json();
         setRecipients(recData.recipients || []);
-        setTotalRecipients(recData.total || activeSnapshot.totalRecipients || 0);
+        setTotalRecipients(
+          recData.total || activeSnapshot.totalRecipients || 0,
+        );
       }
     } catch (err: any) {
       setError(err.message || "Failed to initialize Results workspace");
@@ -283,7 +304,15 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
   }, [batchId, initializeWorker]);
 
   useEffect(() => {
-    void loadWorkspaceData();
+    let ignore = false;
+    const run = async () => {
+      await loadWorkspaceData();
+      if (ignore) return;
+    };
+    void run();
+    return () => {
+      ignore = true;
+    };
   }, [loadWorkspaceData]);
 
   // Load paginated recipients
@@ -292,11 +321,14 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       setPage(newPage);
       const res = await fetch(
         `/api/batches/${batchId}/snapshot/recipients?page=${newPage}&limit=${limit}`,
-        { credentials: "include" }
+        { credentials: "include" },
       );
       if (res.status === 410) {
         setIsExpired(true);
-        toast.warning("Batch Expired", "This batch has passed its retention window.");
+        toast.warning(
+          "Batch Expired",
+          "This batch has passed its retention window.",
+        );
         return;
       }
       if (res.ok) {
@@ -321,7 +353,7 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       do {
         const res = await fetch(
           `/api/batches/${batchId}/snapshot/recipients?page=${currentPage}&limit=${fetchLimit}`,
-          { credentials: "include" }
+          { credentials: "include" },
         );
         if (!res.ok) {
           throw new Error("Failed to load approved recipients for generation");
@@ -339,13 +371,19 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
       } while (currentPage <= totalPages);
 
       if (allRecipients.length === 0) {
-        toast.warning("No Recipients", "No approved recipients found to generate.");
+        toast.warning(
+          "No Recipients",
+          "No approved recipients found to generate.",
+        );
         return;
       }
 
       startBatch(allRecipients);
     } catch (err: any) {
-      toast.error("Generation Error", err.message || "Failed to load all recipients");
+      toast.error(
+        "Generation Error",
+        err.message || "Failed to load all recipients",
+      );
     } finally {
       setIsStarting(false);
     }
@@ -355,7 +393,10 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
     if (!snapshot?.canonicalDigest) return;
     navigator.clipboard.writeText(snapshot.canonicalDigest);
     setCopiedDigest(true);
-    toast.success("Digest Copied", "Canonical SHA-256 digest copied to clipboard.");
+    toast.success(
+      "Digest Copied",
+      "Canonical SHA-256 digest copied to clipboard.",
+    );
     setTimeout(() => setCopiedDigest(false), 2000);
   };
 
@@ -410,14 +451,17 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
           Approved Snapshot
         </Badge>
       )}
-      <ExpiryCountdownBadge expiresAt={batch?.expiresAt || snapshot?.expiresAt} />
+      <ExpiryCountdownBadge
+        expiresAt={batch?.expiresAt || snapshot?.expiresAt}
+      />
     </div>
   );
 
   const subtitleSlot = (
     <div className="flex flex-wrap items-center gap-2 mt-1">
       <span className="text-xs text-slate-500 dark:text-slate-400">
-        On-demand deterministic PDF generation with instant preview &amp; single recipient delivery.
+        On-demand deterministic PDF generation with instant preview &amp; single
+        recipient delivery.
       </span>
     </div>
   );
@@ -520,7 +564,9 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 transition-colors cursor-pointer select-none"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
-                <span>{showAuditDetails ? "Hide Audit Details" : "Audit Details"}</span>
+                <span>
+                  {showAuditDetails ? "Hide Audit Details" : "Audit Details"}
+                </span>
                 {showAuditDetails ? (
                   <CaretDown className="w-3 h-3 text-slate-400" />
                 ) : (
@@ -602,10 +648,14 @@ export function ResultsWorkspace({ batchId }: ResultsWorkspaceProps) {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                     Self-Service Certificate Claim Portal
                   </h3>
-                  <Badge variant="primary" size="sm">Online Distribution</Badge>
+                  <Badge variant="primary" size="sm">
+                    Online Distribution
+                  </Badge>
                 </div>
                 <p className="text-xs text-slate-600 dark:text-slate-400 max-w-xl">
-                  Share certificates directly with recipients via a public claim link. Issue CSPRNG tokens or verify with existing IDs, enforce Turnstile bot protection, and track claims in real time.
+                  Share certificates directly with recipients via a public claim
+                  link. Issue CSPRNG tokens or verify with existing IDs, enforce
+                  Turnstile bot protection, and track claims in real time.
                 </p>
               </div>
             </div>

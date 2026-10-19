@@ -8,7 +8,6 @@
 import 'dotenv/config';
 import assert from 'node:assert';
 import mongoose from 'mongoose';
-import cloudinary from '../src/lib/cloudinary.js';
 import { Template } from '../src/models/Template.js';
 import { TemplateVersion } from '../src/models/TemplateVersion.js';
 import { Batch } from '../src/models/Batch.js';

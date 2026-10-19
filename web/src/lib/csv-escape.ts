@@ -11,7 +11,10 @@
  * @param {boolean} isToken - True if this cell represents a claim token.
  * @returns {string} Quoted, safely escaped CSV cell string.
  */
-export function escapeCsvCell(value: string | undefined | null, isToken = false): string {
+export function escapeCsvCell(
+  value: string | undefined | null,
+  isToken = false,
+): string {
   const str = value == null ? "" : String(value);
   const sanitized = !isToken && /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
   return `"${sanitized.replace(/"/g, '""')}"`;

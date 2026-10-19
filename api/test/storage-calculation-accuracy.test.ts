@@ -41,7 +41,6 @@ async function runTest() {
     /* -------------------------------------------------------------------------- */
     console.log('1. Testing 0 templates in DB returns 0 bytes despite cloud orphans...');
 
-    let cleanupTriggered = false;
     cloudinary.api.resources = (async (opts: any) => {
       if (opts.resource_type === 'image') {
         return {
@@ -67,12 +66,10 @@ async function runTest() {
     }) as any;
 
     cloudinary.uploader.add_tag = (async () => {
-      cleanupTriggered = true;
       return { public_ids: [] };
     }) as any;
 
     cloudinary.api.delete_resources = (async (publicIds: string[]) => {
-      cleanupTriggered = true;
       return {
         deleted: publicIds.reduce((acc, id) => ({ ...acc, [id]: 'deleted' }), {}),
       };

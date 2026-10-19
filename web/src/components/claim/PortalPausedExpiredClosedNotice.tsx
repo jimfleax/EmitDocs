@@ -60,7 +60,9 @@ export function PortalPausedExpiredClosedNotice({
       case "disabled":
       default:
         return {
-          icon: <WarningOctagon className="w-8 h-8 text-rose-500" weight="fill" />,
+          icon: (
+            <WarningOctagon className="w-8 h-8 text-rose-500" weight="fill" />
+          ),
           title: "Portal Unavailable",
           message:
             "This portal is currently unavailable. Please contact the event organizer for assistance.",

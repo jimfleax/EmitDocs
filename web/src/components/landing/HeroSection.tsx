@@ -52,7 +52,10 @@ export function HeroSection() {
 
           {/* Clear, Zero-Fluff Value Proposition Subheadline */}
           <p className="text-base sm:text-xl text-slate-600 leading-relaxed max-w-2xl mx-auto font-normal">
-            Turn your PDF template and spreadsheet into thousands of personalized, review-ready documents. Spot clipping issues before generation, apply non-destructive overrides, and export verified PDFs at scale.
+            Turn your PDF template and spreadsheet into thousands of
+            personalized, review-ready documents. Spot clipping issues before
+            generation, apply non-destructive overrides, and export verified
+            PDFs at scale.
           </p>
 
           {/* Action CTAs */}
@@ -99,7 +102,11 @@ export function HeroSection() {
           {/* Trust Highlights */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-5 sm:gap-8 text-xs text-slate-500 font-medium">
             <span className="flex items-center gap-1.5">
-              <CheckCircle size={15} weight="fill" className="text-emerald-500" />
+              <CheckCircle
+                size={15}
+                weight="fill"
+                className="text-emerald-500"
+              />
               <span>No credit card required</span>
             </span>
             <span className="flex items-center gap-1.5">
@@ -107,7 +114,11 @@ export function HeroSection() {
               <span>Zero AI model training</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <CheckCircle size={15} weight="fill" className="text-emerald-500" />
+              <CheckCircle
+                size={15}
+                weight="fill"
+                className="text-emerald-500"
+              />
               <span>100% Draft-to-Output Parity</span>
             </span>
           </div>

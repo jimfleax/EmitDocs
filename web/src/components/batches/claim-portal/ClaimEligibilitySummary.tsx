@@ -49,7 +49,9 @@ export function ClaimEligibilitySummary({
           <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100 font-mono">
             {snapshotTotal.toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-500 block">Total approved recipients</span>
+          <span className="text-[11px] text-slate-500 block">
+            Total approved recipients
+          </span>
         </div>
 
         {/* Eligible */}
@@ -63,16 +65,20 @@ export function ClaimEligibilitySummary({
           <div className="text-xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono">
             {eligibleCount.toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-500 block">Ready to claim</span>
+          <span className="text-[11px] text-slate-500 block">
+            Ready to claim
+          </span>
         </div>
 
         {/* Excluded */}
-        <div className={cn(
-          "p-4 rounded-2xl border shadow-2xs space-y-1.5",
-          excludedCount > 0
-            ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60"
-            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-        )}>
+        <div
+          className={cn(
+            "p-4 rounded-2xl border shadow-2xs space-y-1.5",
+            excludedCount > 0
+              ? "bg-amber-50/50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/60"
+              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800",
+          )}
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600">
               Excluded
@@ -82,16 +88,20 @@ export function ClaimEligibilitySummary({
           <div className="text-xl font-extrabold text-amber-700 dark:text-amber-400 font-mono">
             {excludedCount.toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-500 block">Missing credentials</span>
+          <span className="text-[11px] text-slate-500 block">
+            Missing credentials
+          </span>
         </div>
 
         {/* Missing Outputs */}
-        <div className={cn(
-          "p-4 rounded-2xl border shadow-2xs space-y-1.5",
-          missingOutputCount > 0
-            ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60"
-            : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
-        )}>
+        <div
+          className={cn(
+            "p-4 rounded-2xl border shadow-2xs space-y-1.5",
+            missingOutputCount > 0
+              ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/60"
+              : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800",
+          )}
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-bold uppercase tracking-wider text-rose-600">
               Missing Outputs
@@ -101,7 +111,9 @@ export function ClaimEligibilitySummary({
           <div className="text-xl font-extrabold text-rose-700 dark:text-rose-400 font-mono">
             {missingOutputCount.toLocaleString()}
           </div>
-          <span className="text-[11px] text-slate-500 block">Pending generation</span>
+          <span className="text-[11px] text-slate-500 block">
+            Pending generation
+          </span>
         </div>
       </div>
 

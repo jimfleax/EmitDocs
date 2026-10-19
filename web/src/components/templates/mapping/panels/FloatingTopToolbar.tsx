@@ -714,7 +714,9 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
                 <span className="flex items-center gap-1 px-2 py-0.5 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 text-slate-700 rounded-md font-mono text-[10px] font-bold shrink-0 transition-all select-none cursor-default">
                   <span
                     className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-                      saveSuccessMessage ? "bg-emerald-500 animate-pulse" : "bg-blue-500"
+                      saveSuccessMessage
+                        ? "bg-emerald-500 animate-pulse"
+                        : "bg-blue-500"
                     }`}
                   />
                   v{versionNumber}
@@ -812,7 +814,11 @@ const FloatingTopToolbarComponent: React.FC<FloatingTopToolbarProps> = ({
         {/* Floating Success Notification Pill when saved */}
         {saveSuccessMessage && !isDrawerOpen && (
           <div className="mt-2 px-3.5 py-1 bg-emerald-600/95 backdrop-blur-md text-white border border-emerald-400/80 rounded-full shadow-lg text-xs font-medium flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 duration-200 select-none">
-            <CheckCircle size={14} weight="fill" className="text-white shrink-0" />
+            <CheckCircle
+              size={14}
+              weight="fill"
+              className="text-white shrink-0"
+            />
             <span>{saveSuccessMessage}</span>
           </div>
         )}

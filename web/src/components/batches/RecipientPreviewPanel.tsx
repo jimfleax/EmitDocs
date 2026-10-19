@@ -69,7 +69,8 @@ export function RecipientPreviewPanel({
   const [dismissedRowId, setDismissedRowId] = useState<string | null>(null);
   const isOverflowDismissed =
     dismissedRowId !== null &&
-    dismissedRowId === (selectedRow?._id || selectedRow?.rowKey || "__current__");
+    dismissedRowId ===
+      (selectedRow?._id || selectedRow?.rowKey || "__current__");
 
   const pageCount = templateVersion?.pageCount || 1;
   const fieldMappings = useMemo(
@@ -242,7 +243,8 @@ export function RecipientPreviewPanel({
                   Layout Bounds Overflow:
                 </span>
                 <span className="text-amber-800 text-[11px] sm:text-xs">
-                  Field content exceeds boundaries and will be scaled or clipped.
+                  Field content exceeds boundaries and will be scaled or
+                  clipped.
                 </span>
               </div>
             </div>

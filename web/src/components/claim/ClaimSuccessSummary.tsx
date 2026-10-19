@@ -40,7 +40,11 @@ export function ClaimSuccessSummary({
             Certificate Verified
           </h3>
           <p className="text-xs text-slate-600 dark:text-slate-400">
-            Issued to <strong className="text-slate-800 dark:text-slate-200">{recipientName}</strong> for {eventLabel}
+            Issued to{" "}
+            <strong className="text-slate-800 dark:text-slate-200">
+              {recipientName}
+            </strong>{" "}
+            for {eventLabel}
           </p>
         </div>
       </div>
@@ -49,7 +53,8 @@ export function ClaimSuccessSummary({
         <div className="flex items-center gap-1.5 text-[11px] text-slate-500 pt-1 border-t border-emerald-200/50 dark:border-emerald-900/40">
           <Clock className="w-3.5 h-3.5" />
           <span>
-            Available for authorized download until {new Date(expiresAt).toLocaleDateString()}
+            Available for authorized download until{" "}
+            {new Date(expiresAt).toLocaleDateString()}
           </span>
         </div>
       )}

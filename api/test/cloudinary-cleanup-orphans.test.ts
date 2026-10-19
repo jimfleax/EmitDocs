@@ -16,10 +16,8 @@ import { ApprovedSnapshot } from '../src/models/ApprovedSnapshot.js';
 import { ApprovedRecipient } from '../src/models/ApprovedRecipient.js';
 import {
   getReferencedKeysInDatabase,
-  isAssetReferenced,
   pruneOrphanedSnapshotsAndRecipients,
   cleanupUnreferencedCloudinaryAssets,
-  deleteAssetsFromCloudinary,
 } from '../src/services/cloudinary-cleanup.js';
 
 /**

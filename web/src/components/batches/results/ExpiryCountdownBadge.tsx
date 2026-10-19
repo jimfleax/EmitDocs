@@ -91,17 +91,23 @@ export function ExpiryCountdownBadge({
       variant={expiryState.variant}
       shape="pill"
       size="sm"
-      className={cn("inline-flex items-center gap-1 font-mono tracking-tight", className)}
+      className={cn(
+        "inline-flex items-center gap-1 font-mono tracking-tight",
+        className,
+      )}
     >
-      {showIcon && (
-        expiryState.isExpired ? (
+      {showIcon &&
+        (expiryState.isExpired ? (
           <WarningCircle size={12} weight="bold" className="shrink-0" />
         ) : expiryState.variant === "warning" ? (
-          <ClockCountdown size={12} weight="bold" className="shrink-0 text-amber-600 animate-pulse" />
+          <ClockCountdown
+            size={12}
+            weight="bold"
+            className="shrink-0 text-amber-600 animate-pulse"
+          />
         ) : (
           <ClockCountdown size={12} weight="bold" className="shrink-0" />
-        )
-      )}
+        ))}
       <span>{expiryState.label}</span>
     </Badge>
   );

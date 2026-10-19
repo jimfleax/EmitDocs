@@ -61,21 +61,10 @@ const velocityOf = (hist: [number, number][]): number => {
 };
 
 export type SwipeToastVariant =
-  | "default"
-  | "success"
-  | "error"
-  | "failure"
-  | "warning"
-  | "info"
-  | "loading";
+  "default" | "success" | "error" | "failure" | "warning" | "info" | "loading";
 
 export type SwipeToastCloseReason =
-  | "timeout"
-  | "swipe"
-  | "action"
-  | "close"
-  | "escape"
-  | "programmatic";
+  "timeout" | "swipe" | "action" | "close" | "escape" | "programmatic";
 
 export interface ToastVariantConfig {
   background: string;
@@ -283,7 +272,9 @@ export default function SwipeToast({
   });
   const lastInput = useRef<"pointer" | "keyboard">("pointer");
   const pendingClose = useRef<SwipeToastCloseReason | null>(null);
-  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
   const reason = useRef<SwipeToastCloseReason>("timeout");
   const leaving = useRef(false);
   const phaseRef = useRef<ToastPhase>(phase);

@@ -66,7 +66,9 @@ export interface ClaimPortalWorkspaceProps {
  * @returns {JSX.Element} Claim portal dashboard with navigation tabs wrapped in PageShell.
  */
 export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "credentials" | "preflight" | "recipients" | "settings">("overview");
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "credentials" | "preflight" | "recipients" | "settings"
+  >("overview");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -86,10 +88,14 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   // Column mapper state
   const [availableColumns, setAvailableColumns] = useState<string[]>([]);
   const [primaryFieldKey, setPrimaryFieldKey] = useState<string>("");
-  const [secondaryFieldKey, setSecondaryFieldKey] = useState<string | undefined>(undefined);
+  const [secondaryFieldKey, setSecondaryFieldKey] = useState<
+    string | undefined
+  >(undefined);
   const [strengthReport, setStrengthReport] = useState<any>(null);
   const [isSavingImport, setIsSavingImport] = useState(false);
-  const [importConfigError, setImportConfigError] = useState<string | null>(null);
+  const [importConfigError, setImportConfigError] = useState<string | null>(
+    null,
+  );
   const [weakReasons, setWeakReasons] = useState<string[]>([]);
 
   // Recipient table state
@@ -111,14 +117,18 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       setError(null);
 
       // 1. Fetch batch
-      const bRes = await fetch(`/api/batches/${batchId}`, { credentials: "include" });
+      const bRes = await fetch(`/api/batches/${batchId}`, {
+        credentials: "include",
+      });
       if (!bRes.ok) throw new Error("Failed to load batch metadata");
       const bData = await bRes.json();
       setBatch(bData.batch);
 
       // 2. Fetch or create portal
       let currentPortal: any = null;
-      const pRes = await fetch(`/api/batches/${batchId}/claim-portal`, { credentials: "include" });
+      const pRes = await fetch(`/api/batches/${batchId}/claim-portal`, {
+        credentials: "include",
+      });
       if (!pRes.ok) {
         throw new Error("Failed to load claim portal");
       }
@@ -129,7 +139,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ label: bData.batch.name || "Certificate Claim Portal" }),
+          body: JSON.stringify({
+            label: bData.batch.name || "Certificate Claim Portal",
+          }),
         });
         if (!createRes.ok) throw new Error("Failed to initialize portal");
         const createData = await createRes.json();
@@ -149,8 +161,12 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       // 3. Fetch preflight & analytics if portal exists
       if (currentPortal?._id) {
         const [preRes, anRes] = await Promise.all([
-          fetch(`/api/claim-portals/${currentPortal._id}/preflight`, { credentials: "include" }),
-          fetch(`/api/claim-portals/${currentPortal._id}/analytics`, { credentials: "include" }),
+          fetch(`/api/claim-portals/${currentPortal._id}/preflight`, {
+            credentials: "include",
+          }),
+          fetch(`/api/claim-portals/${currentPortal._id}/analytics`, {
+            credentials: "include",
+          }),
         ]);
         if (preRes.ok) {
           const preData = await preRes.json();
@@ -171,7 +187,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
           const raw = anData.analytics || anData;
           setAnalytics({
             totalEligible: Number(raw.totalEligible ?? 0),
-            uniqueClaimedCount: Number(raw.claimedCount ?? raw.uniqueClaimedCount ?? 0),
+            uniqueClaimedCount: Number(
+              raw.claimedCount ?? raw.uniqueClaimedCount ?? 0,
+            ),
             unclaimedCount: Number(raw.unclaimedCount ?? 0),
             claimRatePercent: Number(raw.claimRatePercent ?? 0),
           });
@@ -179,11 +197,16 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       }
 
       // 4. Sample columns from snapshot
-      const snapRes = await fetch(`/api/batches/${batchId}/snapshot/recipients?page=1&limit=1`, { credentials: "include" });
+      const snapRes = await fetch(
+        `/api/batches/${batchId}/snapshot/recipients?page=1&limit=1`,
+        { credentials: "include" },
+      );
       if (snapRes.ok) {
         const snapData = await snapRes.json();
         if (snapData.recipients && snapData.recipients[0]?.effectiveData) {
-          setAvailableColumns(Object.keys(snapData.recipients[0].effectiveData));
+          setAvailableColumns(
+            Object.keys(snapData.recipients[0].effectiveData),
+          );
         }
       }
     } catch (err: any) {
@@ -194,7 +217,15 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   }, [batchId]);
 
   useEffect(() => {
-    void loadData();
+    let ignore = false;
+    const run = async () => {
+      await loadData();
+      if (ignore) return;
+    };
+    void run();
+    return () => {
+      ignore = true;
+    };
   }, [loadData]);
 
   // Load recipients
@@ -208,17 +239,32 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
         search: recSearch,
         status: recStatusFilter,
       });
-      const res = await fetch(`/api/claim-portals/${portalId}/recipients?${q}`, { credentials: "include" });
+      const res = await fetch(
+        `/api/claim-portals/${portalId}/recipients?${q}`,
+        { credentials: "include" },
+      );
       if (res.ok) {
         const data = await res.json();
         const mapped = (data.items || []).map((item: any) => {
-          const rec = typeof item.recipientId === "object" && item.recipientId !== null ? item.recipientId : {};
+          const rec =
+            typeof item.recipientId === "object" && item.recipientId !== null
+              ? item.recipientId
+              : {};
           const eff = rec.effectiveData || {};
-          const recipientId = rec._id || (typeof item.recipientId === "string" ? item.recipientId : item._id);
+          const recipientId =
+            rec._id ||
+            (typeof item.recipientId === "string"
+              ? item.recipientId
+              : item._id);
           return {
             _id: String(recipientId),
             recipientKey: rec.recipientKey || eff.recipientKey || "",
-            name: eff.name || eff.fullName || eff.recipientName || rec.name || "Participant",
+            name:
+              eff.name ||
+              eff.fullName ||
+              eff.recipientName ||
+              rec.name ||
+              "Participant",
             email: eff.email || eff.emailAddress || rec.email || "",
             status: item.status,
             firstClaimAt: item.firstClaimAt,
@@ -234,13 +280,21 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   }, [portalId, recPage, recSearch, recStatusFilter]);
 
   useEffect(() => {
+    let ignore = false;
     if (activeTab === "recipients") {
-      void loadRecipients();
+      const run = async () => {
+        await loadRecipients();
+        if (ignore) return;
+      };
+      void run();
     }
+    return () => {
+      ignore = true;
+    };
   }, [activeTab, loadRecipients]);
 
   const fatalBlockers = (preflight?.blockers || []).filter(
-    (b: string) => !/missing generated certificate outputs/i.test(b)
+    (b: string) => !/missing generated certificate outputs/i.test(b),
   );
   const hasFatalBlockers = fatalBlockers.length > 0;
   const missingOutputCount = preflight?.missingOutputCount || 0;
@@ -257,7 +311,10 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || err.message || "Activation failed");
     }
-    toast.success("Portal Activated", "Participants can now access the portal.");
+    toast.success(
+      "Portal Activated",
+      "Participants can now access the portal.",
+    );
     await loadData();
   };
 
@@ -267,7 +324,10 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       setIsActivating(true);
       await handleActivate(ackExclusions);
     } catch (err: any) {
-      toast.error("Activation Failed", err?.message || "Failed to activate claim portal");
+      toast.error(
+        "Activation Failed",
+        err?.message || "Failed to activate claim portal",
+      );
     } finally {
       setIsActivating(false);
     }
@@ -287,38 +347,53 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   };
 
   const handlePause = async () => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/pause`, { method: "POST", credentials: "include" });
+    const res = await fetch(`/api/claim-portals/${portal._id}/pause`, {
+      method: "POST",
+      credentials: "include",
+    });
     if (!res.ok) throw new Error("Pause failed");
     toast.info("Portal Paused", "Public claims halted.");
     await loadData();
   };
 
   const handleResume = async () => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/resume`, { method: "POST", credentials: "include" });
+    const res = await fetch(`/api/claim-portals/${portal._id}/resume`, {
+      method: "POST",
+      credentials: "include",
+    });
     if (!res.ok) throw new Error("Resume failed");
     toast.success("Portal Resumed", "Claims active.");
     await loadData();
   };
 
   const handleDisable = async () => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/disable`, { method: "POST", credentials: "include" });
+    const res = await fetch(`/api/claim-portals/${portal._id}/disable`, {
+      method: "POST",
+      credentials: "include",
+    });
     if (!res.ok) throw new Error("Disable failed");
     toast.warning("Portal Disabled");
     await loadData();
   };
 
   const handleClose = async () => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/close`, { method: "POST", credentials: "include" });
+    const res = await fetch(`/api/claim-portals/${portal._id}/close`, {
+      method: "POST",
+      credentials: "include",
+    });
     if (!res.ok) throw new Error("Close failed");
     toast.error("Portal Closed", "Credentials revoked.");
     await loadData();
   };
 
   const handleGenerateTokens = async () => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/credentials/generate`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const res = await fetch(
+      `/api/claim-portals/${portal._id}/credentials/generate`,
+      {
+        method: "POST",
+        credentials: "include",
+      },
+    );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || err.message || "Failed to generate tokens");
@@ -329,25 +404,33 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
   };
 
   const handleAcknowledgeExport = async (revision: number) => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/credentials/export-ack`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ revision }),
-    });
+    const res = await fetch(
+      `/api/claim-portals/${portal._id}/credentials/export-ack`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ revision }),
+      },
+    );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      throw new Error(err.error || err.message || "Failed to acknowledge export");
+      throw new Error(
+        err.error || err.message || "Failed to acknowledge export",
+      );
     }
     setCredentialSetStatus("ready");
     await loadData();
   };
 
   const handleRevokeRecipient = async (recipientId: string) => {
-    const res = await fetch(`/api/claim-portals/${portal._id}/recipients/${recipientId}/revoke`, {
-      method: "POST",
-      credentials: "include",
-    });
+    const res = await fetch(
+      `/api/claim-portals/${portal._id}/recipients/${recipientId}/revoke`,
+      {
+        method: "POST",
+        credentials: "include",
+      },
+    );
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.error || err.message || "Revocation failed");
@@ -362,22 +445,30 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
       setIsSavingImport(true);
       setImportConfigError(null);
       setWeakReasons([]);
-      const res = await fetch(`/api/claim-portals/${portal._id}/credentials/import-config`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-          primaryFieldKey,
-          secondaryFieldKey: secondaryFieldKey || undefined,
-        }),
-      });
+      const res = await fetch(
+        `/api/claim-portals/${portal._id}/credentials/import-config`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            primaryFieldKey,
+            secondaryFieldKey: secondaryFieldKey || undefined,
+          }),
+        },
+      );
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        if (res.status === 400 && (err.code === "WEAK_CREDENTIAL" || err.reasons)) {
+        if (
+          res.status === 400 &&
+          (err.code === "WEAK_CREDENTIAL" || err.reasons)
+        ) {
           const reasons = Array.isArray(err.reasons) ? err.reasons : [];
           setWeakReasons(reasons);
-          setImportConfigError(err.error || "Weak credential: secondary factor required");
+          setImportConfigError(
+            err.error || "Weak credential: secondary factor required",
+          );
           setStrengthReport({
             strong: false,
             reason: err.error,
@@ -386,13 +477,22 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
           return;
         }
         if (res.status === 409) {
-          setImportConfigError(err.error || "Duplicate credential collisions detected");
+          setImportConfigError(
+            err.error || "Duplicate credential collisions detected",
+          );
           return;
         }
-        throw new Error(err.error || err.message || "Failed to configure imported credentials");
+        throw new Error(
+          err.error ||
+            err.message ||
+            "Failed to configure imported credentials",
+        );
       }
 
-      toast.success("Credential Mapping Saved", "Imported credentials configured successfully.");
+      toast.success(
+        "Credential Mapping Saved",
+        "Imported credentials configured successfully.",
+      );
       await loadData();
     } catch (err: any) {
       setImportConfigError(err.message || "Failed to configure credentials");
@@ -432,7 +532,8 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
                 Portal is Ready to Launch
               </span>
               <span className="text-blue-700 dark:text-blue-300 block">
-                Your credentials have been set up. Click Activate Portal to make this link live for participants.
+                Your credentials have been set up. Click Activate Portal to make
+                this link live for participants.
               </span>
             </div>
             <Button
@@ -441,15 +542,29 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
               disabled={isActivating || hasFatalBlockers}
               className="text-xs font-bold gap-1.5 bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
             >
-              {isActivating ? <Spinner size="sm" /> : <ShieldCheck className="w-4 h-4" />}
-              <span>{isActivating ? "Activating..." : "Activate Portal Now"}</span>
+              {isActivating ? (
+                <Spinner size="sm" />
+              ) : (
+                <ShieldCheck className="w-4 h-4" />
+              )}
+              <span>
+                {isActivating ? "Activating..." : "Activate Portal Now"}
+              </span>
             </Button>
           </div>
         )}
 
         {/* Tab Navigation */}
         <div className="flex border-b border-slate-200 dark:border-slate-800 gap-2">
-          {(["overview", "credentials", "preflight", "recipients", "settings"] as const).map((tab) => (
+          {(
+            [
+              "overview",
+              "credentials",
+              "preflight",
+              "recipients",
+              "settings",
+            ] as const
+          ).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -553,7 +668,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
                   hasSecondaryField={!!secondaryFieldKey}
                 />
                 {preflight?.duplicateCollisions && (
-                  <DuplicateCredentialTable collisions={preflight.duplicateCollisions} />
+                  <DuplicateCredentialTable
+                    collisions={preflight.duplicateCollisions}
+                  />
                 )}
               </div>
             )}
@@ -571,7 +688,9 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
               isReady={preflight?.isReady ?? false}
             />
             {preflight?.excludedRecipients && (
-              <ExcludedRecipientReviewTable excludedRecipients={preflight.excludedRecipients} />
+              <ExcludedRecipientReviewTable
+                excludedRecipients={preflight.excludedRecipients}
+              />
             )}
             {portal && (
               <ClaimPortalLifecycleControls
@@ -580,7 +699,8 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
                 hasBlockers={(preflight?.blockers?.length ?? 0) > 0}
                 missingOutputCount={preflight?.missingOutputCount || 0}
                 fatalBlockers={(preflight?.blockers || []).filter(
-                  (b: string) => !/missing generated certificate outputs/i.test(b)
+                  (b: string) =>
+                    !/missing generated certificate outputs/i.test(b),
                 )}
                 onActivate={handleActivate}
                 onPause={handlePause}
@@ -624,12 +744,15 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
           open={rotationDialogOpen}
           onOpenChange={setRotationDialogOpen}
           onConfirm={async () => {
-            const res = await fetch(`/api/claim-portals/${portal._id}/credentials/rotate`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              credentials: "include",
-              body: JSON.stringify({ mode: "generated_token" }),
-            });
+            const res = await fetch(
+              `/api/claim-portals/${portal._id}/credentials/rotate`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ mode: "generated_token" }),
+              },
+            );
             if (!res.ok) throw new Error("Rotation failed");
             toast.success("Tokens Rotated", "Old credentials invalidated.");
             setCredentialSetStatus("preparing");
@@ -644,14 +767,20 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
             onOpenChange={(open) => !open && setModeSwitchTarget(null)}
             targetMode={modeSwitchTarget}
             onConfirm={async () => {
-              const res = await fetch(`/api/claim-portals/${portal._id}/credentials/rotate`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({ mode: modeSwitchTarget }),
-              });
+              const res = await fetch(
+                `/api/claim-portals/${portal._id}/credentials/rotate`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({ mode: modeSwitchTarget }),
+                },
+              );
               if (!res.ok) throw new Error("Mode switch failed");
-              toast.success("Mode Switched", "Portal paused for configuration.");
+              toast.success(
+                "Mode Switched",
+                "Portal paused for configuration.",
+              );
               setModeSwitchTarget(null);
               setCredentialSetStatus("preparing");
               await loadData();
@@ -660,24 +789,35 @@ export function ClaimPortalWorkspace({ batchId }: ClaimPortalWorkspaceProps) {
         )}
 
         {/* Acknowledge Missing Outputs Dialog */}
-        <Dialog open={ackExclusionsModalOpen} onOpenChange={setAckExclusionsModalOpen}>
+        <Dialog
+          open={ackExclusionsModalOpen}
+          onOpenChange={setAckExclusionsModalOpen}
+        >
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Activate Portal with Dynamic Generation?</DialogTitle>
+              <DialogTitle>
+                Activate Portal with Dynamic Generation?
+              </DialogTitle>
               <DialogDescription className="space-y-2 pt-1 text-xs">
                 <p>
-                  <strong>{missingOutputCount} recipient(s)</strong> do not have pre-generated certificate output files.
+                  <strong>{missingOutputCount} recipient(s)</strong> do not have
+                  pre-generated certificate output files.
                 </p>
                 <p>
-                  EmitDocs will synthesize valid certificates on-demand when recipients complete their claim.
+                  EmitDocs will synthesize valid certificates on-demand when
+                  recipients complete their claim.
                 </p>
                 <p>
-                  Proceeding will publish this portal and allow participants with valid credentials to claim their certificates.
+                  Proceeding will publish this portal and allow participants
+                  with valid credentials to claim their certificates.
                 </p>
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setAckExclusionsModalOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setAckExclusionsModalOpen(false)}
+              >
                 Cancel
               </Button>
               <Button

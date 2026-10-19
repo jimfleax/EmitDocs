@@ -482,7 +482,11 @@ export function TemplateLibrary() {
             {cascadeWarning && (
               <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
                 <div className="flex items-center gap-2 text-amber-900 text-xs font-bold">
-                  <Warning size={16} weight="bold" className="text-amber-600 shrink-0" />
+                  <Warning
+                    size={16}
+                    weight="bold"
+                    className="text-amber-600 shrink-0"
+                  />
                   <span>Orphaned Batches Warning</span>
                 </div>
                 <p className="text-xs text-amber-800 leading-relaxed">
@@ -492,10 +496,14 @@ export function TemplateLibrary() {
                     {cascadeWarning.batches.map((b) => b.name).join(", ")}
                   </span>
                   . Deleting this template will also{" "}
-                  <strong>permanently delete all associated batches and draft records</strong>.
+                  <strong>
+                    permanently delete all associated batches and draft records
+                  </strong>
+                  .
                 </p>
                 <p className="text-xs font-semibold text-amber-900">
-                  Do you want to proceed and delete the template along with these batches?
+                  Do you want to proceed and delete the template along with
+                  these batches?
                 </p>
               </div>
             )}
@@ -514,7 +522,9 @@ export function TemplateLibrary() {
               </button>
               <button
                 type="button"
-                onClick={() => confirmDelete(deleteTarget._id, Boolean(cascadeWarning))}
+                onClick={() =>
+                  confirmDelete(deleteTarget._id, Boolean(cascadeWarning))
+                }
                 disabled={isDeleting}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition-colors cursor-pointer disabled:opacity-50"
               >

@@ -80,14 +80,21 @@ export function StreamingZipControls({
 
   // Active base name is customName if provided, otherwise defaultSlug
   const activeBaseName = customName.trim() || defaultSlug;
-  const isCustomized = Boolean(customName.trim() && customName.trim() !== defaultSlug);
+  const isCustomized = Boolean(
+    customName.trim() && customName.trim() !== defaultSlug,
+  );
 
   // Derive volume boundaries strictly from stable inputs (template size, field count)
   // so generatedMap changes cannot shift startIndex or endIndex across part downloads.
   const volumes = useMemo(() => {
-    return calculateBatchVolumes(totalRecipients, activeBaseName, basePdfBytesLength, {
-      fieldCount,
-    });
+    return calculateBatchVolumes(
+      totalRecipients,
+      activeBaseName,
+      basePdfBytesLength,
+      {
+        fieldCount,
+      },
+    );
   }, [totalRecipients, activeBaseName, basePdfBytesLength, fieldCount]);
 
   const totalEstimatedBytes = useMemo(() => {
@@ -158,8 +165,8 @@ export function StreamingZipControls({
         {/* Global Summary Badges */}
         <div className="flex items-center gap-2">
           <Badge variant="neutral" size="sm" mono>
-            <HardDrives className="w-3.5 h-3.5 mr-1 text-slate-400" />
-            ~{formatBytes(totalEstimatedBytes)}
+            <HardDrives className="w-3.5 h-3.5 mr-1 text-slate-400" />~
+            {formatBytes(totalEstimatedBytes)}
           </Badge>
           <Badge variant="primary" size="sm" mono>
             {totalRecipients.toLocaleString()} docs
@@ -211,7 +218,9 @@ export function StreamingZipControls({
           ) : (
             <div className="flex items-center gap-1.5 min-w-0">
               <span className="text-xs font-mono font-medium text-slate-700 dark:text-slate-300 truncate">
-                {isMultiVolume ? `${activeBaseName}_part-X.zip` : volumes[0].filename}
+                {isMultiVolume
+                  ? `${activeBaseName}_part-X.zip`
+                  : volumes[0].filename}
               </span>
               <Tooltip content="Edit filename" side="top">
                 <button
@@ -269,9 +278,13 @@ export function StreamingZipControls({
             <VolumeSplitCard
               key={vol.volumeIndex}
               volume={vol}
-              isCurrentZipping={isZipping && currentZippingVolume === vol.volumeIndex}
+              isCurrentZipping={
+                isZipping && currentZippingVolume === vol.volumeIndex
+              }
               isAnyZipping={isZipping}
-              currentPercent={currentZippingVolume === vol.volumeIndex ? currentZipPercent : 0}
+              currentPercent={
+                currentZippingVolume === vol.volumeIndex ? currentZipPercent : 0
+              }
               onDownload={onDownloadVolume}
               disabled={disabled}
             />

@@ -69,4 +69,3 @@ export interface TemplateData {
   currentVersionId: string;
   createdAt: string;
 }
-

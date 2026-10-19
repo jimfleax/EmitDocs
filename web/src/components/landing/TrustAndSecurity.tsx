@@ -64,10 +64,14 @@ export function TrustAndSecurity() {
           </div>
           <h2 className="text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
             Privacy by design. <br />
-            <span className="text-blue-600">Trust earned through architecture.</span>
+            <span className="text-blue-600">
+              Trust earned through architecture.
+            </span>
           </h2>
           <p className="text-base sm:text-lg text-slate-600 leading-relaxed">
-            Organizations and educators process confidential records. EmitDocs enforces strict tenant isolation, ephemeral storage, and comprehensive compliance.
+            Organizations and educators process confidential records. EmitDocs
+            enforces strict tenant isolation, ephemeral storage, and
+            comprehensive compliance.
           </p>
         </div>
 
@@ -97,7 +101,11 @@ export function TrustAndSecurity() {
               </div>
 
               <div className="pt-4 border-t border-slate-100 flex items-center text-xs text-slate-500 font-medium">
-                <CheckCircle size={14} weight="fill" className="text-emerald-500 mr-1.5" />
+                <CheckCircle
+                  size={14}
+                  weight="fill"
+                  className="text-emerald-500 mr-1.5"
+                />
                 <span>Audited in official documentation</span>
               </div>
             </div>
@@ -111,7 +119,8 @@ export function TrustAndSecurity() {
               Read our full Privacy Policy &amp; Security Addendum
             </h4>
             <p className="text-xs sm:text-sm text-slate-500">
-              Includes our vetted subprocessor directory, retention state machines, and Data Protection Officer contacts.
+              Includes our vetted subprocessor directory, retention state
+              machines, and Data Protection Officer contacts.
             </p>
           </div>
           <div className="flex items-center gap-3 shrink-0">
