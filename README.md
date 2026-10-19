@@ -550,42 +550,6 @@ Managed centrally by [`web/src/lib/batch-navigation.ts`](web/src/lib/batch-navig
 
 ---
 
-## Release Boundary & Roadmap
-
-### 1. Private Pilot Gates
-The initial rollout of EmitDocs is gated exclusively for a closed Private Pilot cohort of verified event organizers and educators. The entry criteria to the private pilot are:
-- Closed cohort testing under controlled volumes.
-- Verified organizers with manually provisioned or pre-screened accounts.
-- Local and staging proof before any production access.
-- Direct operational monitoring and correlation-traced feedback.
-
-### 2. ₹0 Public Hosting Blocker
-Open public registration and unmoderated production hosting are strictly blocked until zero-cost public hosting constraints are formally certified.
-- **Hosting Blocker**: Open self-registration and public internet launch are blocked until zero-cost SLA/egress guarantees (Vercel serverless + Cloudinary free tier + Atlas M0) are certified.
-- EmitDocs operates on a free-tier hosting topology: Vercel serverless execution, Cloudinary free media tier (25GB storage / net credits), and MongoDB Atlas M0 free cluster.
-- Open public self-registration without strict volume throttling or bot mitigation risks exhausting free-tier quotas and incurring cloud overages.
-- Until resource ceilings, rate limiting, and zero-cost SLA guarantees are formally audited under production load, public self-signup remains disabled.
-
-### 3. Core Operational Invariants in Pilot
-- **Web Worker Rendering**: 100% of bulk PDF personalization and multi-volume ZIP creation occurs client-side in browser Web Workers.
-- **Zero Recipient Cloud Storage**: Recipient PDFs are never stored in Cloudinary or MongoDB.
-- **5,000 Row Intake Cap**: Hard limit of 5,000 rows per batch import (`MAX_BATCH_ROWS = 5000`).
-- **15MB Template Size Cap**: Base PDF templates cannot exceed 15MB.
-- **500MB Storage Quota Guard**: Tenant template storage is capped at 500MB.
-- **Locked Email Dispatch Kill Switch**: Email dispatch is hard-disabled for this release (`ENABLE_EMAIL_DISPATCH = false`).
-
-### 4. Pilot Testing Instructions
-To execute the comprehensive pilot readiness acceptance matrix:
-```bash
-pnpm run test:core10
-```
-To check for OpenAPI contract drift against client types:
-```bash
-pnpm run contract:check
-```
-
----
-
 ## Comprehensive Documentation Index
 
 All primary architectural decisions, domain models, specifications, and operational guides are documented in the [`docs/`](docs/) directory:
